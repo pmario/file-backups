@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tiddlywikis location</title>
+  <style>
+    body: { padding: 10px; }
+	table {
+		border-top: 1px solid black;
+	}
+
+  </style>
+</head>
+
+<body>
+	
+
+<div >
+ <p>Enable for a once a day backup with date appended to the name.<br>
+ Optional may be overwritten once an hour.</p></div>
+<table><tbody>
+<tr>
+	<td align="right"><label for="backup">enable backups:</label></td>
+	<td align="left"><input type="checkbox" id="backup"></td>
+</tr>
+<tr>
+	<td align="right"><label for="backupdir">Subfolder for backups tiddlywikis:</label></td>
+	<td align="left"><input id="backupdir" type="text" value=""/></td>
+</tr>
+<tr>
+	<td align="right">backup period: </td>
+	<td align="left"><select id="period">
+		<option value="day">day</option>
+		<option value="hour">hour</option>
+	</select></td>
+</tr>
+<tr>
+	<td align="left"><button id="save"><h2>Save</h2></button></td>
+	<td align="left"></td>
+</tr>
+</tbody></table>
+
+
+
+
+<h2 id="status"></h2>
+
+   <script src="index.js"></script>
+</body>
+</html>
