@@ -1597,7 +1597,6 @@ const posix = {
 posix.win32 = win32.win32 = win32;
 posix.posix = win32.posix = posix;
 
-
 // add process.platform check if used with browser web extensions
 
 //if (process.platform === 'win32')

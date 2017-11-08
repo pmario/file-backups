@@ -1,8 +1,27 @@
 "use strict";
 
-const path = require("path");
-
+// At the moment it always returns win32
+// startup() function needs to fix this
+const tempPath = require("../libs/path");
 const actions = require("./page-actions");
+
+var path;
+
+function getOsInfo(cb) {
+    chrome.runtime.getPlatformInfo( function(info) {
+        cb(info);
+    })
+};
+
+
+getOsInfo( function(info) {
+    if (info.os === "win") {
+        path = tempPath;
+    }
+    else {
+        path = tempPath.posix;
+    }
+});
 
 /*
 When first loaded, initialize the page action for all tabs.
@@ -25,7 +44,11 @@ browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
 /*
 Toggle CSS when the page action is clicked.
 */
-browser.pageAction.onClicked.addListener(actions.toggleCSS);
+browser.pageAction.onClicked.addListener( (tab) => {
+    actions.toggleCSS(tab);
+    getOsInfo((info)=>{console.log("info: ", info)});
+});
+
 
 /*
 const leftPad = require("left-pad");
@@ -37,36 +60,50 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 */
 
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    var x; 
     console.log("at the back got message.twdl");
     //show the choose file dialogue when tw not under 'tiddlywikilocations'
+
+    var test = path.parse(message.path);
+    var rel = path.relative(path.parse(message.path).dir, "Downloads");
+
+    message.twdl = true;
+
     if (!message.twdl) {
-        x = chrome.downloads.download({
+        chrome.downloads.download({
             url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
             filename: path.basename(message.path),
             conflictAction: 'overwrite'
 //            saveAs : true
         });
-        console.log("x: ", x);
     } else { 
         chrome.downloads.download({
             url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
-            filename: 'tiddlywikilocations/'+message.path,
+            filename: path.basename(message.path),
             conflictAction: 'overwrite'
-        });
+        }, (itemId)=>{chrome.downloads.search({id:itemId}, (results)=>{
+            // check relative path
+            console.log(results);
+            console.log(path.relative(results[0].filename, path.parse(message.path).dir));
+
+            sendResponse({ relPath : path.relative(results[0].filename, path.parse(message.path).dir)});
+        })});
     }
     //once a day backup 
+/*
     chrome.storage.local.get({backupdir:"backupfiles",[message.path]:null}, function(items) {
-        if ((new Date()).toISOString().slice(0,10) !== items[message.path]) {
-            var bkdate = (new Date()).toISOString().slice(0,10);
-            chrome.downloads.download({
-                    url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
-                    filename: 'tiddlywikilocations/'+items.backupdir+'/'+message.path.replace(new RegExp('.{' + message.path.lastIndexOf(".")  + '}'), '$&' + bkdate),
-                    conflictAction: 'overwrite'
-                });
-            chrome.storage.local.set({
-            [message.path] : bkdate
-            })
-        }
+        var counter = items[message.path];
+        var bkdate = (new Date()).toISOString().slice(0,10);
+
+        chrome.downloads.download({
+                url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
+                filename: path.join(items.backupdir, 'asdf.' + bkdate + ".html"),
+                conflictAction: 'overwrite'
+            });
+
+        chrome.storage.local.set({[message.path] : counter})
     });
+*/
+    // sendResponse will be async
+    return true;
 });
+

@@ -20,45 +20,48 @@ function injectMessageBox(doc) {
     }
     // Attach the event handler to the message box
     messageBox.addEventListener("tiddlyfox-save-file",function(event) {
+        var path;
         // Get the details from the message
         var message = event.target,
-            path = Xpath.basename(message.getAttribute("data-tiddlyfox-path")),
+            path = message.getAttribute("data-tiddlyfox-path"),
             content = message.getAttribute("data-tiddlyfox-content");
-        // Save the file
-        saveFile(path,content);
-        // Remove the message element from the message box
-        message.parentNode.removeChild(message);
-        // Send a confirmation message
 
-        var event1 =doc.createEvent("Events");
-        event1.initEvent("tiddlyfox-have-saved-file",true,false);
-        event1.savedFilePath = path;
-        message.dispatchEvent(event1);
+        // Save the file
+        saveFile(path,content,cb);
+
+        // using it that way allows us to establishe a 2 way communication between
+        // bg and tiddlyFox saver, within TW, in a backwards compatible way.
+
+        function cb(diff) {
+            // Remove the message element from the message box
+            message.parentNode.removeChild(message);
+
+            // Send a confirmation message
+            var event1 = doc.createEvent("Events");
+            message.setAttribute("data-diff-dir", diff);
+            event1.initEvent("tiddlyfox-have-saved-file",true,false);
+            message.dispatchEvent(event1);
+        }
         return false;
     },false);
 }
 
-function saveFile(filePath,content) {
+function saveFile(filePath,content,cb) {
     var tiddlywikilocations = "/";
     
-    var msg = {}, 
-        path, 
-        firstloc = filePath.indexOf("/"+tiddlywikilocations+"/");
+    var msg = {};
+    var diff;
+
     // Save the file
     try {
-        if (firstloc === -1) {
-            alert("file not in a sudir to "+tiddlywikilocations+", it will be saved to the download dir");
-            path = filePath.split("/");
-            msg.path = path[path.length-1];
-//            msg.twdl = true;
-        }
-        else {
-            msg.path = filePath.slice(firstloc+tiddlywikilocations.length + "//".length);
+            msg.path = filePath;
             msg.twdl = true;
-        }
-        msg.txt = content;
-        console.log("from cs: we are inside downloads at "+msg.path);
-        chrome.runtime.sendMessage(msg);
+            msg.txt = content;
+            console.log("from cs: we are inside downloads at: " + msg.path);
+            chrome.runtime.sendMessage(msg, (bgResponse) => {console.log("CS response: ", bgResponse);
+                                                                diff = bgResponse.relPath;
+                                                                cb(diff);
+                                                            });
         return true;
     } catch(ex) {
         alert(ex);
