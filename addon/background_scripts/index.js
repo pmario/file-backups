@@ -1814,26 +1814,56 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     var test = path.parse(message.path);
     var rel = path.relative(path.parse(message.path).dir, "Downloads");
 
-    message.twdl = true;
+    if (message.subdir) {
+        var test = path.join(message.subdir, path.basename(message.path));
 
-    if (!message.twdl) {
+        // needed, for a roundtrip, to set up the right save directory.
         chrome.downloads.download({
             url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
-            filename: path.basename(message.path),
+            filename: path.join(message.subdir, path.basename(message.path)),
             conflictAction: 'overwrite'
-//            saveAs : true
-        });
-    } else { 
-        chrome.downloads.download({
-            url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
-            filename: path.basename(message.path),
-            conflictAction: 'overwrite'
-        }, (itemId)=>{chrome.downloads.search({id:itemId}, (results)=>{
+//            saveAs: true
+        }, (itemId) => {chrome.downloads.search({id:itemId}, (results)=>{
+            let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
             // check relative path
             console.log(results);
-            console.log(path.relative(results[0].filename, path.parse(message.path).dir));
+            var x = path.parse(relPath);
+            var y = relPath.split(path.sep);
 
-            sendResponse({ relPath : path.relative(results[0].filename, path.parse(message.path).dir)});
+            y.shift(); // remove the ".."
+
+            if (y[0] === "..") {
+                var z = ""; // problem .. path not valid
+            }
+            else {
+                z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+            }
+
+            sendResponse({ relPath : z});
+        })});
+    } else {
+        chrome.downloads.download({
+            url: URL.createObjectURL(new Blob([message.txt], {type: 'text/plain'})),
+            filename: path.basename(message.path),
+            conflictAction: 'uniquify'
+        }, (itemId) => {chrome.downloads.search({id:itemId}, (results)=>{
+            let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
+            // check relative path
+            console.log(results);
+
+            var x = path.parse(relPath);
+            var y = relPath.split(path.sep);
+
+            y.shift(); // remove the ".."
+
+            if (y[0] === "..") {
+                var z = ""; // problem .. path not valid
+            }
+            else {
+                z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+            }
+
+            sendResponse({ relPath : z});
         })});
     }
     //once a day backup 
