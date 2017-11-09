@@ -1,11 +1,36 @@
 'use strict';
 
 const CSS = "body { border: 20px solid red; }";
-const TITLE_APPLY = "Apply CSS";
-const TITLE_REMOVE = "Remove CSS";
+const TITLE_APPLY = "Enable Backups";
+const TITLE_REMOVE = "Disable Backups";
 const APPLICABLE_PROTOCOLS = ["file:"];
 
 const pageActions = {
+
+    toggleEnableBackups: function toggleBackups(tab) {
+
+      function gotTitle(title) {
+        if (title === TITLE_APPLY) {
+          browser.pageAction.setIcon({tabId: tab.id, path: "icons/download.svg"});
+          browser.pageAction.setTitle({tabId: tab.id, title: TITLE_REMOVE});
+
+            chrome.storage.local.set({
+                backupEnabled: true
+            });
+
+        } else {
+          browser.pageAction.setIcon({tabId: tab.id, path: "icons/spiral.svg"});
+          browser.pageAction.setTitle({tabId: tab.id, title: TITLE_APPLY});
+            chrome.storage.local.set({
+                backupEnabled: false
+            });
+        }
+      }
+
+      var gettingTitle = browser.pageAction.getTitle({tabId: tab.id});
+      gettingTitle.then(gotTitle);
+    },
+
     /*
     Toggle CSS: based on the current title, insert or remove the CSS.
     Update the page action's title and icon to reflect its state.
