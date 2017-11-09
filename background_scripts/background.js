@@ -36,11 +36,17 @@ gettingAllTabs.then((tabs) => {
   }
 });
 
+browser.tabs.onActivated.addListener((tab) => {
+    actions.updatePageAction(tab);
+//    console.log("activated:", tab)
+});
+
 /*
 Each time a tab is updated, reset the page action for that tab.
 */
-chrome.tabs.onUpdated.addListener((id, changeInfo, tab) => {
-  actions.initializePageAction(tab);
+browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
+  actions.updatePageAction(tab);
+//  console.log("update triggered:", tab)
 });
 
 /*
@@ -51,13 +57,31 @@ browser.pageAction.onClicked.addListener( (tab) => {
     // getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
 });
 
+/*
+// The sequence can be calculated like this:
+// seq = 2^set−1 + j * 2^set, j = 0, 1, 2, 3, 4
 
+console.clear();
+
+var max = 2;
+var set = 11;
+
+for (var j = 0; j < 12; j++) {
+    var seq = Math.pow(2,set-1) + j * Math.pow(2,set);
+    console.log(seq);
+}
+// File 11 -> seq: 1024, 3072, 5120, 7168, ...
+// File 5 -> 16, 48, 80, 112, ..
+*/
+
+
+// Find file index, if counter is known.
 function getNextChar(count, max) {
     var char = "a";
     var cnt  = count - max;
 
     if (count <= max) {
-        char = "-" + String.fromCharCode(64 + count);
+        char = String.fromCharCode(64 + count);
     } else {
         for (var i = 0; i < max; i++) {
             if ((cnt - Math.pow(2,i) ) % Math.pow(2,i+1) === 0) {
@@ -77,7 +101,7 @@ function createBackup(message) {
         var backupEnabled = items.backupEnabled || false,
             backupdir = items.backupdir || BACKUP_DIR,
             counter = items[message.path] || 1,
-            max = items.noOfBackups || 4,
+            max = items.noOfBackups || 5,
             nextChar = getNextChar(counter,max);
 
         // imo this won't happen, but who knows.

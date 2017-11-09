@@ -7,13 +7,13 @@
         "32": "icons/diamond-32.png"
     },
     "browser_action": {
-        "default_icon": "icons/diamond-32.png",
+        "default_icon": "icons/diamond-64.png",
         "default_title": "TiddlyBackup",
         "default_popup": "popup/popup.html",
         "browser_style": true
     },
     "page_action": {
-        "default_icon": "icons/spiral.svg",
+        "default_icon": "icons/spiral_gray.svg",
         "browser_style": true
     },
 

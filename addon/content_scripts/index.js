@@ -99,17 +99,18 @@ function injectMessageBox(doc) {
         var message = event.target,
             path = message.getAttribute("data-tiddlyfox-path"),
             content = message.getAttribute("data-tiddlyfox-content"),
-            subdir = message.parentNode.getAttribute("data-downloads-subdir");
+            subdir = message.parentNode.getAttribute("data-downloads-subdir"),
+            backupdir = message.parentNode.getAttribute("data-downloads-backupdir");
 
         // Save the file
-        saveFile(path,content,subdir,cb);
+        saveFile(path,content,subdir,backupdir,cb);
 
         // using it that way, allows us to establishe a 2 way communication between
         // bg and tiddlyFox saver, within TW, in a backwards compatible way.
-        function cb(diff) {
+        function cb(dds) {
             // Send a confirmation message
             var event1 = doc.createEvent("Events");
-            message.parentNode.setAttribute("data-downloads-subdir", diff);
+            message.parentNode.setAttribute("data-downloads-subdir", dds);
             event1.initEvent("tiddlyfox-have-saved-file",true,false);
             message.dispatchEvent(event1);
             // Remove the message element from the message box
@@ -119,7 +120,7 @@ function injectMessageBox(doc) {
     },false);
 }
 
-function saveFile(filePath,content,subdir,cb) {
+function saveFile(filePath,content,subdir,backupdir,cb) {
     var msg = {};
     var diff;
 
@@ -127,10 +128,11 @@ function saveFile(filePath,content,subdir,cb) {
     try {
             msg.path = filePath;
             msg.subdir = subdir;
+            msg.backupdir = backupdir;
             msg.txt = content;
             console.log("from cs: we are inside downloads at: " + msg.path);
-            chrome.runtime.sendMessage(msg, (bgResponse) => {console.log("CS response: ", bgResponse);
-                                                                diff = bgResponse.relPath;
+            chrome.runtime.sendMessage(msg, (bgResponse) => { console.log("CS response: ", bgResponse);
+                                                                var diff = bgResponse.relPath;
                                                                 cb(diff);
                                                             });
         return true;
