@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -196,7 +196,7 @@ module.exports = pageActions;
 "use strict";
 
 
-const process = __webpack_require__(5);
+const process = __webpack_require__(4);
 
 function assertPath(path) {
   if (typeof path !== 'string') {
@@ -1805,8 +1805,7 @@ posix.posix = win32.posix = posix;
 
 
 /***/ }),
-/* 2 */,
-/* 3 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2021,8 +2020,8 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 
 /***/ }),
-/* 4 */,
-/* 5 */
+/* 3 */,
+/* 4 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser

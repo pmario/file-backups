@@ -4,7 +4,7 @@ module.exports = {
 	entry: {
 		background_scripts: "./background_scripts/background.js",
 		content_scripts: "./content_scripts/ContentScript.js",
-		popup: "./popup/left-pad.js",
+		popup: "./popup/main-popup.js",
 		settings: "./settings/settings.js"
 	},
 	output: {

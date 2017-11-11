@@ -17,7 +17,7 @@ function save_options() {
 // Restores select box and text fields
 function restore_options() {
 	chrome.storage.local.get({
-		backupdir: "backupdir",
+		backupdir: "tsBackup",
 		backupEnabled: false
 	}, function (items) {
 		document.getElementById('backupdir').value = items.backupdir;

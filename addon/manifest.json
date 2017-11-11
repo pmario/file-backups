@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
-    "name": "TiddyBackup POC",
-    "version": "0.0.1",
+    "name": "File Backups POC",
+    "version": "0.0.3",
     "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
     "icons": {
         "32": "icons/diamond-32.png"
@@ -22,7 +22,7 @@
     },
     "options_ui": {
         "page": "settings/settings.html",
-        "chrome_style": true
+        "chrome_style": false
     },
     "content_scripts" : [
         {

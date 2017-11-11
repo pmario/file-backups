@@ -56,6 +56,11 @@ browser.pageAction.onClicked.addListener((tab) => {
 	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
 });
 
+browser.pageAction.onmessage.addListener((tab) => {
+	actions.toggleEnableBackups(tab);
+	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
+});
+
 /*
 // The sequence can be calculated like this:
 // seq = 2^set−1 + j * 2^set, j = 0, 1, 2, 3, 4
@@ -136,11 +141,16 @@ function createBackup(message) {
 
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log("at the back got message.twdl");
+	console.log("bg got message:", message);
+
+	if (message.msg === "updateBackupEnabled") {
+
+	}
+
 	//show the choose file dialogue when tw not under 'tiddlywikilocations'
 	var allowBackup = false;
 	var test = path.parse(message.path);
-	var rel = path.relative(path.parse(message.path).dir, "Downloads");
+	var rel = path.relative(path.parse(message.path).dir, "Downloads");""
 
 	if (message.subdir) {
 		var test = path.join(message.subdir, path.basename(message.path));

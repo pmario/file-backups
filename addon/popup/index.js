@@ -63,97 +63,88 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 6);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 2:
+/***/ 5:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* This program is free software. It comes without any warranty, to
-     * the extent permitted by applicable law. You can redistribute it
-     * and/or modify it under the terms of the Do What The Fuck You Want
-     * To Public License, Version 2, as published by Sam Hocevar. See
-     * http://www.wtfpl.net/ for more details. */
 
-module.exports = leftPad;
 
-var cache = [
-  '',
-  ' ',
-  '  ',
-  '   ',
-  '    ',
-  '     ',
-  '      ',
-  '       ',
-  '        ',
-  '         '
-];
+/*
+const tempPath = require("../libs/path");
+var path;
 
-function leftPad (str, len, ch) {
-  // convert `str` to `string`
-  str = str + '';
-  // `len` is the `pad`'s length now
-  len = len - str.length;
-  // doesn't need to pad
-  if (len <= 0) return str;
-  // `ch` defaults to `' '`
-  if (!ch && ch !== 0) ch = ' ';
-  // convert `ch` to `string`
-  ch = ch + '';
-  // cache common use cases
-  if (ch === ' ' && len < 10) return cache[len] + str;
-  // `pad` starts with an empty string
-  var pad = '';
-  // loop
-  while (true) {
-    // add `ch` to `pad` if `len` is odd
-    if (len & 1) pad += ch;
-    // divide `len` by 2, ditch the remainder
-    len >>= 1;
-    // "double" the `ch` so this operation count grows logarithmically on `len`
-    // each time `ch` is "doubled", the `len` would need to be "doubled" too
-    // similar to finding a value in binary search tree, hence O(log(n))
-    if (len) ch += ch;
-    // `len` is 0, exit the loop
-    else break;
-  }
-  // pad `str`!
-  return pad + str;
+function getOsInfo(cb) {
+	chrome.runtime.getPlatformInfo(function (info) {
+		cb(info);
+	})
+};
+
+getOsInfo(function (info) {
+	if (info.os === "win") {
+		path = tempPath;
+	} else {
+		path = tempPath.posix;
+	}
+});
+*/
+
+var backupdirNode;
+var backupEnabledNode;
+var amountNode;
+var counterNode;
+
+
+function restore_options() {
+
+	backupdirNode = document.getElementById("backupdir");
+	backupEnabledNode = document.getElementById("backupenabled");
+	amountNode = document.getElementById("amount");
+//	counterNode = document.getElementById("counter");
+
+
+	function onError(items) {}
+
+	function onGotStore(items) {
+		backupdirNode.value = items.backupdir || "tsBackup";
+		backupEnabledNode.checked = items.backupEnabled || false;
+//		counterNode.value = items.counter || 0;
+		amountNode.value = items.numberOfBackups || 5;
+
+		console.log("options item:", items)
+	};
+
+	let gettingItem = browser.storage.local.get();
+	gettingItem.then(onGotStore, onError);
 }
 
+document.addEventListener('DOMContentLoaded', restore_options);
 
-/***/ }),
+document.getElementById("backup-form").addEventListener("submit", (e) => {
 
-/***/ 6:
-/***/ (function(module, exports, __webpack_require__) {
+	browser.storage.local.set( {
+		backupdir: backupdirNode.value,
+		backupEnabled: backupEnabledNode.checked,
+		numberOfBackups : amountNode.valueAsNumber
+		});
 
-const leftPad = __webpack_require__(2);
-
-const resultNode = document.getElementById("result");
-const textNode = document.getElementById("text");
-const amountNode = document.getElementById("amount");
-const withNode = document.getElementById("with");
-
-document.getElementById("leftpad-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    console.log("padding");
-    resultNode.value = leftPad(textNode.value, amountNode.valueAsNumber, withNode.value);
+	console.log("submit OK:", e);
+	e.preventDefault();
+	window.close()
 }, false);
 
-document.getElementById("pad-bg").addEventListener("click", (e) => {
-    var sendingMessage = browser.runtime.sendMessage({
-        text: textNode.value,
-        amount: amountNode.valueAsNumber,
-        with: withNode.value
-    });
-    sendingMessage.then((result) => {
-      resultNode.value = result;
-    });
+document.getElementById("form-bg").addEventListener("click", (e) => {
+	chrome.runtime.sendMessage({
+		msg: "updateBackupEnabled",
+//		backupdir: backupdirNode.value,
+		backupEnabledNode: backupEnabledNode.checked//,
+//		counter: counterNode.valueAsNumber,
+//		amount: amountNode.valueAsNumber
+	});
 });
 
 
