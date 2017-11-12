@@ -36,7 +36,10 @@ gettingAllTabs.then((tabs) => {
 });
 
 browser.tabs.onActivated.addListener((tab) => {
-	actions.updatePageAction(tab);
+	var x = tab
+	x.id = tab.tabId;
+
+	actions.updatePageAction(x);
 	//    console.log("activated:", tab)
 });
 
@@ -44,6 +47,9 @@ browser.tabs.onActivated.addListener((tab) => {
 Each time a tab is updated, reset the page action for that tab.
 */
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
+	var x = tab;
+	x.id = tab.tabId;
+
 	actions.updatePageAction(tab);
 	//  console.log("update triggered:", tab)
 });
@@ -56,10 +62,6 @@ browser.pageAction.onClicked.addListener((tab) => {
 	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
 });
 
-browser.pageAction.onmessage.addListener((tab) => {
-	actions.toggleEnableBackups(tab);
-	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
-});
 
 /*
 // The sequence can be calculated like this:
@@ -143,14 +145,33 @@ function createBackup(message) {
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 	console.log("bg got message:", message);
 
-	if (message.msg === "updateBackupEnabled") {
+	function updateTab(tabs) {
+		var items = {
+			backupEnabled: message.backupEnabled
+		};
 
+		if (tabs.length > 0) {
+			actions.messageUpdatePageAction(tabs[0], message);
+		}
+	}
+
+	function onError(error) {
+		console.log(`Error: ${error}`);
+	}
+
+	if (message.msg === "updateBackupEnabled") {
+		var gettingActive = browser.tabs.query({
+			currentWindow: true,
+			active: true
+		});
+		gettingActive.then(updateTab, onError);
 	}
 
 	//show the choose file dialogue when tw not under 'tiddlywikilocations'
 	var allowBackup = false;
 	var test = path.parse(message.path);
-	var rel = path.relative(path.parse(message.path).dir, "Downloads");""
+	var rel = path.relative(path.parse(message.path).dir, "Downloads");
+	""
 
 	if (message.subdir) {
 		var test = path.join(message.subdir, path.basename(message.path));
@@ -209,7 +230,19 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				sendResponse({
 					relPath: z
 				});
+
+				notify(z);
+
 			})
+		});
+	}
+
+
+	function notify() {
+		browser.notifications.create({
+			"type": "basic",
+			"title": "Saved file as uniqe file to default 'Downloads' directory!",
+			"message": `TEST TEST !!!!!!!!!!!!!!!!!!!`
 		});
 	}
 

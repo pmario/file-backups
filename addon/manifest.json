@@ -40,6 +40,7 @@
         "tabs",
         "storage" ,
         "downloads",
+		"notifications",
         "<all_urls>"
     ]
 }

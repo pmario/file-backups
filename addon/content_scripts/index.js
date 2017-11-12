@@ -99,8 +99,8 @@ function injectMessageBox(doc) {
 		var message = event.target,
 			path = message.getAttribute("data-tiddlyfox-path"),
 			content = message.getAttribute("data-tiddlyfox-content"),
-			subdir = message.parentNode.getAttribute("data-downloads-subdir"),
-			backupdir = message.parentNode.getAttribute("data-downloads-backupdir");
+			subdir = message.getAttribute("data-tiddlyfox-subdir"),
+			backupdir = message.getAttribute("data-tiddlyfox-backupdir");
 
 		// Save the file
 		saveFile(path, content, subdir, backupdir, cb);
@@ -110,11 +110,11 @@ function injectMessageBox(doc) {
 		function cb(dds) {
 			// Send a confirmation message
 			var event1 = doc.createEvent("Events");
-			message.parentNode.setAttribute("data-downloads-subdir", dds);
+			message.setAttribute("data-tiddlyfox-subdir", dds);
+			// Remove content element from the message box, to reduce size
+			message.setAttribute("data-tiddlyfox-content","");
 			event1.initEvent("tiddlyfox-have-saved-file", true, false);
 			message.dispatchEvent(event1);
-			// Remove the message element from the message box
-			message.parentNode.removeChild(message);
 		}
 		return false;
 	}, false);

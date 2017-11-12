@@ -62,10 +62,11 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 	e.preventDefault();
 
 	// TODO change to function and browser.runtime ...
+	// !!!!! use storage items object structure
 	chrome.runtime.sendMessage({
 		msg: "updateBackupEnabled",
 //		backupdir: backupdirNode.value,
-		backupEnabledNode: backupEnabledNode.checked//,
+		backupEnabled: backupEnabledNode.checked//,
 //		counter: counterNode.valueAsNumber,
 //		amount: amountNode.valueAsNumber
 	});

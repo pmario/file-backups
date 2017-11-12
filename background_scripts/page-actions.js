@@ -16,7 +16,6 @@ function protocolIsApplicable(url) {
 const pageActions = {
 
 	toggleEnableBackups: function (tab) {
-
 		function gotTitle(title) {
 			if (title === TITLE_APPLY) {
 				browser.pageAction.setIcon({
@@ -53,8 +52,28 @@ const pageActions = {
 		}
 	},
 
+	messageUpdatePageAction: function (tab, items) {
+		var icon, title;
+		if (items.backupEnabled) {
+			icon = "icons/download.svg";
+			title = TITLE_REMOVE;
+		} else {
+			icon = "icons/spiral.svg"
+			title = TITLE_REMOVE
+		}
+		browser.pageAction.setIcon({
+			tabId: tab.id,
+			path: icon
+		});
+		browser.pageAction.setTitle({
+			tabId: tab.id,
+			title: title
+		});
+		browser.pageAction.show(tab.id);
+	},
+
 	/*
-	Initialize the page action: set icon and title, then show.
+	Update the page action: set icon and title, then show.
 	Only operates on tabs whose URL's protocol is applicable.
 	*/
 	updatePageAction: function (tab) {
@@ -70,14 +89,14 @@ const pageActions = {
 				title = TITLE_REMOVE
 			}
 			browser.pageAction.setIcon({
-				tabId: tab.tabId,
+				tabId: tab.id,
 				path: icon
 			});
 			browser.pageAction.setTitle({
-				tabId: tab.tabId,
+				tabId: tab.id,
 				title: title
 			});
-			browser.pageAction.show(tab.tabId);
+			browser.pageAction.show(tab.id);
 		};
 
 		function gotTabInfo(tab) {
@@ -87,9 +106,8 @@ const pageActions = {
 			} else browser.pageAction.hide(tab.id);
 		}
 
-		var gettingTitle = browser.tabs.get(tab.tabId);
+		var gettingTitle = browser.tabs.get(tab.id);
 		gettingTitle.then(gotTabInfo);
-
 	},
 
 	/*

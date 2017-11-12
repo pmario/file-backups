@@ -89,7 +89,6 @@ function protocolIsApplicable(url) {
 const pageActions = {
 
 	toggleEnableBackups: function (tab) {
-
 		function gotTitle(title) {
 			if (title === TITLE_APPLY) {
 				browser.pageAction.setIcon({
@@ -126,8 +125,28 @@ const pageActions = {
 		}
 	},
 
+	messageUpdatePageAction: function (tab, items) {
+		var icon, title;
+		if (items.backupEnabled) {
+			icon = "icons/download.svg";
+			title = TITLE_REMOVE;
+		} else {
+			icon = "icons/spiral.svg"
+			title = TITLE_REMOVE
+		}
+		browser.pageAction.setIcon({
+			tabId: tab.id,
+			path: icon
+		});
+		browser.pageAction.setTitle({
+			tabId: tab.id,
+			title: title
+		});
+		browser.pageAction.show(tab.id);
+	},
+
 	/*
-	Initialize the page action: set icon and title, then show.
+	Update the page action: set icon and title, then show.
 	Only operates on tabs whose URL's protocol is applicable.
 	*/
 	updatePageAction: function (tab) {
@@ -143,14 +162,14 @@ const pageActions = {
 				title = TITLE_REMOVE
 			}
 			browser.pageAction.setIcon({
-				tabId: tab.tabId,
+				tabId: tab.id,
 				path: icon
 			});
 			browser.pageAction.setTitle({
-				tabId: tab.tabId,
+				tabId: tab.id,
 				title: title
 			});
-			browser.pageAction.show(tab.tabId);
+			browser.pageAction.show(tab.id);
 		};
 
 		function gotTabInfo(tab) {
@@ -160,9 +179,8 @@ const pageActions = {
 			} else browser.pageAction.hide(tab.id);
 		}
 
-		var gettingTitle = browser.tabs.get(tab.tabId);
+		var gettingTitle = browser.tabs.get(tab.id);
 		gettingTitle.then(gotTabInfo);
-
 	},
 
 	/*
@@ -1847,7 +1865,10 @@ gettingAllTabs.then((tabs) => {
 });
 
 browser.tabs.onActivated.addListener((tab) => {
-	actions.updatePageAction(tab);
+	var x = tab
+	x.id = tab.tabId;
+
+	actions.updatePageAction(x);
 	//    console.log("activated:", tab)
 });
 
@@ -1855,6 +1876,9 @@ browser.tabs.onActivated.addListener((tab) => {
 Each time a tab is updated, reset the page action for that tab.
 */
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
+	var x = tab;
+	x.id = tab.tabId;
+
 	actions.updatePageAction(tab);
 	//  console.log("update triggered:", tab)
 });
@@ -1866,6 +1890,7 @@ browser.pageAction.onClicked.addListener((tab) => {
 	actions.toggleEnableBackups(tab);
 	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
 });
+
 
 /*
 // The sequence can be calculated like this:
@@ -1947,11 +1972,35 @@ function createBackup(message) {
 
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log("at the back got message.twdl");
+	console.log("bg got message:", message);
+
+	function updateTab(tabs) {
+		var items = {
+			backupEnabled: message.backupEnabled
+		};
+
+		if (tabs.length > 0) {
+			actions.messageUpdatePageAction(tabs[0], message);
+		}
+	}
+
+	function onError(error) {
+		console.log(`Error: ${error}`);
+	}
+
+	if (message.msg === "updateBackupEnabled") {
+		var gettingActive = browser.tabs.query({
+			currentWindow: true,
+			active: true
+		});
+		gettingActive.then(updateTab, onError);
+	}
+
 	//show the choose file dialogue when tw not under 'tiddlywikilocations'
 	var allowBackup = false;
 	var test = path.parse(message.path);
 	var rel = path.relative(path.parse(message.path).dir, "Downloads");
+	""
 
 	if (message.subdir) {
 		var test = path.join(message.subdir, path.basename(message.path));
@@ -2010,7 +2059,19 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				sendResponse({
 					relPath: z
 				});
+
+				notify(z);
+
 			})
+		});
+	}
+
+
+	function notify() {
+		browser.notifications.create({
+			"type": "basic",
+			"title": "Saved file as uniqe file to default 'Downloads' directory!",
+			"message": `TEST TEST !!!!!!!!!!!!!!!!!!!`
 		});
 	}
 
