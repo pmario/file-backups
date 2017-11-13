@@ -1,3 +1,7 @@
+# Beta
+
+This FireFox AddOn is considered BETA quality. 
+
 # File Backup Utility - for TiddlyWiki (atm)
 
 This addOn should give you the possibility to save "file-based" TiddlyWikis, to your browser backup directory.
@@ -6,8 +10,8 @@ This addOn should work with browsers, that support web-extensions. Tested with F
 
 ## Restrictions
 
-Due to incresed security concerns, browser all major vendors limit the directories, where addOns have write access.
-So this addOn can only write to the users downloads folder eg: `C:\Users\<name>\Downloads`  and its subdirectories. 
+Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.
+So this addOn can only write to the users downloads folder eg: `C:\Users\<name>\Downloads` **and its subdirectories**.
 
 So you can have the following construction: 
 
@@ -49,11 +53,13 @@ As you can see:
  - C 8th
  - D 16th ... 
  
-The gneric order is: 2<sup>n-1</sup>.
+The gneric order is: 2<sup> n-1</sup>.
 
-So files can be restored from 1, 2, 4, 8, 16, ...,2<sup>n-1</sup> saves ago!
+Files can be restored from 1, 2, 4, 8, 16, ..., 2<sup> n-1</sup> saves ago!
 
-So working with 11 files will give you 1024 saves. Eg: If you save your file 2 times per minute for 8 hours, you'll not be able to overwrite K. Because it is save #1024 ... 
+Working with 11 files will result in 512 saves, before K is overwritten the first time. Then it will need another 1024 saves until it is overwritten again.
+
+Eg: If you save your file 2 times per minute for 8 hours, you'll not be able to overwrite K again. Because it is save #1024 and 2 * 60 * 8 = **960**.
 
 ## Modification to the Algorithm
 
@@ -62,6 +68,10 @@ The described mechanism has a "flaw", if we want a "per save" rotation. File "D"
 - Populate A, B, C, D ... then
 - Start with the described rotation schema
 
+Which will result in a slightly better recovery coverage.
+
 ## License
 
-TODO
+Copyright Mario Pietsch 2017
+
+CC-BY-NC-SA ... https://creativecommons.org/licenses/by-nc-sa/4.0
