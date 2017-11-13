@@ -56,19 +56,25 @@ function injectMessageBox(doc) {
 		// Get the details from the message
 		var message = event.target,
 			subdir = message.parentNode.getAttribute("data-tiddlyfox-subdir"), // <-- see parentNode
+			saveas = message.parentNode.getAttribute("data-tiddlyfox-saveas"), // <-- see parentNode
 			path = message.getAttribute("data-tiddlyfox-path"),
 			content = message.getAttribute("data-tiddlyfox-content"),
 			backupdir = message.getAttribute("data-tiddlyfox-backupdir");
 
 		// Save the file
-		saveFile(path, content, subdir, backupdir, cb);
+		saveFile(path, content, subdir, backupdir, saveas, cb);
 
 		// using it that way, allows us to establishe a 2 way communication between
 		// bg and tiddlyFox saver, within TW, in a backwards compatible way.
-		function cb(dds) {
+		function cb(response) {
 			// Send a confirmation message
+			if (response.relPath === "") {
+				alert("The file can't be saved to:" + path + "\nYou need to use your download directory!");
+				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
+			} else message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
+
 			var event1 = doc.createEvent("Events");
-			message.parentNode.setAttribute("data-tiddlyfox-subdir", dds);
+			message.parentNode.setAttribute("data-tiddlyfox-subdir", response.subdir || "");
 			event1.initEvent("tiddlyfox-have-saved-file", true, false);
 			message.dispatchEvent(event1);
 
@@ -79,7 +85,7 @@ function injectMessageBox(doc) {
 	}, false);
 }
 
-function saveFile(filePath, content, subdir, backupdir, cb) {
+function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 	var msg = {};
 	var diff;
 
@@ -87,13 +93,14 @@ function saveFile(filePath, content, subdir, backupdir, cb) {
 	try {
 		msg.path = filePath;
 		msg.subdir = subdir;
+		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
 		console.log("from cs: we are inside downloads at: " + msg.path);
 		chrome.runtime.sendMessage(msg, (bgResponse) => {
 			console.log("CS response: ", bgResponse);
-			var diff = bgResponse.relPath;
-			cb(diff);
+//			var diff = bgResponse.relPath;
+			cb(bgResponse);
 		});
 		return true;
 	} catch (ex) {
