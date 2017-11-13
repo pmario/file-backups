@@ -256,18 +256,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					// check relative path
 					//console.log(results);
 
-					var creating = browser.tabs.create({
-						active: true,
-						url: results[0].filename
-					});
+					prepareAndOpenNewTab(message, results[0]);
 
 					sendResponse({
 						relPath: ""	// there is a problem!!
 					});
-
-
-					// TODO open in new tab
-
 
 					// Create a backup
 					//createBackup(message);
@@ -322,7 +315,33 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		}
 	});
 
+	async function prepareAndOpenNewTab(message, dlInfo, subdir) {
 
+		//TODO calculate relPath
+
+		let items, stash;
+		if (message.path === dlInfo.filename) {
+			return;
+		}
+
+		items = await browser.storage.local.get();
+		stash = new Facet(items[message.path]) || {};
+
+		if (stash.fields.subdir) {
+
+		} else {
+			await browser.storage.local.set({
+                [dlInfo.filename]: new Facet(stash, {
+					subdir: subdir
+				})
+			});
+
+			await browser.tabs.create({
+				active: true,
+				url: dlInfo.filename
+			});
+		}
+	}
 
 	function notify(savedAs, relPath) {
 		browser.notifications.create({
