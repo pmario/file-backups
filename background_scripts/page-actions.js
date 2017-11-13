@@ -1,7 +1,7 @@
 'use strict';
 
-const TITLE_APPLY = "Enable Backups";
-const TITLE_REMOVE = "Disable Backups";
+const TITLE_ENABLE = "Enable Backups";
+const TITLE_DISABLE = "Disable Backups";
 const APPLICABLE_PROTOCOLS = ["file:", "file:"];
 
 /*
@@ -17,14 +17,14 @@ const pageActions = {
 
 	toggleEnableBackups: function (tab) {
 		function gotTitle(title) {
-			if (title === TITLE_APPLY) {
+			if (title === TITLE_ENABLE) {
 				browser.pageAction.setIcon({
 					tabId: tab.id,
-					path: "icons/download.svg"
+					path: "icons/backup.svg"
 				});
 				browser.pageAction.setTitle({
 					tabId: tab.id,
-					title: TITLE_REMOVE
+					title: TITLE_DISABLE
 				});
 				chrome.storage.local.set({
 					backupEnabled: true
@@ -32,11 +32,11 @@ const pageActions = {
 			} else {
 				browser.pageAction.setIcon({
 					tabId: tab.id,
-					path: "icons/spiral.svg"
+					path: "icons/download.svg"
 				});
 				browser.pageAction.setTitle({
 					tabId: tab.id,
-					title: TITLE_APPLY
+					title: TITLE_ENABLE
 				});
 				chrome.storage.local.set({
 					backupEnabled: false
@@ -55,11 +55,11 @@ const pageActions = {
 	messageUpdatePageAction: function (tab, items) {
 		var icon, title;
 		if (items.backupEnabled) {
-			icon = "icons/download.svg";
-			title = TITLE_REMOVE;
+			icon = "icons/backup.svg";
+			title = TITLE_DISABLE;
 		} else {
-			icon = "icons/spiral.svg"
-			title = TITLE_REMOVE
+			icon = "icons/download.svg";
+			title = TITLE_ENABLE;
 		}
 		browser.pageAction.setIcon({
 			tabId: tab.id,
@@ -82,11 +82,11 @@ const pageActions = {
 		function onGotStore(items) {
 			var icon, title;
 			if (items.backupEnabled) {
-				icon = "icons/download.svg";
-				title = TITLE_REMOVE;
+				icon = "icons/backup.svg";
+				title = TITLE_DISABLE;
 			} else {
-				icon = "icons/spiral.svg"
-				title = TITLE_REMOVE
+				icon = "icons/download.svg"
+				title = TITLE_ENABLE
 			}
 			browser.pageAction.setIcon({
 				tabId: tab.id,
@@ -118,11 +118,11 @@ const pageActions = {
 		if (protocolIsApplicable(tab.url)) {
 			browser.pageAction.setIcon({
 				tabId: tab.id,
-				path: "icons/spiral.svg"
+				path: "icons/download.svg"
 			});
 			browser.pageAction.setTitle({
 				tabId: tab.id,
-				title: TITLE_APPLY
+				title: TITLE_ENABLE
 			});
 			browser.pageAction.show(tab.id);
 		} else {
