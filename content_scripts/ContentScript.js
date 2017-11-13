@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', injectMessageBox, false);
 
+// Can be found at: https://classic.TiddlyWiki.com
 function isTiddlyWikiClassicFile(doc) {
 	// Test whether the document is a TiddlyWiki (we don't have access to JS objects in it)
 	var versionArea = doc.getElementById("versionArea");
@@ -10,6 +11,7 @@ function isTiddlyWikiClassicFile(doc) {
 		(versionArea && /TiddlyWiki/.test(versionArea.text));
 }
 
+// Can be found at: https://TiddlyWiki.com
 function isTiddlyWiki5File(doc) {
 	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
 	var meta = document.getElementsByTagName("META");
