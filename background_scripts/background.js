@@ -24,6 +24,37 @@ getOsInfo(function (info) {
 	}
 });
 
+
+// Derived from the $tw.Tiddler() ... but simplified the structure
+// Facets are used to manipulate store objects.
+// usage: facet = new Facet(otherFacet, {key:value}, {});
+var Facet = function(/* [fields,] fields */) {
+	this.id = "!§$%&";
+	this.fields = Object.create(null);
+	for(var c=0; c<arguments.length; c++) {
+		var arg = arguments[c] || {},
+			src = (arg.id === "!§$%&") ? arg.fields : arg;
+		for(var t in src) {
+			if(src[t] === undefined || src[t] === null) {
+				if(t in this.fields) {
+					delete this.fields[t]; // If we get a field that's undefined, delete any previous field value
+				}
+			} else {
+				// Parse the field with the associated field module (if any)
+				var value = src[t];
+				// Freeze the field to keep it immutable
+				if(value != null && typeof value === "object") {
+					Object.freeze(value);
+				}
+				this.fields[t] = value;
+			}
+		}
+	}
+	// Freeze the tiddler against modification
+	Object.freeze(this.fields);
+	Object.freeze(this);
+};
+
 /*
 When first loaded, initialize the page action for all tabs.
 */
@@ -104,10 +135,11 @@ function getNextChar(count, max) {
 function createBackup(message) {
 	// Backup using "Tower of Hanoi" backup schema
 	chrome.storage.local.get(null, function (items) {
-		var backupEnabled = items.backupEnabled || false,
+		var stash = new Facet(items[message.path]) || {},
+			backupEnabled = items.backupEnabled || false,
 			backupdir = items.backupdir || BACKUP_DIR,
-			counter = items[message.path] || 1,
-			max = items.noOfBackups || 5,
+			counter = stash.fields.counter || 1,
+			max = stash.fields.max || 5,
 			nextChar = getNextChar(counter, max);
 
 		// imo this won't happen, but who knows.
@@ -133,9 +165,10 @@ function createBackup(message) {
 				})
 			});
 
+			// Store the config elements per tab.
 			counter = counter + 1;
 			chrome.storage.local.set({
-                [message.path]: counter
+                [message.path] : new Facet(stash, {counter: counter})
 			})
 		}
 	});
@@ -143,7 +176,7 @@ function createBackup(message) {
 
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log("bg got message:", message);
+	console.log("bg got message!");
 
 	function updateTab(tabs) {
 		var items = {
@@ -165,13 +198,13 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 			active: true
 		});
 		gettingActive.then(updateTab, onError);
+		return true;
 	}
 
 	//show the choose file dialogue when tw not under 'tiddlywikilocations'
 	var allowBackup = false;
 	var test = path.parse(message.path);
 	var rel = path.relative(path.parse(message.path).dir, "Downloads");
-	""
 
 	if (message.subdir) {
 		var test = path.join(message.subdir, path.basename(message.path));
@@ -217,8 +250,9 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 				// var x = path.parse(relPath); // for debugging only TODO remove!
 				var y = relPath.split(path.sep);
-				var z;
+				var savedAs,z;
 
+				savedAs = path.parse(results[0].filename);
 				y.shift(); // remove the ".."
 
 				if (y[0] === "..") {
@@ -231,18 +265,25 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					relPath: z
 				});
 
-				notify(z);
+				notify(savedAs,y);
 
-			})
-		});
+				// save the subdir info
+				chrome.storage.local.get(null, (items) => {
+					var stash = new Facet(items[message.path]) || {};
+					chrome.storage.local.set({
+						[message.path] : new Facet(stash, {subDir: z})
+					});
+				}); // chrome.storage.local.get()
+			}) // chrome.downloads.search()
+		}); // chrome.downloads.download()
 	}
 
 
-	function notify() {
+	function notify(savedAs,relPath) {
 		browser.notifications.create({
 			"type": "basic",
-			"title": "Saved file as uniqe file to default 'Downloads' directory!",
-			"message": `TEST TEST !!!!!!!!!!!!!!!!!!!`
+			"title": "Your file has been saved to the default 'Downloads' directory!",
+			"message": `Name: ` + savedAs.name + savedAs.ext + "-> Save Again!!"
 		});
 	}
 

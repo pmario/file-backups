@@ -110,7 +110,7 @@ function restore_options() {
 	function onError(items) {}
 
 	function onGotStore(items) {
-		backupdirNode.value = items.backupdir || "tsBackup";
+		backupdirNode.value = items.backupdir || "twBackup";
 		backupEnabledNode.checked = items.backupEnabled || false;
 //		counterNode.value = items.counter || 0;
 		amountNode.value = items.numberOfBackups || 5;

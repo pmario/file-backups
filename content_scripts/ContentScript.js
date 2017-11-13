@@ -2,14 +2,44 @@
 
 document.addEventListener('DOMContentLoaded', injectMessageBox, false);
 
-function fireContentLoadedEvent() {
-	console.log("DOMContentLoaded");
-	// PUT YOUR CODE HERE.
-	//document.body.textContent = "Changed this!";
+function isTiddlyWikiClassicFile(doc) {
+	// Test whether the document is a TiddlyWiki (we don't have access to JS objects in it)
+	var versionArea = doc.getElementById("versionArea");
+	return (doc.location.protocol === "file:") &&
+		doc.getElementById("storeArea") &&
+		(versionArea && /TiddlyWiki/.test(versionArea.text));
 }
 
+function isTiddlyWiki5File(doc) {
+	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
+	var meta = document.getElementsByTagName("META");
+	if (meta) {
+		for (let i = 0; i < meta.length; i++) {
+			if (meta[i].content === "TiddlyWiki") return (doc.location.protocol === "file:");
+		}
+	}
+	return false;
+}
+
+// We may want to have special handling for non file base stuff too!
+function isTiddlyWiki5(doc) {
+	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
+	var meta = document.getElementsByTagName("META");
+	if (meta) {
+		for (let i = 0; i < meta.length; i++) {
+			if (meta[i].content === "TiddlyWiki") return true;
+		}
+	}
+	return false;
+}
+
+// main loop
 function injectMessageBox(doc) {
 	doc = document;
+
+	// check, if we are allowed to run!!
+	if (!isTiddlyWiki5File(doc)) return;
+
 	// Inject the message box
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
 	if (!messageBox) {
@@ -23,9 +53,9 @@ function injectMessageBox(doc) {
 		var path;
 		// Get the details from the message
 		var message = event.target,
+			subdir = message.parentNode.getAttribute("data-tiddlyfox-subdir"), // <-- see parentNode
 			path = message.getAttribute("data-tiddlyfox-path"),
 			content = message.getAttribute("data-tiddlyfox-content"),
-			subdir = message.getAttribute("data-tiddlyfox-subdir"),
 			backupdir = message.getAttribute("data-tiddlyfox-backupdir");
 
 		// Save the file
@@ -36,11 +66,12 @@ function injectMessageBox(doc) {
 		function cb(dds) {
 			// Send a confirmation message
 			var event1 = doc.createEvent("Events");
-			message.setAttribute("data-tiddlyfox-subdir", dds);
-			// Remove content element from the message box, to reduce size
-			message.setAttribute("data-tiddlyfox-content","");
+			message.parentNode.setAttribute("data-tiddlyfox-subdir", dds);
 			event1.initEvent("tiddlyfox-have-saved-file", true, false);
 			message.dispatchEvent(event1);
+
+			// Remove element from the message box, to reduce DOM size
+			message.parentNode.removeChild(message);
 		}
 		return false;
 	}, false);
@@ -68,3 +99,5 @@ function saveFile(filePath, content, subdir, backupdir, cb) {
 		return false;
 	}
 }
+
+
