@@ -246,7 +246,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					type: "text/plain"
 				})),
 				filename: path.basename(message.path),
-				//conflictAction: "overwrite",
+				conflictAction: "overwrite",
 				saveAs: true
 			}, (itemId) => {
 				chrome.downloads.search({
@@ -256,11 +256,13 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					// check relative path
 					//console.log(results);
 
-					prepareAndOpenNewTab(message, results[0]);
+					prepareAndOpenNewTab(results[0]);
 
-					sendResponse({
-						relPath: ""	// there is a problem!!
-					});
+					/*
+										sendResponse({
+											relPath: "" // there is a problem!!
+										});
+					*/
 
 					// Create a backup
 					//createBackup(message);
@@ -278,6 +280,12 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					id: itemId
 				}, (results) => {
 					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					let defaultEl = path.parse(results[0].filename);
+					defaultEl.base = "";
+					defaultEl.name = "";
+					defaultEl.ext = "";
+					let defaultDir = path.format(defaultEl);
+
 					let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
 					// check relative path
 					//console.log(results);
@@ -305,6 +313,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					chrome.storage.local.get(null, (items) => {
 						var stash = new Facet(items[message.path]) || {};
 						chrome.storage.local.set({
+							defaultDir: defaultDir,
 						[message.path]: new Facet(stash, {
 								subdir: z
 							})
@@ -315,28 +324,39 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		}
 	});
 
-	async function prepareAndOpenNewTab(message, dlInfo, subdir) {
+	function timeout(ms) {
+		return new Promise(resolve => setTimeout(resolve, ms));
+	}
 
-		//TODO calculate relPath
+	async function prepareAndOpenNewTab(dlInfo) {
+		let items = await browser.storage.local.get();
+		let stash = new Facet(items[dlInfo.filename]) || {};
 
-		let items, stash;
-		if (message.path === dlInfo.filename) {
-			return;
+		let elem = path.parse(dlInfo.filename);
+		elem.base = "";
+		elem.name = "";
+		elem.ext = "";
+		let newDir = path.format(elem);
+
+		let rel = path.relative(items.defaultDir, newDir);
+
+		if (rel === "") {
+			rel = "." + path.sep;
 		}
-
-		items = await browser.storage.local.get();
-		stash = new Facet(items[message.path]) || {};
 
 		if (stash.fields.subdir) {
 
 		} else {
 			await browser.storage.local.set({
                 [dlInfo.filename]: new Facet(stash, {
-					subdir: subdir
+					subdir: rel
 				})
 			});
 
-			await browser.tabs.create({
+			//TDOO remove this hack!!!
+			await timeout(1000);
+
+			browser.tabs.create({
 				active: true,
 				url: dlInfo.filename
 			});
