@@ -276,6 +276,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					id: itemId
 				}, (results) => {
 					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					let rejectPath = false;
 					let defaultEl = path.parse(results[0].filename);
 					defaultEl.base = "";
 					defaultEl.name = "";
@@ -286,6 +287,8 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					// check relative path
 					//console.log(results);
 
+					if (path.isAbsolute(relPath)) rejectPath = true;
+
 					// var x = path.parse(relPath); // for debugging only TODO remove!
 					var y = relPath.split(path.sep);
 					var savedAs, z;
@@ -293,7 +296,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					savedAs = path.parse(results[0].filename);
 					y.shift(); // remove the ".."
 
-					if (y[0] === "..") {
+					if (y[0] === ".." || rejectPath) {
 						z = ""; // problem .. path not valid
 					} else {
 						z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
