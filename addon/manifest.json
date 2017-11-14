@@ -6,6 +6,12 @@
 	"icons": {
 		"32": "icons/diamond-32.png"
 	},
+	"applications": {
+		"gecko": {
+			"id": "file-backups@pmario.github.io/file-backups",
+			"strict_min_version": "56.0"
+		}
+	},
 	"browser_action": {
 		"default_icon": "icons/diamond-64.png",
 		"default_title": "TiddlyBackup",
@@ -42,4 +48,5 @@
 		"downloads",
 		"notifications",
 		"<all_urls>"
-		]}
+		]
+}
