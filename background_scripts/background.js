@@ -126,7 +126,7 @@ function getNextChar(count, max) {
 		}
 		char = (char === "a") ? String.fromCharCode(64 + max) : char
 	}
-	console.log(char);
+//	console.log(char);
 	return char;
 }
 
@@ -146,7 +146,7 @@ function createBackup(message) {
 		if (backupEnabled) {
 			//            var bkdate = (new Date()).toISOString().slice(0,10);
 			var pathX = path.parse(message.path);
-			var nameX = path.join(message.subdir, backupdir, pathX.name + "(" + nextChar + ")" + pathX.ext);
+			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
 			chrome.downloads.download({
 				url: URL.createObjectURL(new Blob([message.txt], {
@@ -176,7 +176,7 @@ function createBackup(message) {
 
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log("bg got message!");
+//	console.log("bg got message!");
 
 	function updateTab(tabs) {
 		var items = {
@@ -258,12 +258,8 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 					prepareAndOpenNewTab(results[0]);
 
-					/*
-										sendResponse({
-											relPath: "" // there is a problem!!
-										});
-					*/
-
+					sendResponse({
+					});
 					// Create a backup
 					//createBackup(message);
 				})
@@ -344,23 +340,20 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 			rel = "." + path.sep;
 		}
 
-		if (stash.fields.subdir) {
+		await browser.storage.local.set({
+			[dlInfo.filename]: new Facet(stash, {
+				subdir: rel
+			})
+		});
 
-		} else {
-			await browser.storage.local.set({
-                [dlInfo.filename]: new Facet(stash, {
-					subdir: rel
-				})
-			});
+		//TDOO remove this hack!!!
+		await timeout(1000);
 
-			//TDOO remove this hack!!!
-			await timeout(1000);
+		browser.tabs.create({
+			active: true,
+			url: dlInfo.filename
+		});
 
-			browser.tabs.create({
-				active: true,
-				url: dlInfo.filename
-			});
-		}
 	}
 
 	function notify(savedAs, relPath) {

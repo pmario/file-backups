@@ -69,7 +69,7 @@ function injectMessageBox(doc) {
 		function cb(response) {
 			// Send a confirmation message
 			if (response.relPath === "") {
-				alert("The file can't be saved to:" + path + "\nYou need to use your download directory!");
+				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
 				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
 			} else message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
 
@@ -96,9 +96,8 @@ function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
-		console.log("from cs: we are inside downloads at: " + msg.path);
 		chrome.runtime.sendMessage(msg, (bgResponse) => {
-			console.log("CS response: ", bgResponse);
+//			console.log("CS response: ", bgResponse);
 //			var diff = bgResponse.relPath;
 			cb(bgResponse);
 		});
