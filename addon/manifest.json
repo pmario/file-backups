@@ -1,6 +1,6 @@
 {
     "manifest_version": 2,
-    "name": "File Backups POC",
+    "name": "File Backups",
     "version": "0.1.0",
     "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
     "icons": {
