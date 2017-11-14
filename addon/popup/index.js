@@ -115,7 +115,7 @@ function restore_options() {
 //		counterNode.value = items.counter || 0;
 		amountNode.value = items.numberOfBackups || 5;
 
-		console.log("options item:", items)
+//		console.log("options item:", items)
 	};
 
 	let gettingItem = browser.storage.local.get();
@@ -132,7 +132,7 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 		numberOfBackups : amountNode.valueAsNumber
 		});
 
-	console.log("submit OK:", e);
+//	console.log("submit OK:", e);
 	e.preventDefault();
 
 	// TODO change to function and browser.runtime ...

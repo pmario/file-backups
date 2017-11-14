@@ -1,25 +1,190 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Tiddlywikis location</title>
-  <style>
-    body: { padding: 10px; }
-	table {
-		border-top: 1px solid black;
-	}
 
-  </style>
+<head>
+	<title>Tiddlywikis location</title>
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body: {
+			font-size: 20px;
+			padding: 10px;
+		}
+
+		table {
+			width: 30em;
+			border-top: 1px solid black;
+			border-spacing: 0;
+			border-collapse: collapse;
+		}
+
+		table th,
+		table td {
+			padding: 6px 13px;
+			border: 1px solid #edf1f5;
+		}
+
+		table th {
+			font-weight: 600;
+			background-color: #f6f8fa;
+		}
+
+		table tr:nth-child(2n) {
+			background-color: #f6f8fa;
+		}
+
+	</style>
 </head>
 
 <body>
-	
-
-<div >
-	<p>TODO TODO TODO TODO TODO TODO TODO TODO <br>
-Documentation
-	</p>
-</div>
-<!-- table><tbody>
+	<h1 id="status"></h1>
+	<h1>Beta</h1>
+	<p>This FireFox AddOn is considered BETA quality. -- <strong>Backup your data!</strong><br> Report problems at: github TODO link</p>
+	<h1>File Backup Utility - for TiddlyWiki (atm)</h1>
+	<p>This addOn should give you the possibility to save "file-based" TiddlyWikis, to your browser backup directory.</p>
+	<p>This addOn should work with browsers, that support web-extensions. Tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).</p>
+	<h2>Restrictions</h2>
+	<p>Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.<br> So this addOn can only write to the users downloads folder eg: <code>C:\Users\&lt;name&gt;\Downloads</code> <strong>and its subdirectories</strong>.</p>
+	<p>So you can have the following construction:</p>
+	<ul>
+		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\todo.html</code> or</li>
+		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\notes.html</code></li>
+	</ul>
+	<h2>Backup Folder (Optional)</h2>
+	<ul>
+		<li>default: <code>twBackups</code></li>
+	</ul>
+	<p>This directory can be set globally and is relative to the wiki location. eg:</p>
+	<ul>
+		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\notes.html</code> or</li>
+		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\twBackups\notes(A).html</code></li>
+	</ul>
+	<h2>Installation</h2>
+	<p>TODO</p>
+	<h2>Backup Strategy</h2>
+	<p>The backup strategy works with a, slightly modified, "Tower of Hanoi" backup rotation strategy, which is known from tape based systems.</p>
+	<p>The following table shows the numbering system, with 4 different files.</p>
+	<table>
+		<thead>
+			<tr>
+				<th>1</th>
+				<th>2</th>
+				<th>3</th>
+				<th>4</th>
+				<th>5</th>
+				<th>6</th>
+				<th>7</th>
+				<th>8</th>
+				<th>9</th>
+				<th>10</th>
+				<th>11</th>
+				<th>12</th>
+				<th>13</th>
+				<th>14</th>
+				<th>15</th>
+				<th>16</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+				<td>A</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>B</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>B</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>B</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>B</td>
+				<td></td>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>C</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>C</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>D</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>D</td>
+			</tr>
+		</tbody>
+	</table>
+	<p>So the order will be: A, B, A, C, A, B, A, D, A, B, A, C, A, B, A, D, ...</p>
+	<p>As you can see:</p>
+	<ul>
+		<li>A will be overwritten with every 2nd save.</li>
+		<li>B will be written every 4th</li>
+		<li>C 8th</li>
+		<li>D 16th ...</li>
+	</ul>
+	<p>The gneric order is: 2<sup> n-1</sup>.</p>
+	<p>Files can be restored from 1, 2, 4, 8, 16, ..., 2<sup> n-1</sup> saves ago!</p>
+	<p>Working with 11 files will result in 512 saves, before K is overwritten the first time. Then it will need another 1024 saves until it is overwritten again.</p>
+	<p>Eg: If you save your file 2 times per minute for 8 hours, you'll not be able to overwrite K again. Because it is save <a href="https://github.com/Jermolene/TiddlyWiki5/pull/1024" class="issue-link js-issue-link" data-error-text="Failed to load issue title" data-id="47265793" data-permission-text="Issue title is private" data-url="https://github.com/Jermolene/TiddlyWiki5/issues/1024">#1024</a> and 2 * 60 * 8 = <strong>960</strong>.</p>
+	<h2>Modification to the Algorithm</h2>
+	<p>The described mechanism has a "flaw", if we want a "per save" rotation. File "D" (see table) is initialized the first time after 8 saves. So the implemented startup sequence is:</p>
+	<ul>
+		<li>Populate A, B, C, D ... then</li>
+		<li>Start with the described rotation schema</li>
+	</ul>
+	<p>Which will result in a slightly better recovery coverage.</p>
+	<h2>License</h2>
+	<p>Copyright Mario Pietsch 2017</p>
+	<p>CC-BY-NC-SA ... <a href="https://creativecommons.org/licenses/by-nc-sa/4.0">https://creativecommons.org/licenses/by-nc-sa/4.0</a></p>
+	<!-- table><tbody>
 <tr>
 	<td align="right"><label for="backup">enable backups:</label></td>
 	<td align="left"><input type="checkbox" id="backup"></td>
@@ -34,8 +199,7 @@ Documentation
 </tr>
 </tbody></table -->
 
-
-<h2 id="status"></h2>
-<script src="index.js"></script>
+	<script src="index.js"></script>
 </body>
+
 </html>

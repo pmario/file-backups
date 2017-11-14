@@ -73,8 +73,8 @@
 "use strict";
 
 
-const TITLE_APPLY = "Enable Backups";
-const TITLE_REMOVE = "Disable Backups";
+const TITLE_ENABLE = "Enable Backups";
+const TITLE_DISABLE = "Disable Backups";
 const APPLICABLE_PROTOCOLS = ["file:", "file:"];
 
 /*
@@ -90,14 +90,14 @@ const pageActions = {
 
 	toggleEnableBackups: function (tab) {
 		function gotTitle(title) {
-			if (title === TITLE_APPLY) {
+			if (title === TITLE_ENABLE) {
 				browser.pageAction.setIcon({
 					tabId: tab.id,
-					path: "icons/download.svg"
+					path: "icons/backup.svg"
 				});
 				browser.pageAction.setTitle({
 					tabId: tab.id,
-					title: TITLE_REMOVE
+					title: TITLE_DISABLE
 				});
 				chrome.storage.local.set({
 					backupEnabled: true
@@ -105,11 +105,11 @@ const pageActions = {
 			} else {
 				browser.pageAction.setIcon({
 					tabId: tab.id,
-					path: "icons/spiral.svg"
+					path: "icons/download.svg"
 				});
 				browser.pageAction.setTitle({
 					tabId: tab.id,
-					title: TITLE_APPLY
+					title: TITLE_ENABLE
 				});
 				chrome.storage.local.set({
 					backupEnabled: false
@@ -128,11 +128,11 @@ const pageActions = {
 	messageUpdatePageAction: function (tab, items) {
 		var icon, title;
 		if (items.backupEnabled) {
-			icon = "icons/download.svg";
-			title = TITLE_REMOVE;
+			icon = "icons/backup.svg";
+			title = TITLE_DISABLE;
 		} else {
-			icon = "icons/spiral.svg"
-			title = TITLE_REMOVE
+			icon = "icons/download.svg";
+			title = TITLE_ENABLE;
 		}
 		browser.pageAction.setIcon({
 			tabId: tab.id,
@@ -155,11 +155,11 @@ const pageActions = {
 		function onGotStore(items) {
 			var icon, title;
 			if (items.backupEnabled) {
-				icon = "icons/download.svg";
-				title = TITLE_REMOVE;
+				icon = "icons/backup.svg";
+				title = TITLE_DISABLE;
 			} else {
-				icon = "icons/spiral.svg"
-				title = TITLE_REMOVE
+				icon = "icons/download.svg"
+				title = TITLE_ENABLE
 			}
 			browser.pageAction.setIcon({
 				tabId: tab.id,
@@ -191,11 +191,11 @@ const pageActions = {
 		if (protocolIsApplicable(tab.url)) {
 			browser.pageAction.setIcon({
 				tabId: tab.id,
-				path: "icons/spiral.svg"
+				path: "icons/download.svg"
 			});
 			browser.pageAction.setTitle({
 				tabId: tab.id,
-				title: TITLE_APPLY
+				title: TITLE_ENABLE
 			});
 			browser.pageAction.show(tab.id);
 		} else {
@@ -1857,22 +1857,22 @@ getOsInfo(function (info) {
 // Derived from the $tw.Tiddler() ... but simplified the structure
 // Facets are used to manipulate store objects.
 // usage: facet = new Facet(otherFacet, {key:value}, {});
-var Facet = function(/* [fields,] fields */) {
+var Facet = function ( /* [fields,] fields */ ) {
 	this.id = "!§$%&";
 	this.fields = Object.create(null);
-	for(var c=0; c<arguments.length; c++) {
+	for (var c = 0; c < arguments.length; c++) {
 		var arg = arguments[c] || {},
 			src = (arg.id === "!§$%&") ? arg.fields : arg;
-		for(var t in src) {
-			if(src[t] === undefined || src[t] === null) {
-				if(t in this.fields) {
+		for (var t in src) {
+			if (src[t] === undefined || src[t] === null) {
+				if (t in this.fields) {
 					delete this.fields[t]; // If we get a field that's undefined, delete any previous field value
 				}
 			} else {
 				// Parse the field with the associated field module (if any)
 				var value = src[t];
 				// Freeze the field to keep it immutable
-				if(value != null && typeof value === "object") {
+				if (value != null && typeof value === "object") {
 					Object.freeze(value);
 				}
 				this.fields[t] = value;
@@ -1907,9 +1907,7 @@ browser.tabs.onActivated.addListener((tab) => {
 Each time a tab is updated, reset the page action for that tab.
 */
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
-	var x = tab;
-	x.id = tab.tabId;
-
+	tab.id = id;
 	actions.updatePageAction(tab);
 	//  console.log("update triggered:", tab)
 });
@@ -1957,7 +1955,7 @@ function getNextChar(count, max) {
 		}
 		char = (char === "a") ? String.fromCharCode(64 + max) : char
 	}
-	console.log(char);
+//	console.log(char);
 	return char;
 }
 
@@ -1977,7 +1975,7 @@ function createBackup(message) {
 		if (backupEnabled) {
 			//            var bkdate = (new Date()).toISOString().slice(0,10);
 			var pathX = path.parse(message.path);
-			var nameX = path.join(message.subdir, backupdir, pathX.name + "(" + nextChar + ")" + pathX.ext);
+			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
 			chrome.downloads.download({
 				url: URL.createObjectURL(new Blob([message.txt], {
@@ -1997,7 +1995,9 @@ function createBackup(message) {
 			// Store the config elements per tab.
 			counter = counter + 1;
 			chrome.storage.local.set({
-                [message.path] : new Facet(stash, {counter: counter})
+                [message.path]: new Facet(stash, {
+					counter: counter
+				})
 			})
 		}
 	});
@@ -2005,7 +2005,7 @@ function createBackup(message) {
 
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log("bg got message!");
+//	console.log("bg got message!");
 
 	function updateTab(tabs) {
 		var items = {
@@ -2030,85 +2030,162 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		return true;
 	}
 
+
 	//show the choose file dialogue when tw not under 'tiddlywikilocations'
 	var allowBackup = false;
 	var test = path.parse(message.path);
 	var rel = path.relative(path.parse(message.path).dir, "Downloads");
 
-	if (message.subdir) {
-		var test = path.join(message.subdir, path.basename(message.path));
 
-		// needed, for a roundtrip, to set up the right save directory.
-		chrome.downloads.download({
-			url: URL.createObjectURL(new Blob([message.txt], {
-				type: "text/plain"
-			})),
-			filename: path.join(message.subdir, path.basename(message.path)),
-			conflictAction: "overwrite"
-			//            saveAs: true
-		}, (itemId) => {
-			chrome.downloads.search({
-				id: itemId
-			}, (results) => {
-				// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-				// check relative path
-				//console.log(results);
-				sendResponse({
-					relPath: message.subdir
-				});
+	chrome.storage.local.get(null, function (items) {
+		let stash = new Facet(items[message.path]) || {},
+			subdir = stash.fields.subdir || null;
 
-				// Create a backup
-				createBackup(message);
-			})
-		});
-	} else {
-		chrome.downloads.download({
-			url: URL.createObjectURL(new Blob([message.txt], {
-				type: "text/plain"
-			})),
-			filename: path.basename(message.path),
-			conflictAction: "uniquify"
-		}, (itemId) => {
-			chrome.downloads.search({
-				id: itemId
-			}, (results) => {
-				// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-				let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
-				// check relative path
-				//console.log(results);
+		message.subdir = (message.subdir) ? message.subdir : (subdir) ? subdir : null;
 
-				// var x = path.parse(relPath); // for debugging only TODO remove!
-				var y = relPath.split(path.sep);
-				var savedAs,z;
+		if (message.subdir) {
+			var test = path.join(message.subdir, path.basename(message.path));
 
-				savedAs = path.parse(results[0].filename);
-				y.shift(); // remove the ".."
-
-				if (y[0] === "..") {
-					z = ""; // problem .. path not valid
-				} else {
-					z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
-				}
-
-				sendResponse({
-					relPath: z
-				});
-
-				notify(savedAs,y);
-
-				// save the subdir info
-				chrome.storage.local.get(null, (items) => {
-					var stash = new Facet(items[message.path]) || {};
-					chrome.storage.local.set({
-						[message.path] : new Facet(stash, {subDir: z})
+			// needed, for a roundtrip, to set up the right save directory.
+			chrome.downloads.download({
+				url: URL.createObjectURL(new Blob([message.txt], {
+					type: "text/plain"
+				})),
+				filename: path.join(message.subdir, path.basename(message.path)),
+				conflictAction: "overwrite"
+				//            saveAs: true
+			}, (itemId) => {
+				chrome.downloads.search({
+					id: itemId
+				}, (results) => {
+					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					// check relative path
+					//console.log(results);
+					sendResponse({
+						relPath: message.subdir
 					});
-				}); // chrome.storage.local.get()
-			}) // chrome.downloads.search()
-		}); // chrome.downloads.download()
+
+					// Create a backup
+					createBackup(message);
+				})
+			});
+		} else if (message.saveas === "yes") {
+			chrome.downloads.download({
+				url: URL.createObjectURL(new Blob([message.txt], {
+					type: "text/plain"
+				})),
+				filename: path.basename(message.path),
+				conflictAction: "overwrite",
+				saveAs: true
+			}, (itemId) => {
+				chrome.downloads.search({
+					id: itemId
+				}, (results) => {
+					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					// check relative path
+					//console.log(results);
+
+					prepareAndOpenNewTab(results[0]);
+
+					sendResponse({
+					});
+					// Create a backup
+					//createBackup(message);
+				})
+			});
+		} else {
+			chrome.downloads.download({
+				url: URL.createObjectURL(new Blob([message.txt], {
+					type: "text/plain"
+				})),
+				filename: path.basename(message.path),
+				conflictAction: "uniquify"
+			}, (itemId) => {
+				chrome.downloads.search({
+					id: itemId
+				}, (results) => {
+					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					let defaultEl = path.parse(results[0].filename);
+					defaultEl.base = "";
+					defaultEl.name = "";
+					defaultEl.ext = "";
+					let defaultDir = path.format(defaultEl);
+
+					let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
+					// check relative path
+					//console.log(results);
+
+					// var x = path.parse(relPath); // for debugging only TODO remove!
+					var y = relPath.split(path.sep);
+					var savedAs, z;
+
+					savedAs = path.parse(results[0].filename);
+					y.shift(); // remove the ".."
+
+					if (y[0] === "..") {
+						z = ""; // problem .. path not valid
+					} else {
+						z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+					}
+
+					sendResponse({
+						relPath: z
+					});
+
+					notify(savedAs, y);
+
+					// save the subdir info
+					chrome.storage.local.get(null, (items) => {
+						var stash = new Facet(items[message.path]) || {};
+						chrome.storage.local.set({
+							defaultDir: defaultDir,
+						[message.path]: new Facet(stash, {
+								subdir: z
+							})
+						});
+					}); // chrome.storage.local.get()
+				}) // chrome.downloads.search()
+			}); // chrome.downloads.download()
+		}
+	});
+
+	function timeout(ms) {
+		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
+	async function prepareAndOpenNewTab(dlInfo) {
+		let items = await browser.storage.local.get();
+		let stash = new Facet(items[dlInfo.filename]) || {};
 
-	function notify(savedAs,relPath) {
+		let elem = path.parse(dlInfo.filename);
+		elem.base = "";
+		elem.name = "";
+		elem.ext = "";
+		let newDir = path.format(elem);
+
+		let rel = path.relative(items.defaultDir, newDir);
+
+		if (rel === "") {
+			rel = "." + path.sep;
+		}
+
+		await browser.storage.local.set({
+			[dlInfo.filename]: new Facet(stash, {
+				subdir: rel
+			})
+		});
+
+		//TDOO remove this hack!!!
+		await timeout(1000);
+
+		browser.tabs.create({
+			active: true,
+			url: dlInfo.filename
+		});
+
+	}
+
+	function notify(savedAs, relPath) {
 		browser.notifications.create({
 			"type": "basic",
 			"title": "Your file has been saved to the default 'Downloads' directory!",
