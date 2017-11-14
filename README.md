@@ -8,6 +8,8 @@ This addOn should give you the possibility to save "file-based" TiddlyWikis, to 
 
 This addOn should work with browsers, that support web-extensions. Tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
 
+See the video: https://youtu.be/dt-nH9jSQ6c
+
 ## Restrictions
 
 Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.

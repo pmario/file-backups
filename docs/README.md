@@ -8,6 +8,8 @@ This addOn should give you the possibility to save "file-based" TiddlyWikis, to 
 
 This addOn should work with browsers, that support web-extensions. Tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
 
+See the video: https://youtu.be/dt-nH9jSQ6c
+
 ## Restrictions
 
 Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.
@@ -29,7 +31,9 @@ This directory can be set globally and is relative to the wiki location. eg:
 
 ## Installation
 
-TODO
+Just click this link: [file_backups-0.1.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.1/file_backups-0.1.1-an.fx-windows.xpi)
+
+Or see: https://github.com/pmario/file-backups/releases/
 
 ## Backup Strategy
 
