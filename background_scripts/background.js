@@ -269,8 +269,9 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				url: URL.createObjectURL(new Blob([message.txt], {
 					type: "text/plain"
 				})),
-				filename: path.basename(message.path),
-				conflictAction: "uniquify"
+//				filename: path.basename(message.path),
+				filename: "temp(x).html",
+				conflictAction: "overwrite"
 			}, (itemId) => {
 				chrome.downloads.search({
 					id: itemId
@@ -330,6 +331,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 	async function prepareAndOpenNewTab(dlInfo) {
 		let items = await browser.storage.local.get();
 		let stash = new Facet(items[dlInfo.filename]) || {};
+		let filename = dlInfo.filename;
 
 		let elem = path.parse(dlInfo.filename);
 		elem.base = "";
@@ -354,9 +356,8 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 		browser.tabs.create({
 			active: true,
-			url: dlInfo.filename
+			url: filename
 		});
-
 	}
 
 	function notify(savedAs, relPath) {
