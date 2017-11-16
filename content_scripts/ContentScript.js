@@ -1,5 +1,7 @@
 'use strict';
 
+const PLUGIN_NAME = "file-backups"
+
 document.addEventListener('DOMContentLoaded', injectMessageBox, false);
 
 // Can be found at: https://classic.TiddlyWiki.com
@@ -44,10 +46,21 @@ function injectMessageBox(doc) {
 
 	// Inject the message box
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
-	if (!messageBox) {
+	if(messageBox) {
+		var othersw = messageBox.getAttribute("data-message-box-creator") || null;
+		if (othersw) {
+			alert ('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
+				  'At the moment only 1 save mechanism can be active at once.\n' +
+				  'We will temporarily deactivate the functionality, until the problem is resolved!');
+			return;
+		} else {
+			messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
+		}
+	} else {
 		messageBox = doc.createElement("div");
 		messageBox.id = "tiddlyfox-message-box";
 		messageBox.style.display = "none";
+		messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
 		doc.body.appendChild(messageBox);
 	}
 	// Attach the event handler to the message box
