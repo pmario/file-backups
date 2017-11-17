@@ -1,73 +1,78 @@
 # Beta
 
-This FireFox AddOn is considered BETA quality. 
+This FireFox AddOn is considered BETA quality.
 
-# File Backup Utility - for TiddlyWiki (atm)
+# File Backup Utility For TiddlyWiki
 
-This addOn should give you the possibility to save "file-based" TiddlyWikis, to your browser backup directory.
+## Introduction
+This browser add on is designed to let you easily save and backup TiddlyWikis.  It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at [Getting Started With TiddlyWiki](https://tiddlywiki.com/#GettingStarted).
 
-This addOn should work with browsers, that support web-extensions. Tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
+This add on should work with any browser that supports web-extensions. 
+So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
 
-See the video: https://youtu.be/dt-nH9jSQ6c
+For an overview of this add on please see the introduction video: https://youtu.be/dt-nH9jSQ6c
 
-## Restrictions
+## File Storage Locations
 
-Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.
-So this addOn can only write to the users downloads folder eg: `C:\Users\<name>\Downloads` **and its subdirectories**.
+### Main File Limitations
 
-So you can have the following construction: 
+To help keep you secure, most modern browsers limit writing files to only a few locations.
+
+This means this add on can only write to your downloads folder **and its subdirectories**.
+
+For example on Windows 7 or newer, it's usually `C:\Users\<name>\Downloads` 
+
+It's a good idea to keep your TiddlyWiki in it's own subfolder. So, you'll end up with something like 
 
  - `C:\Users\<name>\Downloads\myWikis\todo.html` or
  - `C:\Users\<name>\Downloads\myWikis\notes.html`
  
-## Backup Folder (Optional)
+### The Backup Folder (Optional)
 
- - default: `twBackups`
+The default backup folder is called `twBackups`.  This can be changed in the options.  It's set globally and is relative to the wiki location.
 
-This directory can be set globally and is relative to the wiki location. eg:
-
- - `C:\Users\<name>\Downloads\myWikis\notes.html` or
- - `C:\Users\<name>\Downloads\myWikis\twBackups\notes(A).html`
+For example if your TiddlyWiki is `C:\Users\<name>\Downloads\myWikis\notes.html` the backup folder defaults to `C:\Users\<name>\Downloads\myWikis\twBackups\notes(A).html`
 
 ## Installation
 
-Just click this link: [file_backups-0.1.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.1/file_backups-0.1.1-an.fx-windows.xpi)
+To install, click this link: [file_backups-0.1.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.1/file_backups-0.1.1-an.fx-windows.xpi) or download and install from https://github.com/pmario/file-backups/releases/
 
-Or see: https://github.com/pmario/file-backups/releases/
+## The Backup Strategy
 
-## Backup Strategy
-
-The backup strategy works with a, slightly modified, "Tower of Hanoi" backup rotation strategy, which is known from tape based systems.
+The backups are created using a slightly modified "Tower of Hanoi" rotation strategy, similar to some tape based backup software.
 
 The following table shows the numbering system, with 4 different files.
 
- 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |9 |10|11|12|13|14|15|16
--|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-
-A| |A| |A| |A| |A| |A| |A| |A| 
-||B||||B||||B||||B||
-||||C||||||||C|||
-||||||||D||||||||D
+|Backup Number | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |9 |10|11|12|13|14|15|16
+|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-
+| File A | A| |A| |A| |A| |A| |A| |A| |A| 
+| File B | |B||||B||||B||||B||
+| File C | |||C||||||||C|||
+|File D | |||||||D||||||||D
 
 So the order will be: A, B, A, C, A, B, A, D, A, B, A, C, A, B, A, D, ... 
 
 As you can see: 
 
- - A will be overwritten with every 2nd save.
+ - A will be overwritten with every 2nd save
  - B will be written every 4th
  - C 8th
  - D 16th ... 
  
-The gneric order is: 2<sup> n-1</sup>.
+The generic order is: 2<sup> n-1</sup>.
 
 Files can be restored from 1, 2, 4, 8, 16, ..., 2<sup> n-1</sup> saves ago!
 
 Working with 11 files will result in 512 saves, before K is overwritten the first time. Then it will need another 1024 saves until it is overwritten again.
 
-Eg: If you save your file 2 times per minute for 8 hours, you'll not be able to overwrite K again. Because it is save #1024 and 2 * 60 * 8 = **960**.
+Eg: Starting with A, if you save your file twice a minute for eight hours, you will still have not overwriten K.
+K is save #1024 and 2 * 60 * 8 = **960**.
 
-## Modification to the Algorithm
+### The Modification
 
-The described mechanism has a "flaw", if we want a "per save" rotation. File "D" (see table) is initialized the first time after 8 saves. So the implemented startup sequence is: 
+The described mechanism has a "flaw", if we want a "per save" rotation. File "D" for instance, would only be be initialized after the 8th save. 
+
+So the implemented sequence is: 
 
 - Populate A, B, C, D ... then
 - Start with the described rotation schema
