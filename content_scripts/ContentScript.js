@@ -25,7 +25,7 @@ function isTiddlyWiki5File(doc) {
 	return false;
 }
 
-// We may want to have special handling for non file base stuff too!
+// We may want to have special handling for non file based stuff too!
 function isTiddlyWiki5(doc) {
 	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
 	var meta = document.getElementsByTagName("META");
@@ -37,12 +37,28 @@ function isTiddlyWiki5(doc) {
 	return false;
 }
 
+function injectClassicScript(doc) {
+	var s = document.createElement('script');
+	s.src = chrome.extension.getURL('classic/inject.js');
+	(document.head || document.documentElement).appendChild(s);
+	s.onload = function () {
+		s.parentNode.removeChild(s);
+	};
+}
+
 // main loop
 function injectMessageBox(doc) {
 	doc = document;
 
 	// check, if we are allowed to run!!
-	if (!isTiddlyWiki5File(doc)) return;
+	if (isTiddlyWiki5File(doc)) {
+		// do nothing
+	}
+	else if (isTiddlyWikiClassicFile(doc)) {
+		injectClassicScript(doc);
+	} else {
+		return;
+	}
 
 	// Inject the message box
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
