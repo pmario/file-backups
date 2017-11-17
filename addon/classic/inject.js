@@ -10,6 +10,21 @@ The JavaScript in this file is injected into each TiddlyWiki Classic page that l
 Returns true if successful, false if failed, null if not available
 */
 var injectedSaveFile = function(path,content) {
+	// check for windows or unix paths
+/*	var slash = "\\";
+	var dirPathPos = path.lastIndexOf("\\");
+	if(dirPathPos == -1) {
+		dirPathPos = path.lastIndexOf("/");
+		slash = "/";
+	}
+
+	var splitPos = path.lastIndexOf("."+slash);
+	if (splitPos !== -1) path = path.substr(splitPos+2);
+	*/
+
+	// TODO At the moment we deactivate the backups.
+	// In a future version it shoudl be activated again.
+	config.options.chkSaveBackups = false;
 	// Find the message box element
 	var messageBox = document.getElementById("tiddlyfox-message-box");
 	if(messageBox) {
