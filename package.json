@@ -4,8 +4,8 @@
 	"description": "This addOn should give you the possibility to save \"file-based\" TiddlyWikis, to your browser backup directory",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "webpack",
 		"prebuild": "node copy-version.js",
+		"build": "webpack",
 		"version": "npm run build"
 	},
 	"license": "CC-BY-NC-SA",
