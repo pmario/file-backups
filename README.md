@@ -5,7 +5,7 @@ This FireFox AddOn is considered BETA quality.
 # File Backup Utility For TiddlyWiki
 
 ## Introduction
-This browser add on is designed to let you easily save and backup TiddlyWikis.  It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at [Getting Started With TiddlyWiki](https://tiddlywiki.com/#GettingStarted).
+This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at [Getting Started With TiddlyWiki](https://tiddlywiki.com/#GettingStarted).
 
 This add on should work with any browser that supports web-extensions. 
 So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
@@ -31,7 +31,10 @@ It's a good idea to keep your TiddlyWiki in it's own subfolder. So, you'll end u
 
 The default backup folder is called `twBackups`.  This can be changed in the options.  It's set globally and is relative to the wiki location.
 
-For example if your TiddlyWiki is `C:\Users\<name>\Downloads\myWikis\notes.html` the backup folder defaults to `C:\Users\<name>\Downloads\myWikis\twBackups\notes(A).html`
+For example if your TiddlyWiki is
+`C:\Users\<name>\Downloads\myWikis\notes.html` 
+the backup folder defaults to 
+`C:\Users\<name>\Downloads\myWikis\twBackups\notes(A).html`
 
 ## Installation
 
