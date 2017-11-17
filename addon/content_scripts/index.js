@@ -74,6 +74,8 @@
 "use strict";
 
 
+const PLUGIN_NAME = "file-backups"
+
 document.addEventListener('DOMContentLoaded', injectMessageBox, false);
 
 // Can be found at: https://classic.TiddlyWiki.com
@@ -97,7 +99,7 @@ function isTiddlyWiki5File(doc) {
 	return false;
 }
 
-// We may want to have special handling for non file base stuff too!
+// We may want to have special handling for non file based stuff too!
 function isTiddlyWiki5(doc) {
 	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
 	var meta = document.getElementsByTagName("META");
@@ -109,19 +111,46 @@ function isTiddlyWiki5(doc) {
 	return false;
 }
 
+function injectClassicScript(doc) {
+	var s = document.createElement('script');
+	s.src = chrome.extension.getURL('classic/inject.js');
+	(document.head || document.documentElement).appendChild(s);
+	s.onload = function () {
+		s.parentNode.removeChild(s);
+	};
+}
+
 // main loop
 function injectMessageBox(doc) {
 	doc = document;
 
 	// check, if we are allowed to run!!
-	if (!isTiddlyWiki5File(doc)) return;
+	if (isTiddlyWiki5File(doc)) {
+		// do nothing
+	}
+	else if (isTiddlyWikiClassicFile(doc)) {
+		injectClassicScript(doc);
+	} else {
+		return;
+	}
 
 	// Inject the message box
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
-	if (!messageBox) {
+	if(messageBox) {
+		var othersw = messageBox.getAttribute("data-message-box-creator") || null;
+		if (othersw) {
+			alert ('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
+				  'At the moment only 1 save mechanism can be active at once.\n' +
+				  'We will temporarily deactivate the functionality, until the problem is resolved!');
+			return;
+		} else {
+			messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
+		}
+	} else {
 		messageBox = doc.createElement("div");
 		messageBox.id = "tiddlyfox-message-box";
 		messageBox.style.display = "none";
+		messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
 		doc.body.appendChild(messageBox);
 	}
 	// Attach the event handler to the message box
