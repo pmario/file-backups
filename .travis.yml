@@ -7,4 +7,4 @@ script:
   - npm run sign
 env:
   global:
-- GH_REF: github.com/pmario/file-backups.git
+  - GH_REF: github.com/pmario/file-backups.git
