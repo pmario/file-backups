@@ -116,18 +116,16 @@ function injectMessageBox(doc) {
 
 function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 	var msg = {};
-	var diff;
 
 	// Save the file
 	try {
+		msg.msg = "save-wiki";
 		msg.path = filePath;
 		msg.subdir = subdir;
 		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
 		chrome.runtime.sendMessage(msg, (bgResponse) => {
-//			console.log("CS response: ", bgResponse);
-//			var diff = bgResponse.relPath;
 			cb(bgResponse);
 		});
 		return true;
