@@ -1,3 +1,4 @@
+// not needed .. can be done by "web-ext" CLI from moz
 "use strict";
 
 var jsonfile = require('jsonfile')

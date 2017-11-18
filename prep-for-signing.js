@@ -1,3 +1,5 @@
+// not needed anymore. can be done by "web-ext" CLI
+
 var zipdir = require('zip-dir');
 
 zipdir('addon', { saveTo: 'ready_for_signing/addon.zip' }, function (err, buffer) {

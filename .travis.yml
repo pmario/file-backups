@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+  - "8.9"
+install:
+  - npm install
+script: npm run sign
+env:
+  global:
+- GH_REF: github.com/pmario/file-backups.git

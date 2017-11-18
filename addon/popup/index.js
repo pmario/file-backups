@@ -150,7 +150,8 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 }, false);
 
 document.getElementById("form-bg").addEventListener("click", (e) => {
-// TODO
+    var newURL = "https://pmario.github.io/file-backups";
+    chrome.tabs.create({ url: newURL });
 });
 
 
