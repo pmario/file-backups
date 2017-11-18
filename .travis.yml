@@ -8,3 +8,4 @@ script:
 env:
   global:
   - GH_REF: github.com/pmario/file-backups.git
+if: (branch = master) AND (type = push) AND (sender = pmario)
