@@ -40,3 +40,4 @@ git commit -m "Deploy to GitHub Pages"
 
 git push --force --quiet "https://${GH_TOKEN}@${GH_REF}" addon-signed > /dev/null 2>&1
 #echo git push
+#
