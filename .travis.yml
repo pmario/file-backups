@@ -9,6 +9,4 @@ env:
   global:
   - GH_REF: github.com/pmario/file-backups.git
 if:
-  - branch = master
-  - type = push
-  - sender = pmario
+  - branch = master AND type = push AND sender = pmario
