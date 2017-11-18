@@ -53,6 +53,8 @@ const pageActions = {
 	},
 
 	messageUpdatePageAction: function (tab, items) {
+		if (!protocolIsApplicable(tab.url)) return;
+
 		var icon, title;
 		if (items.backupEnabled) {
 			icon = "icons/backup.svg";
