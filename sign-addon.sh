@@ -21,6 +21,7 @@ cd ${OLDPWD}
 
 # go to the out directory and create a *new* Git repo
 cp $output_dir/*.xpi $gh_pages
+cp README.md $gh_pages
 
 # inside this git repo we'll pretend to be a new user
 git config user.name "Travis CI"
@@ -38,6 +39,5 @@ git commit -m "Deploy to GitHub Pages"
 # will be lost, since we are overwriting it.) We redirect any output to
 # /dev/null to hide any sensitive credential data that might otherwise be exposed.
 
-#git push --force --quiet "https://${GH_TOKEN}@${GH_REF}" addon-signed > /dev/null 2>&1
 git push --quiet "https://${GH_TOKEN}@${GH_REF}" addon-signed > /dev/null 2>&1
 #echo git push
