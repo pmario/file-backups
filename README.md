@@ -7,8 +7,9 @@ This FireFox AddOn is considered BETA quality.
 ## Introduction
 This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at [Getting Started With TiddlyWiki](https://tiddlywiki.com/#GettingStarted).
 
-This add on should work with any browser that supports web-extensions. 
-So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09). 
+This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).
+
+It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!
 
 For an overview of this add on please see the introduction video: https://youtu.be/dt-nH9jSQ6c
 
@@ -38,7 +39,7 @@ the backup folder defaults to
 
 ## Installation
 
-To install, click this link: [file_backups-0.1.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.1/file_backups-0.1.1-an.fx-windows.xpi) or download and install from https://github.com/pmario/file-backups/releases/
+To install, **click this link: [file_backups-0.1.2-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.2/file_backups-0.1.2-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
 
 ## The Backup Strategy
 
