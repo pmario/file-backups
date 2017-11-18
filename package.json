@@ -1,10 +1,10 @@
 {
 	"name": "file-backups",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "This browser add on is designed to let you easily save and backup TiddlyWikis.",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"prebuild": "webpack",
+		"prebuild": "node copy-version.js && webpack",
 		"build": "cd addon && web-ext build",
 		"version": "npm run build",
 		"sign": "bash ./sign-addon.sh"
@@ -12,6 +12,7 @@
 	"license": "CC-BY-NC-SA",
 	"devDependencies": {
 		"webpack": "^2.3.2",
+		"jsonfile": "^4.0.0",
 		"web-ext": "^2.2.2"
 	},
 	"dependencies": {}
