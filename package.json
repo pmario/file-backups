@@ -7,15 +7,12 @@
 		"prebuild": "webpack",
 		"build": "cd addon && web-ext build",
 		"version": "npm run build",
-		"presign": "npm run build",
-		"sign": "bash ./sign-addon.sh",
+		"sign": "bash ./sign-addon.sh"
 	},
 	"license": "CC-BY-NC-SA",
 	"devDependencies": {
 		"webpack": "^2.3.2",
 		"web-ext": "^2.2.2"
-//		"jsonfile": "^4.0.0",
-//		"zip-dir": "^1.0.2"
 	},
 	"dependencies": {}
 }
