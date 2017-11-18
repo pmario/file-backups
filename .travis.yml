@@ -10,5 +10,5 @@ env:
   - GH_REF: github.com/pmario/file-backups.git
 if:
   - branch = master
-    type = push
-    sender = pmario
+  - type = push
+  - sender = pmario
