@@ -266,9 +266,9 @@ async function downloadDialog(message) {
 	if (results) {
 		// check relative path
 		//console.log(results);
-		await prepareAndOpenNewTab(results[0]);
+		prepareAndOpenNewTab(results[0]);
 	}
-	return "";
+	return null;
 }
 
 async function download2Clicks(message) {
@@ -278,7 +278,8 @@ async function download2Clicks(message) {
 		returnPath;
 
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+//		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+		url: URL.createObjectURL(new Blob(["Hello World!"], {type: "text/plain"})),
 		//filename: path.basename(message.path),
 		filename: "temp(x).html",
 		conflictAction: "overwrite"
@@ -338,9 +339,10 @@ function timeout(ms) {
 }
 
 async function prepareAndOpenNewTab(dlInfo) {
-	let items = await browser.storage.local.get();
-	let stash = new Facet(items[dlInfo.filename]) || {};
-	let filename = dlInfo.filename;
+	let items = await browser.storage.local.get(),
+		stash = new Facet(items[dlInfo.filename]) || {},
+		filename = dlInfo.filename,
+		rejectPath;
 
 	let elem = path.parse(dlInfo.filename);
 	elem.base = "";
@@ -349,8 +351,11 @@ async function prepareAndOpenNewTab(dlInfo) {
 	let newDir = path.format(elem);
 
 	let rel = path.relative(items.defaultDir, newDir);
+	if (path.isAbsolute(rel)) rejectPath = true;
 
-	if (rel === "") {
+	if (rejectPath === true) {
+		rel = "";
+	} else if (rel === "") { // TODO check paht library, imo bug on windows!
 		rel = "." + path.sep;
 	}
 
