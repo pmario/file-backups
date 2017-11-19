@@ -134,10 +134,10 @@ function createBackup(message) {
 	// Backup using "Tower of Hanoi" backup schema
 	chrome.storage.local.get(null, function (items) {
 		var stash = new Facet(items[message.path]) || {},
+			counter = stash.fields.counter || 1,
 			backupEnabled = items.backupEnabled || false,
 			backupdir = items.backupdir || BACKUP_DIR,
-			counter = stash.fields.counter || 1,
-			max = stash.fields.max || 5,
+			max = items.numberOfBackups || 5,
 			nextChar = getNextChar(counter, max);
 
 		// imo this won't happen, but who knows.

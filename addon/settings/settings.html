@@ -9,12 +9,12 @@
 		}
 
 		body: {
-			font-size: 20px;
+			font-size: 16px;
 			padding: 10px;
 		}
 
 		table {
-			width: 30em;
+			width: 35em;
 			border-top: 1px solid black;
 			border-spacing: 0;
 			border-collapse: collapse;
@@ -23,7 +23,7 @@
 		table th,
 		table td {
 			padding: 6px 13px;
-			border: 1px solid #edf1f5;
+			border: 1px solid #ccc;
 		}
 
 		table th {
@@ -35,11 +35,55 @@
 			background-color: #f6f8fa;
 		}
 
+		#backupdir {
+			width: 100%;
+		}
+
+		#save {
+			width: 100%;
+			font-weight: 600;
+			background: lightGreen;
+			border: none;
+			padding: 10px;
+			text-align: center;
+			font-size: 16px;
+		}
+
+		#save:hover {
+			background: #690;
+		}
+
+		#status {
+			font-weight: 600;
+			font-size: 24px;
+		}
+
 	</style>
 </head>
 
 <body>
-	<h1 id="status"></h1>
+	<table>
+		<tbody>
+			<tr>
+				<td align="right"><label for="backup">Backups Enabled:</label></td>
+				<td align="left"><input type="checkbox" id="backup"></td>
+			</tr>
+			<tr>
+				<td align="right"><label for="backupdir">Backup Directory:</label></td>
+				<td align="left"><input id="backupdir" pattern="[^:'\x22*?<>]+" type="text" value="" /></td>
+			</tr>
+			<tr>
+				<td align="right"><label for="amount">Backup Directory:</label></td>
+				<td align="left"><input pattern="[0..9]+" type="number" id="amount" min="1" step="1" max="26" required></td>
+			</tr>
+			<tr>
+				<td align="right"><button id="save">Save</button></td>
+				<td align="left"><span id="status"></span></td>
+			</tr>
+		</tbody>
+	</table>
+
+
 	<h1>Beta</h1>
 	<p>This FireFox AddOn is considered BETA quality. -- <strong>Backup your data!</strong><br> Report problems at: github TODO link</p>
 	<h1>File Backup Utility - for TiddlyWiki (atm)</h1>
@@ -184,20 +228,6 @@
 	<h2>License</h2>
 	<p>Copyright Mario Pietsch 2017</p>
 	<p>CC-BY-NC-SA ... <a href="https://creativecommons.org/licenses/by-nc-sa/4.0">https://creativecommons.org/licenses/by-nc-sa/4.0</a></p>
-	<!-- table><tbody>
-<tr>
-	<td align="right"><label for="backup">enable backups:</label></td>
-	<td align="left"><input type="checkbox" id="backup"></td>
-</tr>
-<tr>
-	<td align="right"><label for="backupdir">Subfolder for backups tiddlywikis:</label></td>
-	<td align="left"><input id="backupdir" type="text" value=""/></td>
-</tr>
-<tr>
-	<td align="left"><button id="save"><h2>Save</h2></button></td>
-	<td align="left"></td>
-</tr>
-</tbody></table -->
 
 	<script src="index.js"></script>
 </body>
