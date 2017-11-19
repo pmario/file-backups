@@ -11,7 +11,7 @@ function restore_options() {
 	amountNode = document.getElementById("amount");
 
 	function onError(err) {
-		console.log("storage.local.get error:": err);
+		console.log("storage.local.get error:", err);
 	}
 
 	function onGotStore(items) {

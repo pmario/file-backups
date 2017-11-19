@@ -39,8 +39,8 @@ function isTiddlyWiki5(doc) {
 
 function injectClassicScript(doc) {
 	var s = document.createElement('script');
-	s.src = chrome.extension.getURL('classic/inject.js');
-	(document.head || document.documentElement).appendChild(s);
+	s.src = browser.extension.getURL('classic/inject.js');
+	(doc.head || doc.documentElement).appendChild(s);
 	s.onload = function () {
 		s.parentNode.removeChild(s);
 	};
@@ -53,8 +53,7 @@ function injectMessageBox(doc) {
 	// check, if we are allowed to run!!
 	if (isTiddlyWiki5File(doc)) {
 		// do nothing
-	}
-	else if (isTiddlyWikiClassicFile(doc)) {
+	} else if (isTiddlyWikiClassicFile(doc)) {
 		injectClassicScript(doc);
 	} else {
 		return;
@@ -62,21 +61,21 @@ function injectMessageBox(doc) {
 
 	// Inject the message box
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
-	if(messageBox) {
+	if (messageBox) {
 		var othersw = messageBox.getAttribute("data-message-box-creator") || null;
 		if (othersw) {
-			alert ('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
-				  'At the moment only 1 save mechanism can be active at once.\n' +
-				  'We will temporarily deactivate the functionality, until the problem is resolved!');
+			alert('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
+				'At the moment only 1 save mechanism can be active at once.\n' +
+				'We will temporarily deactivate the functionality, until the problem is resolved!');
 			return;
 		} else {
-			messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
+			messageBox.setAttribute("data-message-box-creator", PLUGIN_NAME);
 		}
 	} else {
 		messageBox = doc.createElement("div");
 		messageBox.id = "tiddlyfox-message-box";
 		messageBox.style.display = "none";
-		messageBox.setAttribute("data-message-box-creator",PLUGIN_NAME);
+		messageBox.setAttribute("data-message-box-creator", PLUGIN_NAME);
 		doc.body.appendChild(messageBox);
 	}
 	// Attach the event handler to the message box
@@ -114,7 +113,7 @@ function injectMessageBox(doc) {
 	}, false);
 }
 
-function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
+async function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 	var msg = {};
 
 	// Save the file
@@ -125,8 +124,12 @@ function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
-		chrome.runtime.sendMessage(msg, (bgResponse) => {
+		var stat = await browser.runtime.sendMessage(msg)
+
+		stat.then((bgResponse) => {
 			cb(bgResponse);
+		}, (err) => {
+			console.log("save-wiki error:", err)
 		});
 		return true;
 	} catch (ex) {
@@ -134,5 +137,3 @@ function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 		return false;
 	}
 }
-
-

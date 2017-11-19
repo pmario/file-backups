@@ -9,14 +9,15 @@ const actions = require("./page-actions");
 
 var path;
 
+
 function getOsInfo(cb) {
-	chrome.runtime.getPlatformInfo(function (info) {
+	browser.runtime.getPlatformInfo().then((info) => {
 		cb(info);
 	})
 };
 
 
-getOsInfo(function (info) {
+getOsInfo((info) => {
 	if (info.os === "win") {
 		path = tempPath;
 	} else {
@@ -88,9 +89,13 @@ Toggle CSS when the page action is clicked.
 */
 browser.pageAction.onClicked.addListener((tab) => {
 	actions.toggleEnableBackups(tab);
-	// getOsInfo((info)=>{console.log("info: ", info)}); // debugging only TODO remove
 });
 
+
+/*
+Bacground main() listener!!
+*/
+browser.runtime.onMessage.addListener(handleMessages);
 
 /*
 // The sequence can be calculated like this:
@@ -126,11 +131,11 @@ function getNextChar(count, max) {
 		}
 		char = (char === "a") ? String.fromCharCode(64 + max) : char
 	}
-//	console.log(char);
+	//	console.log(char);
 	return char;
 }
 
-function createBackup(message) {
+async function createBackup(message) {
 	// Backup using "Tower of Hanoi" backup schema
 	chrome.storage.local.get(null, function (items) {
 		var stash = new Facet(items[message.path]) || {},
@@ -166,7 +171,7 @@ function createBackup(message) {
 			// Store the config elements per tab.
 			counter = counter + 1;
 			chrome.storage.local.set({
-                [message.path]: new Facet(stash, {
+				[message.path]: new Facet(stash, {
 					counter: counter
 				})
 			})
@@ -174,15 +179,8 @@ function createBackup(message) {
 	});
 };
 
-
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-//	console.log("bg got message!");
-
+async function handleUpdateTabIcon(message) {
 	function updateTab(tabs) {
-		var items = {
-			backupEnabled: message.backupEnabled
-		};
-
 		if (tabs.length > 0) {
 			actions.messageUpdatePageAction(tabs[0], message);
 		}
@@ -192,182 +190,210 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		console.log(`Error: ${error}`);
 	}
 
-	if (message.msg === "updateBackupEnabled") {
-		var gettingActive = browser.tabs.query({
-			currentWindow: true,
-			active: true
-		});
-		gettingActive.then(updateTab, onError);
-		return true;
+	var gettingActive = browser.tabs.query({
+		currentWindow: true,
+		active: true
+	});
+	gettingActive.then(updateTab, onError);
+}
+
+async function downloadWiki(message) {
+	var test = path.join(message.subdir, path.basename(message.path));
+
+	// needed, for a roundtrip, to set up the right save directory.
+	chrome.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], {
+			type: "text/plain"
+		})),
+		filename: path.join(message.subdir, path.basename(message.path)),
+		conflictAction: "overwrite"
+		//            saveAs: true
+	}, (itemId) => {
+		chrome.downloads.search({
+			id: itemId
+		}, (results) => {
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			// check relative path
+			//console.log(results);
+			sendResponse({
+				relPath: message.subdir
+			});
+
+			// Create a backup
+			createBackup(message);
+		})
+	});
+}
+
+async function downloadDialog(message) {
+	chrome.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], {
+			type: "text/plain"
+		})),
+		filename: path.basename(message.path),
+		conflictAction: "overwrite",
+		saveAs: true
+	}, (itemId) => {
+		chrome.downloads.search({
+			id: itemId
+		}, (results) => {
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			// check relative path
+			//console.log(results);
+
+			prepareAndOpenNewTab(results[0]);
+
+			sendResponse({});
+			// Create a backup
+			//createBackup(message);
+		})
+	});
+}
+
+async function download2Clicks(message) {
+	chrome.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], {
+			type: "text/plain"
+		})),
+		//				filename: path.basename(message.path),
+		filename: "temp(x).html",
+		conflictAction: "overwrite"
+	}, (itemId) => {
+		chrome.downloads.search({
+			id: itemId
+		}, (results) => {
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			let rejectPath = false;
+			let defaultEl = path.parse(results[0].filename);
+			defaultEl.base = "";
+			defaultEl.name = "";
+			defaultEl.ext = "";
+			let defaultDir = path.format(defaultEl);
+
+			let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
+			// check relative path
+			//console.log(results);
+
+			if (path.isAbsolute(relPath)) rejectPath = true;
+
+			// var x = path.parse(relPath); // for debugging only TODO remove!
+			var y = relPath.split(path.sep);
+			var savedAs, z;
+
+			savedAs = path.parse(results[0].filename);
+			y.shift(); // remove the ".."
+
+			if (y[0] === ".." || rejectPath) {
+				z = ""; // problem .. path not valid
+			} else {
+				z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+			}
+
+			sendResponse({
+				relPath: z
+			});
+
+			notify(savedAs, y);
+
+			// save the subdir info
+			chrome.storage.local.get(null, (items) => {
+				var stash = new Facet(items[message.path]) || {};
+				chrome.storage.local.set({
+					defaultDir: defaultDir,
+				[message.path]: new Facet(stash, {
+						subdir: z
+					})
+				});
+			}); // chrome.storage.local.get()
+		}) // chrome.downloads.search()
+	}); // chrome.downloads.download()
+}
+
+function timeout(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function prepareAndOpenNewTab(dlInfo) {
+	let items = await browser.storage.local.get();
+	let stash = new Facet(items[dlInfo.filename]) || {};
+	let filename = dlInfo.filename;
+
+	let elem = path.parse(dlInfo.filename);
+	elem.base = "";
+	elem.name = "";
+	elem.ext = "";
+	let newDir = path.format(elem);
+
+	let rel = path.relative(items.defaultDir, newDir);
+
+	if (rel === "") {
+		rel = "." + path.sep;
 	}
 
+	await browser.storage.local.set({
+		[dlInfo.filename]: new Facet(stash, {
+			subdir: rel
+		})
+	});
 
-	//show the choose file dialogue when tw not under 'tiddlywikilocations'
+	//TDOO remove this hack!!!
+	await timeout(1000);
+
+	browser.tabs.create({
+		active: true,
+		url: filename
+	});
+}
+
+function notify(savedAs, relPath) {
+	browser.notifications.create({
+		"type": "basic",
+		"title": "Your file has been saved to the default 'Downloads' directory!",
+		"message": `Name: ` + savedAs.name + savedAs.ext + "-> Save Again!!"
+	});
+}
+
+async function handleSaveWiki(message) {
 	var allowBackup = false;
 	var test = path.parse(message.path);
 	var rel = path.relative(path.parse(message.path).dir, "Downloads");
 
+	var items = await browser.storage.local.get();
 
-	chrome.storage.local.get(null, function (items) {
+	if (items) {
 		let stash = new Facet(items[message.path]) || {},
 			subdir = stash.fields.subdir || null;
 
 		message.subdir = (message.subdir) ? message.subdir : (subdir) ? subdir : null;
 
 		if (message.subdir) {
-			var test = path.join(message.subdir, path.basename(message.path));
-
-			// needed, for a roundtrip, to set up the right save directory.
-			chrome.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {
-					type: "text/plain"
-				})),
-				filename: path.join(message.subdir, path.basename(message.path)),
-				conflictAction: "overwrite"
-				//            saveAs: true
-			}, (itemId) => {
-				chrome.downloads.search({
-					id: itemId
-				}, (results) => {
-					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-					// check relative path
-					//console.log(results);
-					sendResponse({
-						relPath: message.subdir
-					});
-
-					// Create a backup
-					createBackup(message);
-				})
-			});
+			// normal download
+			downloadWiki(message);
 		} else if (message.saveas === "yes") {
-			chrome.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {
-					type: "text/plain"
-				})),
-				filename: path.basename(message.path),
-				conflictAction: "overwrite",
-				saveAs: true
-			}, (itemId) => {
-				chrome.downloads.search({
-					id: itemId
-				}, (results) => {
-					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-					// check relative path
-					//console.log(results);
-
-					prepareAndOpenNewTab(results[0]);
-
-					sendResponse({
-					});
-					// Create a backup
-					//createBackup(message);
-				})
-			});
+			// save dialog
+			downloadDialog(message);
 		} else {
-			chrome.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {
-					type: "text/plain"
-				})),
-//				filename: path.basename(message.path),
-				filename: "temp(x).html",
-				conflictAction: "overwrite"
-			}, (itemId) => {
-				chrome.downloads.search({
-					id: itemId
-				}, (results) => {
-					// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-					let rejectPath = false;
-					let defaultEl = path.parse(results[0].filename);
-					defaultEl.base = "";
-					defaultEl.name = "";
-					defaultEl.ext = "";
-					let defaultDir = path.format(defaultEl);
-
-					let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
-					// check relative path
-					//console.log(results);
-
-					if (path.isAbsolute(relPath)) rejectPath = true;
-
-					// var x = path.parse(relPath); // for debugging only TODO remove!
-					var y = relPath.split(path.sep);
-					var savedAs, z;
-
-					savedAs = path.parse(results[0].filename);
-					y.shift(); // remove the ".."
-
-					if (y[0] === ".." || rejectPath) {
-						z = ""; // problem .. path not valid
-					} else {
-						z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
-					}
-
-					sendResponse({
-						relPath: z
-					});
-
-					notify(savedAs, y);
-
-					// save the subdir info
-					chrome.storage.local.get(null, (items) => {
-						var stash = new Facet(items[message.path]) || {};
-						chrome.storage.local.set({
-							defaultDir: defaultDir,
-						[message.path]: new Facet(stash, {
-								subdir: z
-							})
-						});
-					}); // chrome.storage.local.get()
-				}) // chrome.downloads.search()
-			}); // chrome.downloads.download()
+			// 2 click save
+			download2Clicks(message);
 		}
-	});
-
-	function timeout(ms) {
-		return new Promise(resolve => setTimeout(resolve, ms));
 	}
-
-	async function prepareAndOpenNewTab(dlInfo) {
-		let items = await browser.storage.local.get();
-		let stash = new Facet(items[dlInfo.filename]) || {};
-		let filename = dlInfo.filename;
-
-		let elem = path.parse(dlInfo.filename);
-		elem.base = "";
-		elem.name = "";
-		elem.ext = "";
-		let newDir = path.format(elem);
-
-		let rel = path.relative(items.defaultDir, newDir);
-
-		if (rel === "") {
-			rel = "." + path.sep;
-		}
-
-		await browser.storage.local.set({
-			[dlInfo.filename]: new Facet(stash, {
-				subdir: rel
-			})
-		});
-
-		//TDOO remove this hack!!!
-		await timeout(1000);
-
-		browser.tabs.create({
-			active: true,
-			url: filename
-		});
-	}
-
-	function notify(savedAs, relPath) {
-		browser.notifications.create({
-			"type": "basic",
-			"title": "Your file has been saved to the default 'Downloads' directory!",
-			"message": `Name: ` + savedAs.name + savedAs.ext + "-> Save Again!!"
-		});
-	}
-
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
 	return true;
-});
+};
+
+async function handleMessages(message, sender, sendResponse) {
+
+	if (message.msg === "updateBackupEnabled") {
+		await handleUpdateTabIcon(message);
+		sendResponse(null);
+		return true;
+	}
+
+	if (message.msg === "save-wiki") {
+		handleSaveWiki(message);
+	}
+
+	return true; // important for async response with sendResponse()
+}
+
+
