@@ -67,6 +67,11 @@ gettingAllTabs.then((tabs) => {
 	}
 });
 
+//
+//
+// Tab Actions
+//
+//
 browser.tabs.onActivated.addListener((tab) => {
 	var x = tab
 	x.id = tab.tabId;
@@ -92,9 +97,11 @@ browser.pageAction.onClicked.addListener((tab) => {
 });
 
 
-/*
-Bacground main() listener!!
-*/
+//
+//
+// Bacground main() listener!!
+//
+//
 browser.runtime.onMessage.addListener(handleMessages);
 
 /*
@@ -136,9 +143,15 @@ function getNextChar(count, max) {
 }
 
 async function createBackup(message) {
+	let items,
+		itemId,
+		results;
+
 	// Backup using "Tower of Hanoi" backup schema
-	chrome.storage.local.get(null, function (items) {
-		var stash = new Facet(items[message.path]) || {},
+	items = await browser.storage.local.get()
+
+	if (items) {
+		let stash = new Facet(items[message.path]) || {},
 			counter = stash.fields.counter || 1,
 			backupEnabled = items.backupEnabled || false,
 			backupdir = items.backupdir || BACKUP_DIR,
@@ -153,30 +166,29 @@ async function createBackup(message) {
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
-			chrome.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {
-					type: "text/plain"
-				})),
+			itemid = await browser.downloads.download({
+				url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
 				filename: nameX,
 				conflictAction: "overwrite"
-			}, (itemId) => {
-				chrome.downloads.search({
-					id: itemId
-				}, (results) => {
-					// ^^^^^^^^^^^^^^^^^^
+			})
+
+			if (itemId) {
+				results = await browser.downloads.search({id: itemId});
+				if (results) {
 					var a = a
-				})
-			});
+				}
+			} // if itemId
 
 			// Store the config elements per tab.
 			counter = counter + 1;
-			chrome.storage.local.set({
+
+			browser.storage.local.set({
 				[message.path]: new Facet(stash, {
 					counter: counter
 				})
 			})
-		}
-	});
+		} // if backupEnabled
+	} // if items
 };
 
 async function handleUpdateTabIcon(message) {
@@ -198,115 +210,123 @@ async function handleUpdateTabIcon(message) {
 }
 
 async function downloadWiki(message) {
-	var test = path.join(message.subdir, path.basename(message.path));
+	let test,
+		itemId,
+		results,
+		response;
+
+	test = path.join(message.subdir, path.basename(message.path));
 
 	// needed, for a roundtrip, to set up the right save directory.
-	chrome.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {
-			type: "text/plain"
-		})),
+	itemId = await browser.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], { type: "text/plain"})),
 		filename: path.join(message.subdir, path.basename(message.path)),
 		conflictAction: "overwrite"
-		//            saveAs: true
-	}, (itemId) => {
-		chrome.downloads.search({
-			id: itemId
-		}, (results) => {
-			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-			// check relative path
-			//console.log(results);
-			sendResponse({
-				relPath: message.subdir
-			});
-
-			// Create a backup
-			createBackup(message);
-		})
 	});
+
+	if (itemId) {
+		results = await browser.downloads.search({id: itemId});
+	}
+
+	if (results) {
+		// check relative path
+		//console.log(results);
+/* done outside
+		sendResponse({
+			relPath: message.subdir
+		});
+*/
+		// Create a backup
+		await createBackup(message);
+	}
+
+	response = message.subdir;
+	return response;
 }
 
 async function downloadDialog(message) {
-	chrome.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {
-			type: "text/plain"
-		})),
+	let itmeId,
+		results;
+
+	itemId = await browser.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
 		filename: path.basename(message.path),
 		conflictAction: "overwrite",
 		saveAs: true
-	}, (itemId) => {
-		chrome.downloads.search({
-			id: itemId
-		}, (results) => {
-			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-			// check relative path
-			//console.log(results);
+	})
 
-			prepareAndOpenNewTab(results[0]);
+	if (itemId) {
+		results = await browser.downloads.search({id: itemId});
+	}
 
-			sendResponse({});
-			// Create a backup
-			//createBackup(message);
-		})
-	});
+	if (results) {
+		// check relative path
+		//console.log(results);
+
+		await prepareAndOpenNewTab(results[0]);
+	}
+	return true;
 }
 
 async function download2Clicks(message) {
-	chrome.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {
-			type: "text/plain"
-		})),
-		//				filename: path.basename(message.path),
+	let itemId,
+		results;
+
+	itemId = await browser.downloads.download({
+		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+		//filename: path.basename(message.path),
 		filename: "temp(x).html",
 		conflictAction: "overwrite"
-	}, (itemId) => {
-		chrome.downloads.search({
-			id: itemId
-		}, (results) => {
-			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-			let rejectPath = false;
-			let defaultEl = path.parse(results[0].filename);
-			defaultEl.base = "";
-			defaultEl.name = "";
-			defaultEl.ext = "";
-			let defaultDir = path.format(defaultEl);
+	});
 
-			let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
-			// check relative path
-			//console.log(results);
+	if (itemId) {
+		results = await browser.downloads.search({id: itemId});
+	}
+	if (results) {
+		let rejectPath = false;
+		let defaultEl = path.parse(results[0].filename);
+		defaultEl.base = "";
+		defaultEl.name = "";
+		defaultEl.ext = "";
+		let defaultDir = path.format(defaultEl);
 
-			if (path.isAbsolute(relPath)) rejectPath = true;
+		let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
+		// check relative path
+		//console.log(results);
 
-			// var x = path.parse(relPath); // for debugging only TODO remove!
-			var y = relPath.split(path.sep);
-			var savedAs, z;
+		if (path.isAbsolute(relPath)) rejectPath = true;
 
-			savedAs = path.parse(results[0].filename);
-			y.shift(); // remove the ".."
+		let y = relPath.split(path.sep);
+		let savedAs, z;
 
-			if (y[0] === ".." || rejectPath) {
-				z = ""; // problem .. path not valid
-			} else {
-				z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
-			}
+		savedAs = path.parse(results[0].filename);
+		y.shift(); // remove the ".."
 
-			sendResponse({
-				relPath: z
+		if (y[0] === ".." || rejectPath) {
+			z = ""; // problem .. path not valid
+		} else {
+			z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+		}
+
+		// save the subdir info
+		let items = await browser.storage.local.get();
+
+		if (items) {
+			let stash = new Facet(items[message.path]) || {};
+
+			// Save config
+			browser.storage.local.set({
+				defaultDir: defaultDir,
+			[message.path]: new Facet(stash, {subdir: z})
 			});
+		} // if items
 
-			notify(savedAs, y);
+		// TODO should be obsolete now
+		notify(savedAs, y);
 
-			// save the subdir info
-			chrome.storage.local.get(null, (items) => {
-				var stash = new Facet(items[message.path]) || {};
-				chrome.storage.local.set({
-					defaultDir: defaultDir,
-				[message.path]: new Facet(stash, {
-						subdir: z
-					})
-				});
-			}); // chrome.storage.local.get()
-		}) // chrome.downloads.search()
-	}); // chrome.downloads.download()
+	} // if results
+
+	return z;
 }
 
 function timeout(ms) {
@@ -331,9 +351,7 @@ async function prepareAndOpenNewTab(dlInfo) {
 	}
 
 	await browser.storage.local.set({
-		[dlInfo.filename]: new Facet(stash, {
-			subdir: rel
-		})
+		[dlInfo.filename]: new Facet(stash, {subdir: rel})
 	});
 
 	//TDOO remove this hack!!!
@@ -354,9 +372,10 @@ function notify(savedAs, relPath) {
 }
 
 async function handleSaveWiki(message) {
-	var allowBackup = false;
-	var test = path.parse(message.path);
-	var rel = path.relative(path.parse(message.path).dir, "Downloads");
+	let allowBackup = false,
+		test = path.parse(message.path),
+		rel = path.relative(path.parse(message.path).dir, "Downloads"),
+		response;
 
 	var items = await browser.storage.local.get();
 
@@ -368,29 +387,30 @@ async function handleSaveWiki(message) {
 
 		if (message.subdir) {
 			// normal download
-			downloadWiki(message);
+			response = await downloadWiki(message);
 		} else if (message.saveas === "yes") {
 			// save dialog
-			downloadDialog(message);
+			response = await downloadDialog(message);
 		} else {
 			// 2 click save
-			download2Clicks(message);
+			response = await download2Clicks(message);
 		}
 	}
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
-	return true;
+	return response;
 };
 
 async function handleMessages(message, sender, sendResponse) {
+	let response;
 
 	if (message.msg === "updateBackupEnabled") {
 		await handleUpdateTabIcon(message);
-		sendResponse(null);
-		return true;
+		sendResponse({});
 	}
 
 	if (message.msg === "save-wiki") {
-		handleSaveWiki(message);
+		response = await handleSaveWiki(message);
+		sendResponse({relPath: response});
 	}
 
 	return true; // important for async response with sendResponse()

@@ -114,7 +114,8 @@ function injectMessageBox(doc) {
 }
 
 async function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
-	var msg = {};
+	let msg = {},
+		stat;
 
 	// Save the file
 	try {
@@ -124,7 +125,8 @@ async function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
-		var stat = await browser.runtime.sendMessage(msg)
+
+		stat = browser.runtime.sendMessage(msg)
 
 		stat.then((bgResponse) => {
 			cb(bgResponse);
