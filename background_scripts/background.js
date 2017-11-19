@@ -196,6 +196,7 @@ async function handleUpdateTabIcon(message) {
 		if (tabs.length > 0) {
 			actions.messageUpdatePageAction(tabs[0], message);
 		}
+		return {};
 	}
 
 	function onError(error) {
@@ -245,7 +246,7 @@ async function downloadWiki(message) {
 }
 
 async function downloadDialog(message) {
-	let itmeId,
+	let itemId,
 		results;
 
 	itemId = await browser.downloads.download({
@@ -269,8 +270,10 @@ async function downloadDialog(message) {
 }
 
 async function download2Clicks(message) {
-	let itemId,
-		results;
+	var itemId,
+		results,
+		savedAs,
+		returnPath;
 
 	itemId = await browser.downloads.download({
 		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
@@ -297,15 +300,14 @@ async function download2Clicks(message) {
 		if (path.isAbsolute(relPath)) rejectPath = true;
 
 		let y = relPath.split(path.sep);
-		let savedAs, z;
 
 		savedAs = path.parse(results[0].filename);
 		y.shift(); // remove the ".."
 
 		if (y[0] === ".." || rejectPath) {
-			z = ""; // problem .. path not valid
+			returnPath = ""; // problem .. path not valid
 		} else {
-			z = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+			returnPath = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
 		}
 
 		// save the subdir info
@@ -317,7 +319,7 @@ async function download2Clicks(message) {
 			// Save config
 			browser.storage.local.set({
 				defaultDir: defaultDir,
-			[message.path]: new Facet(stash, {subdir: z})
+			[message.path]: new Facet(stash, {subdir: returnPath})
 			});
 		} // if items
 
@@ -326,7 +328,7 @@ async function download2Clicks(message) {
 
 	} // if results
 
-	return z;
+	return returnPath;
 }
 
 function timeout(ms) {
@@ -397,23 +399,23 @@ async function handleSaveWiki(message) {
 		}
 	}
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
-	return response;
+	return {relPath: response};
 };
 
 async function handleMessages(message, sender, sendResponse) {
 	let response;
 
 	if (message.msg === "updateBackupEnabled") {
-		await handleUpdateTabIcon(message);
-		sendResponse({});
+		return handleUpdateTabIcon(message);
+		//sendResponse({});
 	}
 
 	if (message.msg === "save-wiki") {
-		response = await handleSaveWiki(message);
-		sendResponse({relPath: response});
+		return handleSaveWiki(message);
+		//sendResponse({relPath: response});
 	}
 
-	return true; // important for async response with sendResponse()
+//	return true; // important for async response with sendResponse()
 }
 
 
