@@ -324,7 +324,7 @@ async function download2Clicks(message) {
 		} // if items
 
 		// TODO should be obsolete now
-		notify(savedAs, y);
+		// notify(savedAs, y);
 
 	} // if results
 
@@ -389,13 +389,23 @@ async function handleSaveWiki(message) {
 
 		if (message.subdir) {
 			// normal download
+			// everything is known, data from local storage is set.
 			response = await downloadWiki(message);
 		} else if (message.saveas === "yes") {
 			// save dialog
 			response = await downloadDialog(message);
 		} else {
 			// 2 click save
+			// we need to save temp(x).html to find out where the download directory is.
+			// than save again
 			response = await download2Clicks(message);
+			if (!response) {
+				message.saveAs === "yes";
+				response = await downloadDialog(message);
+			} else {
+				message.subdir = response;
+				response = await downloadWiki(message);
+			}
 		}
 	}
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
@@ -403,19 +413,15 @@ async function handleSaveWiki(message) {
 };
 
 async function handleMessages(message, sender, sendResponse) {
-	let response;
-
+	// Update tab icon, when main-popup save is clicked
 	if (message.msg === "updateBackupEnabled") {
 		return handleUpdateTabIcon(message);
-		//sendResponse({});
 	}
 
+	// Standard save-wiki message from contentScript
 	if (message.msg === "save-wiki") {
 		return handleSaveWiki(message);
-		//sendResponse({relPath: response});
 	}
-
-//	return true; // important for async response with sendResponse()
 }
 
 
