@@ -9,13 +9,11 @@ const actions = require("./page-actions");
 
 var path;
 
-
 function getOsInfo(cb) {
 	browser.runtime.getPlatformInfo().then((info) => {
 		cb(info);
 	})
 };
-
 
 getOsInfo((info) => {
 	if (info.os === "win") {
@@ -24,7 +22,6 @@ getOsInfo((info) => {
 		path = tempPath.posix;
 	}
 });
-
 
 // Derived from the $tw.Tiddler() ... but simplified the structure
 // Facets are used to manipulate store objects.
@@ -104,6 +101,21 @@ browser.pageAction.onClicked.addListener((tab) => {
 //
 browser.runtime.onMessage.addListener(handleMessages);
 
+// should be straight forward and simple.
+// uses the following  construction to respond back to the contentScript:
+// https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise
+async function handleMessages(message, sender, sendResponse) {
+	// Update tab icon, when main-popup save is clicked
+	if (message.msg === "updateBackupEnabled") {
+		return handleUpdateTabIcon(message);
+	}
+
+	// Standard save-wiki message from contentScript
+	if (message.msg === "save-wiki") {
+		return handleSaveWiki(message);
+	}
+}
+
 /*
 // The sequence can be calculated like this:
 // seq = 2^set−1 + j * 2^set, j = 0, 1, 2, 3, 4
@@ -120,7 +132,6 @@ for (var j = 0; j < 12; j++) {
 // File 11 -> seq: 1024, 3072, 5120, 7168, ...
 // File 5 -> 16, 48, 80, 112, ..
 */
-
 
 // Find file index, if counter is known.
 function getNextChar(count, max) {
@@ -162,11 +173,10 @@ async function createBackup(message) {
 		if (counter >= Number.MAX_SAFE_INTEGER) counter = max + 1;
 
 		if (backupEnabled) {
-			//            var bkdate = (new Date()).toISOString().slice(0,10);
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
-			itemid = await browser.downloads.download({
+			itemId = await browser.downloads.download({
 				url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
 				filename: nameX,
 				conflictAction: "overwrite"
@@ -230,13 +240,6 @@ async function downloadWiki(message) {
 	}
 
 	if (results) {
-		// check relative path
-		//console.log(results);
-/* done outside
-		sendResponse({
-			relPath: message.subdir
-		});
-*/
 		// Create a backup
 		await createBackup(message);
 	}
@@ -263,10 +266,9 @@ async function downloadDialog(message) {
 	if (results) {
 		// check relative path
 		//console.log(results);
-
 		await prepareAndOpenNewTab(results[0]);
 	}
-	return true;
+	return "";
 }
 
 async function download2Clicks(message) {
@@ -329,7 +331,7 @@ async function download2Clicks(message) {
 	} // if results
 
 	return returnPath;
-}
+} // download2Clicks()
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -365,6 +367,8 @@ async function prepareAndOpenNewTab(dlInfo) {
 	});
 }
 
+/*
+// should be obsolet now.
 function notify(savedAs, relPath) {
 	browser.notifications.create({
 		"type": "basic",
@@ -372,6 +376,7 @@ function notify(savedAs, relPath) {
 		"message": `Name: ` + savedAs.name + savedAs.ext + "-> Save Again!!"
 	});
 }
+*/
 
 async function handleSaveWiki(message) {
 	let allowBackup = false,
@@ -411,17 +416,5 @@ async function handleSaveWiki(message) {
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
 	return {relPath: response};
 };
-
-async function handleMessages(message, sender, sendResponse) {
-	// Update tab icon, when main-popup save is clicked
-	if (message.msg === "updateBackupEnabled") {
-		return handleUpdateTabIcon(message);
-	}
-
-	// Standard save-wiki message from contentScript
-	if (message.msg === "save-wiki") {
-		return handleSaveWiki(message);
-	}
-}
 
 
