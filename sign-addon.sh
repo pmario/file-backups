@@ -24,8 +24,8 @@ cp $output_dir/*.xpi $gh_pages
 cp README.md $gh_pages
 
 # inside this git repo we'll pretend to be a new user
-git config user.name "Travis CI"
-git config user.email "travis-ci@example.com"
+git config user.name "pmario"
+git config user.email "pmariojo@gmail.com"
 
 git checkout -b addon-signed
 

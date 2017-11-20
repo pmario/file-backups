@@ -39,7 +39,7 @@ the backup folder defaults to
 
 ## Installation
 
-To install, **click this link: [file_backups-0.1.2-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.1.2/file_backups-0.1.2-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
+To install, **click this link: [file_backups-0.2.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
 
 ## The Backup Strategy
 
