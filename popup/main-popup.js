@@ -1,47 +1,23 @@
 "use strict";
 
-/*
-const tempPath = require("../libs/path");
-var path;
-
-function getOsInfo(cb) {
-	chrome.runtime.getPlatformInfo(function (info) {
-		cb(info);
-	})
-};
-
-getOsInfo(function (info) {
-	if (info.os === "win") {
-		path = tempPath;
-	} else {
-		path = tempPath.posix;
-	}
-});
-*/
-
 var backupdirNode;
 var backupEnabledNode;
 var amountNode;
 var counterNode;
 
-
 function restore_options() {
-
 	backupdirNode = document.getElementById("backupdir");
 	backupEnabledNode = document.getElementById("backupenabled");
 	amountNode = document.getElementById("amount");
-//	counterNode = document.getElementById("counter");
 
-
-	function onError(items) {}
+	function onError(err) {
+		console.log("storage.local.get error:", err);
+	}
 
 	function onGotStore(items) {
 		backupdirNode.value = items.backupdir || "twBackups";
 		backupEnabledNode.checked = items.backupEnabled || false;
-//		counterNode.value = items.counter || 0;
 		amountNode.value = items.numberOfBackups || 5;
-
-//		console.log("options item:", items)
 	};
 
 	let gettingItem = browser.storage.local.get();
@@ -61,16 +37,12 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 //	console.log("submit OK:", e);
 	e.preventDefault();
 
-	// TODO change to function and browser.runtime ...
-	// !!!!! use storage items object structure
-	chrome.runtime.sendMessage({
+	// Inform background, that backupEnabled may have been changed.
+	// It's needed for page-actions
+	browser.runtime.sendMessage({
 		msg: "updateBackupEnabled",
-//		backupdir: backupdirNode.value,
 		backupEnabled: backupEnabledNode.checked//,
-//		counter: counterNode.valueAsNumber,
-//		amount: amountNode.valueAsNumber
 	});
-
 
 	window.close()
 }, false);

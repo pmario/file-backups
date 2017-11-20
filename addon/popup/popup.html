@@ -18,20 +18,12 @@
 			</div>
 			<div class="panel-formElements-item">
 				<label for="backupdir">Backup Directory:</label>
-				<input type="text" id="backupdir" required>
+				<input pattern="[^:'\x22*?<>]+" type="text" id="backupdir" required>
 			</div>
 			<div class="panel-formElements-item">
 				<label for="amount">Number of Backup Files:</label>
-				<input type="number" id="amount" min="1" step="1" required>
+				<input pattern="[0..9]+" type="number" id="amount" min="1" step="1" max="26" required>
 			</div>
-			<!--div class="panel-formElements-item">
-                    <label for="next-set">Next Backup Set:</label>
-                    <output id="next-set"></output>
-                </div>
-                <div class="panel-formElements-item">
-                    <label for="counter">Counter:</label>
-                    <output name="counter" id="counter"></output>
-                </div --->
 		</section>
 		<footer class="panel-section panel-section-footer">
 			<button type="submit" class="panel-section-footer-button default">Save Settings</button>

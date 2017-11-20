@@ -1,4 +1,6 @@
+var webpack = require("webpack");
 const path = require("path");
+const banner = require("./banner");
 
 module.exports = {
 	entry: {
@@ -10,5 +12,8 @@ module.exports = {
 	output: {
 		path: path.resolve(__dirname, "addon"),
 		filename: "[name]/index.js"
-	}
+	},
+	plugins: [
+		new webpack.BannerPlugin(banner)
+	]
 };

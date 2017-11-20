@@ -26,7 +26,7 @@ const pageActions = {
 					tabId: tab.id,
 					title: TITLE_DISABLE
 				});
-				chrome.storage.local.set({
+				browser.storage.local.set({
 					backupEnabled: true
 				});
 			} else {
@@ -38,7 +38,7 @@ const pageActions = {
 					tabId: tab.id,
 					title: TITLE_ENABLE
 				});
-				chrome.storage.local.set({
+				browser.storage.local.set({
 					backupEnabled: false
 				});
 			}
