@@ -11,7 +11,7 @@ This add on should work with any browser that supports web-extensions. So far it
 
 It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!
 
-For an overview of this add on please see the introduction video: https://youtu.be/dt-nH9jSQ6c
+For an overview of this add on please see the introduction video: https://youtu.be/KVLtID8nElU
 
 ## File Storage Locations
 
@@ -39,7 +39,7 @@ the backup folder defaults to
 
 ## Installation
 
-To install, **click this link: [file_backups-0.2.1-an.fx-windows.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
+To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
 
 ## The Backup Strategy
 
