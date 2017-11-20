@@ -15,7 +15,7 @@ For an overview of this add on please see the introduction video: https://youtu.
 
 ## Installation
 
-To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
+To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from the [releases page](https://github.com/pmario/file-backups/releases/)
 
 ## File Storage Locations
 
@@ -85,11 +85,11 @@ Which will result in a slightly better recovery coverage.
 
 ## Links
 
-[1] https://tiddlywiki.com/#GettingStarted
+[1] [https://tiddlywiki.com/#GettingStarted](https://tiddlywiki.com/#GettingStarted)
 
 ## License
 
 Copyright Mario Pietsch 2017
 
-CC-BY-NC-SA ... https://creativecommons.org/licenses/by-nc-sa/4.0
+CC-BY-NC-SA ... [https://creativecommons.org/licenses/by-nc-sa/4.0](https://creativecommons.org/licenses/by-nc-sa/4.0)
 
