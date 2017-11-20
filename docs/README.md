@@ -5,13 +5,17 @@ This FireFox AddOn is considered BETA quality.
 # File Backup Utility For TiddlyWiki
 
 ## Introduction
-This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at [Getting Started With TiddlyWiki](https://tiddlywiki.com/#GettingStarted).
+This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at "Getting Started With TiddlyWiki"[1].
 
 This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).
 
 It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!
 
 For an overview of this add on please see the introduction video: https://youtu.be/KVLtID8nElU
+
+## Installation
+
+To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
 
 ## File Storage Locations
 
@@ -36,10 +40,6 @@ For example if your TiddlyWiki is
 `C:\Users\<name>\Downloads\myWikis\notes.html` 
 the backup folder defaults to 
 `C:\Users\<name>\Downloads\myWikis\twBackups\notes(A).html`
-
-## Installation
-
-To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from https://github.com/pmario/file-backups/releases/
 
 ## The Backup Strategy
 
@@ -83,8 +83,13 @@ So the implemented sequence is:
 
 Which will result in a slightly better recovery coverage.
 
+## Links
+
+[1] https://tiddlywiki.com/#GettingStarted
+
 ## License
 
 Copyright Mario Pietsch 2017
 
 CC-BY-NC-SA ... https://creativecommons.org/licenses/by-nc-sa/4.0
+
