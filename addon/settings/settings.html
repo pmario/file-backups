@@ -8,7 +8,7 @@
 			box-sizing: border-box;
 		}
 
-		body: {
+		body {
 			font-size: 16px;
 			padding: 10px;
 		}
@@ -85,34 +85,37 @@
 
 
 	<h1>Beta</h1>
-	<p>This FireFox AddOn is considered BETA quality. -- <strong>Backup your data!</strong><br> Report problems at: github TODO link</p>
-	<h1>File Backup Utility - for TiddlyWiki (atm)</h1>
-	<p>This addOn should give you the possibility to save "file-based" TiddlyWikis, to your browser backup directory.</p>
-	<p>This addOn should work with browsers, that support web-extensions. Tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).</p>
-	<h2>Restrictions</h2>
-	<p>Due to incresed security concerns, all major browser vendors limit the directories, where addOns have write access.<br> So this addOn can only write to the users downloads folder eg: <code>C:\Users\&lt;name&gt;\Downloads</code> <strong>and its subdirectories</strong>.</p>
-	<p>So you can have the following construction:</p>
+	<p>This FireFox AddOn is considered BETA quality.</p>
+	<h1>File Backup Utility For TiddlyWiki</h1>
+	<h2>Introduction</h2>
+	<p>This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at <a href="https://tiddlywiki.com/#GettingStarted" rel="nofollow">Getting Started With TiddlyWiki</a>.</p>
+	<p>This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).</p>
+	<p>It will save <strong>TiddlyWiki5 and TiddlyWikiClassic</strong> files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!</p>
+	<p>For an overview of this add on please see the introduction video. <a href="https://pmario.github.io/fiel-backups" rel="nofollow">A link can be found on the hompage</a></p>
+	<h2>File Storage Locations</h2>
+	<h3>Main File Limitations</h3>
+	<p>To help keep you secure, most modern browsers limit writing files to only a few locations.</p>
+	<p>This means this add on can only write to your downloads folder <strong>and its subdirectories</strong>.</p>
+	<p>For example on Windows 7 or newer, it's usually <code>C:\Users\&lt;name&gt;\Downloads</code></p>
+	<p>It's a good idea to keep your TiddlyWiki in it's own subfolder. So, you'll end up with something like</p>
 	<ul>
 		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\todo.html</code> or</li>
 		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\notes.html</code></li>
 	</ul>
-	<h2>Backup Folder (Optional)</h2>
-	<ul>
-		<li>default: <code>twBackups</code></li>
-	</ul>
-	<p>This directory can be set globally and is relative to the wiki location. eg:</p>
-	<ul>
-		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\notes.html</code> or</li>
-		<li><code>C:\Users\&lt;name&gt;\Downloads\myWikis\twBackups\notes(A).html</code></li>
-	</ul>
+	<h3>The Backup Folder (Optional)</h3>
+	<p>The default backup folder is called <code>twBackups</code>. This can be changed in the options. It's set globally and is relative to the wiki location.</p>
+	<p>For example if your TiddlyWiki is<br>
+		<code>C:\Users\&lt;name&gt;\Downloads\myWikis\notes.html</code><br> the backup folder defaults to<br>
+		<code>C:\Users\&lt;name&gt;\Downloads\myWikis\twBackups\notes(A).html</code></p>
 	<h2>Installation</h2>
-	<p>TODO</p>
-	<h2>Backup Strategy</h2>
-	<p>The backup strategy works with a, slightly modified, "Tower of Hanoi" backup rotation strategy, which is known from tape based systems.</p>
+	<p>To install, <strong>click this link: <a href="https://github.com/pmario/file-backups/releases/download/V0.1.2/file_backups-0.1.2-an.fx.xpi">file_backups-0.1.2-an.fx-windows.xpi</a></strong> or download and install from <a href="https://github.com/pmario/file-backups/releases/">https://github.com/pmario/file-backups/releases/</a></p>
+	<h2>The Backup Strategy</h2>
+	<p>The backups are created using a slightly modified "Tower of Hanoi" rotation strategy, similar to some tape based backup software.</p>
 	<p>The following table shows the numbering system, with 4 different files.</p>
 	<table>
 		<thead>
 			<tr>
+				<th>Backup Number</th>
 				<th>1</th>
 				<th>2</th>
 				<th>3</th>
@@ -133,6 +136,7 @@
 		</thead>
 		<tbody>
 			<tr>
+				<td>File A</td>
 				<td>A</td>
 				<td></td>
 				<td>A</td>
@@ -151,6 +155,7 @@
 				<td></td>
 			</tr>
 			<tr>
+				<td>File B</td>
 				<td></td>
 				<td>B</td>
 				<td></td>
@@ -169,6 +174,7 @@
 				<td></td>
 			</tr>
 			<tr>
+				<td>File C</td>
 				<td></td>
 				<td></td>
 				<td></td>
@@ -187,6 +193,7 @@
 				<td></td>
 			</tr>
 			<tr>
+				<td>File D</td>
 				<td></td>
 				<td></td>
 				<td></td>
@@ -209,17 +216,18 @@
 	<p>So the order will be: A, B, A, C, A, B, A, D, A, B, A, C, A, B, A, D, ...</p>
 	<p>As you can see:</p>
 	<ul>
-		<li>A will be overwritten with every 2nd save.</li>
+		<li>A will be overwritten with every 2nd save</li>
 		<li>B will be written every 4th</li>
 		<li>C 8th</li>
 		<li>D 16th ...</li>
 	</ul>
-	<p>The gneric order is: 2<sup> n-1</sup>.</p>
+	<p>The generic order is: 2<sup> n-1</sup>.</p>
 	<p>Files can be restored from 1, 2, 4, 8, 16, ..., 2<sup> n-1</sup> saves ago!</p>
 	<p>Working with 11 files will result in 512 saves, before K is overwritten the first time. Then it will need another 1024 saves until it is overwritten again.</p>
-	<p>Eg: If you save your file 2 times per minute for 8 hours, you'll not be able to overwrite K again. Because it is save <a href="https://github.com/Jermolene/TiddlyWiki5/pull/1024" class="issue-link js-issue-link" data-error-text="Failed to load issue title" data-id="47265793" data-permission-text="Issue title is private" data-url="https://github.com/Jermolene/TiddlyWiki5/issues/1024">#1024</a> and 2 * 60 * 8 = <strong>960</strong>.</p>
-	<h2>Modification to the Algorithm</h2>
-	<p>The described mechanism has a "flaw", if we want a "per save" rotation. File "D" (see table) is initialized the first time after 8 saves. So the implemented startup sequence is:</p>
+	<p>Eg: Starting with A, if you save your file twice a minute for eight hours, you will still have not overwriten K.<br> K is save #1024 and 2 * 60 * 8 = <strong>960</strong>.</p>
+	<h3>The Modification</h3>
+	<p>The described mechanism has a "flaw", if we want a "per save" rotation. File "D" for instance, would only be be initialized after the 8th save.</p>
+	<p>So the implemented sequence is:</p>
 	<ul>
 		<li>Populate A, B, C, D ... then</li>
 		<li>Start with the described rotation schema</li>
@@ -227,7 +235,7 @@
 	<p>Which will result in a slightly better recovery coverage.</p>
 	<h2>License</h2>
 	<p>Copyright Mario Pietsch 2017</p>
-	<p>CC-BY-NC-SA ... <a href="https://creativecommons.org/licenses/by-nc-sa/4.0">https://creativecommons.org/licenses/by-nc-sa/4.0</a></p>
+	<p>CC-BY-NC-SA ... <a href="https://creativecommons.org/licenses/by-nc-sa/4.0" rel="nofollow">https://creativecommons.org/licenses/by-nc-sa/4.0</a></p>
 
 	<script src="index.js"></script>
 </body>
