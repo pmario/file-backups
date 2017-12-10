@@ -2,7 +2,54 @@
 
 const PLUGIN_NAME = "file-backups"
 
-document.addEventListener('DOMContentLoaded', injectMessageBox, false);
+document.addEventListener('DOMContentLoaded', main, false);
+
+// main function
+function main() {
+	injectMessageBox();
+	checkUrlConflict();
+}
+
+// TODO display open new TW, if tab can't be created eg: linux
+// 		var test = `<a href="file:///C:/Users/mario/Downloads/index.html" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">file:///C:/Users/mario/Downloads/index.html</a>`
+
+function backendMessage(textMsgNode, textUrlNode, color, background) {
+	var color = color || "white",
+		background = background || "red";
+
+	var div = document.createElement("div"),
+		pMsg = document.createElement("p"),
+		pUrl = document.createElement("p");
+
+	pMsg.innerHTML = textMsgNode;
+	pMsg.style = "font-weight: 700;";
+	div.appendChild(pMsg);
+	pUrl.innerHTML = textUrlNode;
+	div.appendChild(pUrl);
+	div.style = `position: fixed; left: 0; top: 0; right: 0; color: ${color}; background: ${background}; border: 4px solid black; text-align: center; margin: 8px; z-index: 10000; font-size: initial;`;
+	document.body.appendChild(div);
+	div.addEventListener("click", function (event) {
+		document.body.removeChild(div);
+	}, false);
+}
+
+// Show a warning message, if a TW is open 2 times. At the moment, this isn't allowed.
+function checkUrlConflict() {
+	var data = {};
+
+	data.url = document.URL,
+	data.msg = "checkUrlConflict";
+
+	var getStat = browser.runtime.sendMessage(data)
+
+	getStat.then( (urlConflict) => {
+//		console.log("urlConflict: ", urlConflict);
+		if (urlConflict) {
+			backendMessage("Message from 'file-backups' AddOn: <br/>This TiddlyWiki file is already open in another tab OR an other window!",
+							`${data.url}`)
+		}
+	});
+}
 
 // Can be found at: https://classic.TiddlyWiki.com
 function isTiddlyWikiClassicFile(doc) {
@@ -97,11 +144,22 @@ function injectMessageBox(doc) {
 		function cb(response) {
 			// Send a confirmation message
 			if (response.relPath === "") {
-				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
-				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
-			} else message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
+				if (response.beakonError) {
+					// backendMessage(textMsgNode, textUrlNode)
+					// backendMessage(response.beakonError, response.beakonInfo.filename);
+				} else if (response.downloadWikiError) {
+					// TODO
+				} else if (response.openNewTabError) {
+					backendMessage(response.openNewTabError,
+								   `Click -> <a href="${response.openNewTabInfo.filename}" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">${response.openNewTabInfo.filename}</a>`, "black", "lightgreen");
+				}
+//				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
+//				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
+			} else {
+				message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
+			}
 
-			var event1 = doc.createEvent("Events");
+			let event1 = doc.createEvent("Events");
 			message.parentNode.setAttribute("data-tiddlyfox-subdir", response.subdir || "");
 			event1.initEvent("tiddlyfox-have-saved-file", true, false);
 			message.dispatchEvent(event1);
@@ -113,7 +171,7 @@ function injectMessageBox(doc) {
 	}, false);
 }
 
-async function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
+function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 	let msg = {},
 		stat;
 

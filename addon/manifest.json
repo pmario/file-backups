@@ -52,8 +52,6 @@
     "activeTab",
     "tabs",
     "storage",
-    "downloads",
-    "notifications",
-    "<all_urls>"
+    "downloads"
   ]
 }

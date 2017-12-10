@@ -1844,7 +1844,8 @@ const BACKUP_DIR = "twBackups";
 const tempPath = __webpack_require__(1);
 const actions = __webpack_require__(0);
 
-var path;
+var path,
+    osInfo;
 
 function getOsInfo(cb) {
 	browser.runtime.getPlatformInfo().then((info) => {
@@ -1853,6 +1854,7 @@ function getOsInfo(cb) {
 };
 
 getOsInfo((info) => {
+    osInfo = info;
 	if (info.os === "win") {
 		path = tempPath;
 	} else {
@@ -1896,6 +1898,7 @@ When first loaded, initialize the page action for all tabs.
 var gettingAllTabs = browser.tabs.query({});
 
 gettingAllTabs.then((tabs) => {
+//	console.log("tabs: ", tabs);
 	for (let tab of tabs) {
 		actions.initializePageAction(tab);
 	}
@@ -1951,7 +1954,45 @@ async function handleMessages(message, sender, sendResponse) {
 	if (message.msg === "save-wiki") {
 		return handleSaveWiki(message);
 	}
+
+	// Check tabs, if TW file URL is open already.
+	if (message.msg === "checkUrlConflict") {
+		return checkUrlConflict(message);
+	}
 }
+
+// Check, if there is an other tab, with the same URL open already?
+async function checkUrlConflict(message) {
+	var count = 0,
+		tabs = await browser.tabs.query({url:"file://*/*"});
+
+	for (let tab of tabs) {
+		if (tab.url === message.url) {
+			count += 1;
+		}
+	}
+	return (count > 1);
+}
+
+async function handleUpdateTabIcon(message) {
+	function updateTab(tabs) {
+		if (tabs.length > 0) {
+			actions.messageUpdatePageAction(tabs[0], message);
+		}
+		return {};
+	}
+
+	function onError(error) {
+		console.log(`Error: ${error}`);
+	}
+
+	var gettingActive = browser.tabs.query({
+		currentWindow: true,
+		active: true
+	});
+	gettingActive.then(updateTab, onError);
+}
+
 
 /*
 // The sequence can be calculated like this:
@@ -2021,9 +2062,6 @@ async function createBackup(message) {
 
 			if (itemId) {
 				results = await browser.downloads.search({id: itemId});
-				if (results) {
-					var a = a
-				}
 			} // if itemId
 
 			// Store the config elements per tab.
@@ -2038,32 +2076,16 @@ async function createBackup(message) {
 	} // if items
 };
 
-async function handleUpdateTabIcon(message) {
-	function updateTab(tabs) {
-		if (tabs.length > 0) {
-			actions.messageUpdatePageAction(tabs[0], message);
-		}
-		return {};
-	}
-
-	function onError(error) {
-		console.log(`Error: ${error}`);
-	}
-
-	var gettingActive = browser.tabs.query({
-		currentWindow: true,
-		active: true
-	});
-	gettingActive.then(updateTab, onError);
-}
-
 async function downloadWiki(message) {
-	let test,
-		itemId,
+	let itemId,
 		results,
-		response;
+		response = {};
 
-	test = path.join(message.subdir, path.basename(message.path));
+	// get info from local storage.
+	let items = await browser.storage.local.get(),
+		stash = new Facet(items[message.path]) || {};
+
+//	let test = path.join(message.subdir, path.basename(message.path));
 
 	// needed, for a roundtrip, to set up the right save directory.
 	itemId = await browser.downloads.download({
@@ -2076,18 +2098,26 @@ async function downloadWiki(message) {
 		results = await browser.downloads.search({id: itemId});
 	}
 
+	// Check, if download dir is the same.
+	if (!(message.path === results[0].filename)) {
+		return {relPath: "",
+				downloadWikiError: "Wrong Download Directory!",
+				downloadWikiInfo: results[0]};
+	}
+
 	if (results) {
 		// Create a backup
 		await createBackup(message);
 	}
 
-	response = message.subdir;
+	response.relPath = message.subdir;
 	return response;
-}
+} // downloadWiki()
 
 async function downloadDialog(message) {
 	let itemId,
-		results;
+		results,
+		response = {};
 
 	itemId = await browser.downloads.download({
 		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
@@ -2103,28 +2133,31 @@ async function downloadDialog(message) {
 	if (results) {
 		// check relative path
 		//console.log(results);
-		prepareAndOpenNewTab(results[0]);
+		response = await prepareAndOpenNewTab(results[0]);
 	}
-	return null;
-}
+	return response;
+} // downloadDialog()
 
-async function download2Clicks(message) {
+async function createBeakon(message) {
 	var itemId,
 		results,
 		savedAs,
-		returnPath;
+		response = {},
+		template = `This file was created by "file-backups" browser AddOn,<br/>
+to find out the default position, to save your TiddlyWiki.<br/>
+You can delete it if you want. It will be recreated, if needed.<br/>
+`;
 
 	itemId = await browser.downloads.download({
-//		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
-		url: URL.createObjectURL(new Blob(["Hello World!"], {type: "text/plain"})),
-		//filename: path.basename(message.path),
-		filename: "temp(x).html",
+		url: URL.createObjectURL(new Blob([template], {type: "text/plain"})),
+		filename: "beakon.tmp.html",
 		conflictAction: "overwrite"
 	});
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});
 	}
+
 	if (results) {
 		let rejectPath = false;
 		let defaultEl = path.parse(results[0].filename);
@@ -2134,8 +2167,6 @@ async function download2Clicks(message) {
 		let defaultDir = path.format(defaultEl);
 
 		let relPath = path.relative(results[0].filename, path.parse(message.path).dir);
-		// check relative path
-		//console.log(results);
 
 		if (path.isAbsolute(relPath)) rejectPath = true;
 
@@ -2145,9 +2176,11 @@ async function download2Clicks(message) {
 		y.shift(); // remove the ".."
 
 		if (y[0] === ".." || rejectPath) {
-			returnPath = ""; // problem .. path not valid
+			response.relPath = ""; // problem .. path not valid
+			response.beakonError = "Path is outside browser donwload directory!";
+			response.beakonInfo = results[0];
 		} else {
-			returnPath = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
+			response.relPath = (y.length > 0) ? y.join(path.sep) : "." + path.sep;
 		}
 
 		// save the subdir info
@@ -2159,7 +2192,7 @@ async function download2Clicks(message) {
 			// Save config
 			browser.storage.local.set({
 				defaultDir: defaultDir,
-			[message.path]: new Facet(stash, {subdir: returnPath})
+			[message.path]: new Facet(stash, {subdir: response.relPath})
 			});
 		} // if items
 
@@ -2168,8 +2201,8 @@ async function download2Clicks(message) {
 
 	} // if results
 
-	return returnPath;
-} // download2Clicks()
+	return response;
+} // createBeakon()
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -2192,7 +2225,7 @@ async function prepareAndOpenNewTab(dlInfo) {
 
 	if (rejectPath === true) {
 		rel = "";
-	} else if (rel === "") { // TODO check paht library, imo bug on windows!
+	} else if (rel === "") { // TODO check path library, imo bug on windows!
 		rel = "." + path.sep;
 	}
 
@@ -2203,28 +2236,27 @@ async function prepareAndOpenNewTab(dlInfo) {
 	//TDOO remove this hack!!!
 	await timeout(1000);
 
-	browser.tabs.create({
-		active: true,
-		url: filename
-	});
-}
+	return await openNewWiki(dlInfo);
+} // prepareAndOpenNewTab()
 
-/*
-// should be obsolet now.
-function notify(savedAs, relPath) {
-	browser.notifications.create({
-		"type": "basic",
-		"title": "Your file has been saved to the default 'Downloads' directory!",
-		"message": `Name: ` + savedAs.name + savedAs.ext + "-> Save Again!!"
-	});
+async function openNewWiki(dlInfo) {
+	if (osInfo.os === "win") {
+		var test = await browser.tabs.create({
+			active: true,
+			url: dlInfo.filename
+		});
+	} else {
+		return {relPath: "",
+				openNewTabError:"Please open your Wiki at:",
+				openNewTabInfo: dlInfo};
+	}
 }
-*/
 
 async function handleSaveWiki(message) {
 	let allowBackup = false,
 		test = path.parse(message.path),
 		rel = path.relative(path.parse(message.path).dir, "Downloads"),
-		response;
+		response = {};
 
 	var items = await browser.storage.local.get();
 
@@ -2238,6 +2270,11 @@ async function handleSaveWiki(message) {
 			// normal download
 			// everything is known, data from local storage is set.
 			response = await downloadWiki(message);
+
+			// check if browser download dir has been changed.
+			if (response.relPath === "") {
+				response = await downloadDialog(message);
+			}
 		} else if (message.saveas === "yes") {
 			// save dialog
 			response = await downloadDialog(message);
@@ -2245,18 +2282,18 @@ async function handleSaveWiki(message) {
 			// 2 click save
 			// we need to save temp(x).html to find out where the download directory is.
 			// than save again
-			response = await download2Clicks(message);
-			if (!response) {
+			response = await createBeakon(message);
+			if (!response.relPath) {
 				message.saveAs === "yes";
 				response = await downloadDialog(message);
 			} else {
-				message.subdir = response;
+				message.subdir = response.relPath;
 				response = await downloadWiki(message);
 			}
 		}
 	}
 	// This one is important! sendResponse will be async. ContentScript expects it that way atm.
-	return {relPath: response};
+	return response; //{relPath: response};
 };
 
 
