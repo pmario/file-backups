@@ -15,7 +15,7 @@ For an overview of this add on please see the introduction video: https://youtu.
 
 ## Installation
 
-To install, **click this link: [file_backups-0.2.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.2.1/file_backups-0.2.1-an.fx.xpi)** or download and install from the [releases page](https://github.com/pmario/file-backups/releases/)
+To install, **click this link: [file_backups-0.3.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.3.1/file_backups-0.3.1-an.fx.xpi)** or download and install from the [releases page](https://github.com/pmario/file-backups/releases/)
 
 ## File Storage Locations
 
