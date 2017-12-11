@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg class="tc-image-download-button tc-image-button" width="20" height="20" version="1.1" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <metadata>
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title/>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <path class="tc-image-download-button-ring" d="m10 20c5.52 0 10-4.48 10-10 0-5.52-4.48-10-10-10-5.52 0-10 4.48-10 10 0 5.52 4.48 10 10 10zm0-2.5c4.14 0 7.5-3.36 7.5-7.5 0-4.14-3.36-7.5-7.5-7.5-4.14 0-7.5 3.36-7.5 7.5 0 4.14 3.36 7.5 7.5 7.5z" fill="#008000" fill-rule="evenodd" stroke-width=".156"/>
+ <path d="m5.37 10.4 4.2 4.25c0.281 0.284 0.737 0.284 1.02 0l4.2-4.25c0.281-0.284 0.281-0.746 0-1.03-0.135-0.137-0.318-0.213-0.509-0.213h-1.32c-0.398 0-0.72-0.326-0.72-0.728v-2.37c0-0.402-0.322-0.728-0.72-0.728h-2.88c-0.398 0-0.72 0.326-0.72 0.728v2.37c0 0.402-0.322 0.728-0.72 0.728h-1.32c-0.398 0-0.72 0.326-0.72 0.728 0 0.193 0.0759 0.378 0.211 0.515z" fill="#008000" fill-rule="evenodd" stroke-width=".156"/>
+</svg>

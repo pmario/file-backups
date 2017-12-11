@@ -6,7 +6,7 @@ var jsonfile = require('jsonfile')
 // take package.json version info and transfere it to the manifest.json
 // so in the command line we can use "npm version patch" ...
 
-var fManifest = './addon/manifest.json',
+var fManifest = './assets/manifest.json',
 	fPackage = "./package.json"
 
 var pkg = jsonfile.readFileSync(fPackage);
