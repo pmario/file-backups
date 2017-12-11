@@ -35,7 +35,7 @@ module.exports = {
 			ignore: [
 			    // Doesn't copy any files with a txt extension
 				// .js files will be compressed
-			    '*.js',
+			    //'*.js',
 
 			    // Doesn't copy any file, even if they start with a dot
 //			    '**/*',
