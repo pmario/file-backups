@@ -10,26 +10,32 @@ function main() {
 	checkUrlConflict();
 }
 
-// TODO display open new TW, if tab can't be created eg: linux
-// 		var test = `<a href="file:///C:/Users/mario/Downloads/index.html" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">file:///C:/Users/mario/Downloads/index.html</a>`
-
-function backendMessage(textMsgNode, textUrlNode, color, background) {
+// TODO it's ugly .. improve this
+function backendMessage(textHeader, textMsg, textUrl, color, background) {
 	var color = color || "white",
 		background = background || "red";
 
-	var div = document.createElement("div"),
+	var wrapper  = document.createElement("div"),
+		br  = document.createElement("br"),
 		pMsg = document.createElement("p"),
-		pUrl = document.createElement("p");
+		pUrl = document.createElement("p"),
+		textHeaderNode = document.createTextNode(textHeader),
+		textMsgNode = document.createTextNode(textMsg),
+		textUrlNode = document.createTextNode(textUrl);
 
-	pMsg.innerHTML = textMsgNode;
-	pMsg.style = "font-weight: 700;";
-	div.appendChild(pMsg);
-	pUrl.innerHTML = textUrlNode;
-	div.appendChild(pUrl);
-	div.style = `position: fixed; left: 0; top: 0; right: 0; color: ${color}; background: ${background}; border: 4px solid black; text-align: center; margin: 8px; z-index: 10000; font-size: initial;`;
-	document.body.appendChild(div);
-	div.addEventListener("click", function (event) {
-		document.body.removeChild(div);
+	if (textHeader !== "") {
+		pMsg.appendChild(textHeaderNode);
+		pMsg.appendChild(br);
+	};
+	pMsg.appendChild(textMsgNode);
+	pMsg.style = "font-weight: 600;";
+	wrapper.appendChild(pMsg);
+	pUrl.appendChild(textUrlNode);
+	wrapper.appendChild(pUrl);
+	wrapper.style = `position: fixed; left: 0; top: 0; right: 0; color: ${color}; background: ${background}; border: 4px solid black; text-align: center; margin: 8px; z-index: 10000; font-size: initial;`;
+	document.body.appendChild(wrapper);
+	wrapper.addEventListener("click", function (event) {
+		document.body.removeChild(wrapper);
 	}, false);
 }
 
@@ -45,7 +51,9 @@ function checkUrlConflict() {
 	getStat.then( (urlConflict) => {
 //		console.log("urlConflict: ", urlConflict);
 		if (urlConflict) {
-			backendMessage("Message from 'file-backups' AddOn: <br/>This TiddlyWiki file is already open in another tab OR an other window!",
+			// backendMessage(textHeader, textMsg, textUrl, color, background)
+			backendMessage("Message from 'file-backups' AddOn:",
+						   "This TiddlyWiki file is already open in another tab OR an other window!",
 							`${data.url}`)
 		}
 	});
@@ -150,8 +158,11 @@ function injectMessageBox(doc) {
 				} else if (response.downloadWikiError) {
 					// TODO
 				} else if (response.openNewTabError) {
-					backendMessage(response.openNewTabError,
-								   `Click -> <a href="${response.openNewTabInfo.filename}" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">${response.openNewTabInfo.filename}</a>`, "black", "lightgreen");
+					// backendMessage(textHeader, textMsg, textUrl, color, background)
+					backendMessage("",
+								   response.openNewTabError,
+								   `Click -> <a href="${response.openNewTabInfo.filename}" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">${response.openNewTabInfo.filename}</a>`,
+								   "black", "lightgreen");
 				}
 //				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
 //				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
