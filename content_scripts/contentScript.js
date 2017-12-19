@@ -2,7 +2,54 @@
 
 const PLUGIN_NAME = "file-backups"
 
-document.addEventListener('DOMContentLoaded', main, false);
+document.addEventListener("DOMContentLoaded", main, false);
+
+/*
+var template = [
+	{
+		tag: "div",
+		attr: { name: "class", value: "tests"},
+		children: [
+			{
+				tag: "p",
+				attr: { name: "class", value: "tests"},
+				children: [
+					{
+						text: "some text"
+					}
+				]
+			}
+		]
+	}
+];
+*/
+
+function createDomElements(parent, el) {
+	let elem,
+		newer = parent;
+
+	if (!(newer && newer.appendChild)) {
+		newer = document.createElement("div");
+	}
+
+	for (let i = 0; i < el.length; i++) {
+		if (el[i].tag) {
+			elem = document.createElement(el[i].tag);
+		} else if (el[i].text) {
+			elem = document.createTextNode(el[i].text)
+		} else return "error";
+
+		if (el[i].attr) {
+			elem.setAttribute(el[i].attr.name, el[i].attr.value);
+		}
+		if (el[i].children) {
+			elem = createDomElements(elem, el[i].children);
+		}
+		newer.appendChild(elem);
+	}
+	return newer;
+}
+
 
 // main function
 function main() {
@@ -11,27 +58,13 @@ function main() {
 }
 
 // TODO it's ugly .. improve this
-function backendMessage(textHeader, textMsg, textUrl, color, background) {
+function backendMessage(template, color, background) {
 	var color = color || "white",
-		background = background || "red";
+		background = background || "red",
+		wrapper  = document.createElement("div");
 
-	var wrapper  = document.createElement("div"),
-		br  = document.createElement("br"),
-		pMsg = document.createElement("p"),
-		pUrl = document.createElement("p"),
-		textHeaderNode = document.createTextNode(textHeader),
-		textMsgNode = document.createTextNode(textMsg),
-		textUrlNode = document.createTextNode(textUrl);
+	wrapper = createDomElements(wrapper, template);
 
-	if (textHeader !== "") {
-		pMsg.appendChild(textHeaderNode);
-		pMsg.appendChild(br);
-	};
-	pMsg.appendChild(textMsgNode);
-	pMsg.style = "font-weight: 600;";
-	wrapper.appendChild(pMsg);
-	pUrl.appendChild(textUrlNode);
-	wrapper.appendChild(pUrl);
 	wrapper.style = `position: fixed; left: 0; top: 0; right: 0; color: ${color}; background: ${background}; border: 4px solid black; text-align: center; margin: 8px; z-index: 10000; font-size: initial;`;
 	document.body.appendChild(wrapper);
 	wrapper.addEventListener("click", function (event) {
@@ -49,12 +82,25 @@ function checkUrlConflict() {
 	var getStat = browser.runtime.sendMessage(data)
 
 	getStat.then( (urlConflict) => {
-//		console.log("urlConflict: ", urlConflict);
+		let tabExistsMessage = [
+			{
+				tag: "p",
+				attr: { name: "style", value: "font-weight: 600;"},
+				children: [
+					{ text: "Message from 'file-backups' AddOn:" }
+				]
+			},
+			{ tag: "p",
+				children: [
+					{ text: "This TiddlyWiki file is already open in another tab OR an other window!"}
+				]
+			},
+			{ text: data.url }
+		];
+
 		if (urlConflict) {
-			// backendMessage(textHeader, textMsg, textUrl, color, background)
-			backendMessage("Message from 'file-backups' AddOn:",
-						   "This TiddlyWiki file is already open in another tab OR an other window!",
-							`${data.url}`)
+			// backendMessage(template, color::string, background::string)
+			backendMessage(tabExistsMessage);
 		}
 	});
 }
@@ -150,19 +196,33 @@ function injectMessageBox(doc) {
 		// using it that way, allows us to establishe a 2 way communication between
 		// bg and tiddlyFox saver, within TW, in a backwards compatible way.
 		function cb(response) {
+			let tabCreateMessage = [
+					{
+						tag: "p",
+						attr: { name: "style", value: "font-weight: 600;"},
+						children: [
+							{ text: response.openNewTabError }
+						]
+					},
+					{ tag: "a",
+					  attr: { name: "href", value: response.openNewTabInfo.filename},
+					  attr: { name: "class", value: "tc-tiddlylink-external"},
+					  attr: { name: "rel", value: "noopener noreferrer"},
+					  attr: { name: "target", value: "_blank"},
+						children: [
+							{ text: response.openNewTabInfo.filename}
+						]
+					}
+				];
 			// Send a confirmation message
 			if (response.relPath === "") {
 				if (response.beakonError) {
-					// backendMessage(textMsgNode, textUrlNode)
-					// backendMessage(response.beakonError, response.beakonInfo.filename);
+					// TODO
 				} else if (response.downloadWikiError) {
 					// TODO
 				} else if (response.openNewTabError) {
-					// backendMessage(textHeader, textMsg, textUrl, color, background)
-					backendMessage("",
-								   response.openNewTabError,
-								   `Click -> <a href="${response.openNewTabInfo.filename}" class="tc-tiddlylink-external" target="_blank" rel="noopener noreferrer">${response.openNewTabInfo.filename}</a>`,
-								   "black", "lightgreen");
+					// backendMessage(template, color, background)
+					backendMessage(tabCreateMessage, "black", "lightgreen");
 				}
 //				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
 //				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
