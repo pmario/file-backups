@@ -1,7 +1,3 @@
-# Beta
-
-This FireFox AddOn is considered BETA quality.
-
 # File Backup Utility For TiddlyWiki
 
 ## Introduction
@@ -15,7 +11,7 @@ For an overview of this add on please see the introduction video: https://youtu.
 
 ## Installation
 
-To install, **click this link: [file_backups-0.3.1-an.fx.xpi](https://github.com/pmario/file-backups/releases/download/V0.3.1/file_backups-0.3.1-an.fx.xpi)** or download and install from the [releases page](https://github.com/pmario/file-backups/releases/)
+To install, **go to: [Mozilla AddOn Store](https://addons.mozilla.org/de/firefox/addon/file-backups/)** 
 
 ## File Storage Locations
 
@@ -86,6 +82,7 @@ Which will result in a slightly better recovery coverage.
 ## Links
 
 [1] [https://tiddlywiki.com/#GettingStarted](https://tiddlywiki.com/#GettingStarted)
+[2] [Overview Releases](https://github.com/pmario/file-backups/releases/)
 
 ## License
 
