@@ -12,7 +12,9 @@ var template = [
 		children: [
 			{
 				tag: "p",
-				attr: { name: "class", value: "tests"},
+				attr: [
+					{ name: "class", value: "tests"}
+					],
 				children: [
 					{
 						text: "some text"
@@ -40,7 +42,9 @@ function createDomElements(parent, el) {
 		} else return "error";
 
 		if (el[i].attr) {
-			elem.setAttribute(el[i].attr.name, el[i].attr.value);
+			for (let x=0, xMax = el[i].attr.length; x < xMax; x++) {
+				elem.setAttribute(el[i].attr[x].name, el[i].attr[x].value);
+			}
 		}
 		if (el[i].children) {
 			elem = createDomElements(elem, el[i].children);
@@ -85,7 +89,8 @@ function checkUrlConflict() {
 		let tabExistsMessage = [
 			{
 				tag: "p",
-				attr: { name: "style", value: "font-weight: 600;"},
+				attr: [{ name: "style", value: "font-weight: 600;"}
+					  ],
 				children: [
 					{ text: "Message from 'file-backups' AddOn:" }
 				]
@@ -204,13 +209,21 @@ function injectMessageBox(doc) {
 							{ text: response.openNewTabError }
 						]
 					},
-					{ tag: "a",
-					  attr: { name: "href", value: response.openNewTabInfo.filename},
-					  attr: { name: "class", value: "tc-tiddlylink-external"},
-					  attr: { name: "rel", value: "noopener noreferrer"},
-					  attr: { name: "target", value: "_blank"},
+					{
+						tag: "p",
 						children: [
-							{ text: response.openNewTabInfo.filename}
+							{ tag: "a",
+							  attr: [
+								  {name: "href", value: response.openNewTabInfo.filename},
+								  {name: "class", value: "tc-tiddlylink-external"},
+								  {name: "rel", value: "noopener noreferrer"},
+								  {name: "target", value: "_blank"}
+								],
+								children: [
+									{ text: "Click -> " },
+									{ text: response.openNewTabInfo.filename}
+								]
+							}
 						]
 					}
 				];
