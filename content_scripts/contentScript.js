@@ -201,32 +201,6 @@ function injectMessageBox(doc) {
 		// using it that way, allows us to establishe a 2 way communication between
 		// bg and tiddlyFox saver, within TW, in a backwards compatible way.
 		function cb(response) {
-			let tabCreateMessage = [
-					{
-						tag: "p",
-						attr: { name: "style", value: "font-weight: 600;"},
-						children: [
-							{ text: response.openNewTabError }
-						]
-					},
-					{
-						tag: "p",
-						children: [
-							{ tag: "a",
-							  attr: [
-								  {name: "href", value: response.openNewTabInfo.filename},
-								  {name: "class", value: "tc-tiddlylink-external"},
-								  {name: "rel", value: "noopener noreferrer"},
-								  {name: "target", value: "_blank"}
-								],
-								children: [
-									{ text: "Click -> " },
-									{ text: response.openNewTabInfo.filename}
-								]
-							}
-						]
-					}
-				];
 			// Send a confirmation message
 			if (response.relPath === "") {
 				if (response.beakonError) {
@@ -234,6 +208,33 @@ function injectMessageBox(doc) {
 				} else if (response.downloadWikiError) {
 					// TODO
 				} else if (response.openNewTabError) {
+					let fName = (response.openNewTabInfo && response.openNewTabInfo.filename) ? response.openNewTabInfo.filename : "response.openNewTabInfo: no filename defined!"
+					let tabCreateMessage = [
+							{
+								tag: "p",
+								attr: { name: "style", value: "font-weight: 600;"},
+								children: [
+									{ text: response.openNewTabError }
+								]
+							},
+							{
+								tag: "p",
+								children: [
+									{ tag: "a",
+									  attr: [
+										  {name: "href", value: fName},
+										  {name: "class", value: "tc-tiddlylink-external"},
+										  {name: "rel", value: "noopener noreferrer"},
+										  {name: "target", value: "_blank"}
+										],
+										children: [
+											{ text: "Click -> " },
+											{ text: fName}
+										]
+									}
+								]
+							}
+						];
 					// backendMessage(template, color, background)
 					backendMessage(tabCreateMessage, "black", "lightgreen");
 				}
