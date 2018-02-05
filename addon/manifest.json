@@ -40,7 +40,8 @@
         "content_scripts/index.js"
       ],
       "matches": [
-        "file:///*"
+        "file:///*.html",
+        "file:///*.htm"
       ],
       "run_at": "document_start"
     }
