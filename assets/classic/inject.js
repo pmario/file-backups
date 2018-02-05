@@ -23,7 +23,7 @@ var injectedSaveFile = function(path,content) {
 	*/
 
 	// TODO At the moment we deactivate the backups.
-	// In a future version it shoudl be activated again.
+	// In a future version it should be activated again.
 	config.options.chkSaveBackups = false;
 	// Find the message box element
 	var messageBox = document.getElementById("tiddlyfox-message-box");
