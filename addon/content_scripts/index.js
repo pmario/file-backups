@@ -137,8 +137,11 @@ function createDomElements(parent, el) {
 
 // main function
 function main() {
-	injectMessageBox();
-	checkUrlConflict();
+	// check, if we are allowed to run!!
+	if (isTiddlyWiki5File(document) || isTiddlyWikiClassicFile(document)) {
+		injectMessageBox(document);
+		checkUrlConflict();
+	}
 }
 
 // TODO it's ugly .. improve this
@@ -205,7 +208,7 @@ function isTiddlyWiki5File(doc) {
 	var meta = document.getElementsByTagName("META");
 	if (meta) {
 		for (let i = 0; i < meta.length; i++) {
-			if (meta[i].content === "TiddlyWiki") return (doc.location.protocol === "file:");
+			if (meta[i].content === "TiddlyWiki") return true;
 		}
 	}
 	return false;
@@ -234,15 +237,9 @@ function injectClassicScript(doc) {
 
 // main loop
 function injectMessageBox(doc) {
-	doc = document;
-
-	// check, if we are allowed to run!!
-	if (isTiddlyWiki5File(doc)) {
-		// do nothing
-	} else if (isTiddlyWikiClassicFile(doc)) {
+	// check, if we are TWclassic!!
+	if (isTiddlyWikiClassicFile(doc)) {
 		injectClassicScript(doc);
-	} else {
-		return;
 	}
 
 	// Inject the message box
@@ -317,12 +314,10 @@ function injectMessageBox(doc) {
 						];
 					// backendMessage(template, color, background)
 					backendMessage(tabCreateMessage, "black", "lightgreen");
-				}
-//				alert("The file can't be saved to:" + path + "\n\nThe next save will open a 'Save Dialog'!");
-//				message.parentNode.setAttribute("data-tiddlyfox-saveas", "yes");
+				} // else if(response.openNewTabError)
 			} else {
 				message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
-			}
+			} // if (response.relPath === "")
 
 			let event1 = doc.createEvent("Events");
 			message.parentNode.setAttribute("data-tiddlyfox-subdir", response.subdir || "");
