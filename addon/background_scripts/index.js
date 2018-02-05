@@ -2195,10 +2195,6 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 			[message.path]: new Facet(stash, {subdir: response.relPath})
 			});
 		} // if items
-
-		// TODO should be obsolete now
-		// notify(savedAs, y);
-
 	} // if results
 
 	return response;
