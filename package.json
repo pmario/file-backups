@@ -6,7 +6,10 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"prebuild": "node build-tools/copy-version.js && webpack",
 		"build": "cd addon && web-ext build --overwrite-dest",
+		"postbuild": "git commit -a -m \"Version: $npm_package_version\" ",
 		"version": "npm run build",
+		"postversion": "echo run: \\\"npm run tag\\\", to create a git tag",
+		"tag": "git tag V$npm_package_version",
 		"sign": "bash ./build-tools/sign-addon.sh"
 	},
 	"license": "CC-BY-NC-SA",
