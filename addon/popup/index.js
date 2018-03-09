@@ -84,11 +84,17 @@ var backupdirNode;
 var backupEnabledNode;
 var amountNode;
 var counterNode;
+var versionNode;
+
+const manifest = browser.runtime.getManifest();
 
 function restore_options() {
 	backupdirNode = document.getElementById("backupdir");
 	backupEnabledNode = document.getElementById("backupenabled");
 	amountNode = document.getElementById("amount");
+	versionNode = document.getElementById("version");
+
+	versionNode.textContent = "V" + manifest.version;
 
 	function onError(err) {
 		console.log("storage.local.get error:", err);
