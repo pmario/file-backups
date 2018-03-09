@@ -176,11 +176,18 @@ for (var j = 0; j < 12; j++) {
 
 // Find file index, if counter is known.
 function getNextChar(count, max) {
+	var date = new Date();
 	var char = "a";
-	var cnt = count - max;
+	var cnt = count /* - max */;
 
-	if (count <= max) {
-		char = String.fromCharCode(64 + count);
+// Changed with 0.3.6, since it may overwrite existing backups,
+// if the AddOn is uninstalled then reinstalled, because the local storage will be deleted
+// by the browser, so the counter starts over from 1, wich will cause problems.
+
+	if (count <= 1) {
+		// The first save after plugin installation will look like
+		// eg: empty(2018-03-09T16-23-47-792Z).html
+		char = date.toJSON().replace(/:|\./ig,"-");
 	} else {
 		for (var i = 0; i < max; i++) {
 			if ((cnt - Math.pow(2, i)) % Math.pow(2, i + 1) === 0) {
@@ -205,9 +212,9 @@ async function createBackup(message) {
 	if (items) {
 		let stash = new Facet(items[message.path]) || {},
 			counter = stash.fields.counter || 1,
-			backupEnabled = items.backupEnabled || false,
+			backupEnabled = items.backupEnabled || true,
 			backupdir = items.backupdir || BACKUP_DIR,
-			max = items.numberOfBackups || 5,
+			max = items.numberOfBackups || 7,
 			nextChar = getNextChar(counter, max);
 
 		// imo this won't happen, but who knows.
