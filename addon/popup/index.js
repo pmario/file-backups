@@ -102,8 +102,8 @@ function restore_options() {
 
 	function onGotStore(items) {
 		backupdirNode.value = items.backupdir || "twBackups";
-		backupEnabledNode.checked = items.backupEnabled || false;
-		amountNode.value = items.numberOfBackups || 5;
+		backupEnabledNode.checked = items.backupEnabled || true;
+		amountNode.value = items.numberOfBackups || 7;
 	};
 
 	let gettingItem = browser.storage.local.get();
