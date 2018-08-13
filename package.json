@@ -6,7 +6,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"prebuild": "node build-tools/copy-version.js && webpack",
 		"build": "cd addon && web-ext build --overwrite-dest && cd ..",
-		"postbuild": "cross-var git commit -a -m \"Version: $npm_package_version\" ",
+		"postbuild": "git add -A && git diff-index --quiet HEAD || cross-var git commit -m \"Version: $npm_package_version\" ",
 		"version": "npm run build",
 		"postversion": "echo run: \"npm run tag\", to create a git tag",
 		"tag": "cross-var git tag V$npm_package_version",
