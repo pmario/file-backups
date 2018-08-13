@@ -1877,7 +1877,6 @@ var Facet = function ( /* [fields,] fields */ ) {
 					delete this.fields[t]; // If we get a field that's undefined, delete any previous field value
 				}
 			} else {
-				// Parse the field with the associated field module (if any)
 				var value = src[t];
 				// Freeze the field to keep it immutable
 				if (value != null && typeof value === "object") {
@@ -1887,7 +1886,7 @@ var Facet = function ( /* [fields,] fields */ ) {
 			}
 		}
 	}
-	// Freeze the tiddler against modification
+	// Freeze the facet against modification
 	Object.freeze(this.fields);
 	Object.freeze(this);
 };
@@ -2013,11 +2012,18 @@ for (var j = 0; j < 12; j++) {
 
 // Find file index, if counter is known.
 function getNextChar(count, max) {
+	var date = new Date();
 	var char = "a";
-	var cnt = count - max;
+	var cnt = count /* - max */;
 
-	if (count <= max) {
-		char = String.fromCharCode(64 + count);
+// Changed with 0.3.6, since it may overwrite existing backups,
+// if the AddOn is uninstalled then reinstalled, because the local storage will be deleted
+// by the browser, so the counter starts over from 1, wich will cause problems.
+
+	if (count <= 1) {
+		// The first save after plugin installation will look like
+		// eg: empty(2018-03-09T16-23-47-792Z).html
+		char = date.toJSON().replace(/:|\./ig,"-");
 	} else {
 		for (var i = 0; i < max; i++) {
 			if ((cnt - Math.pow(2, i)) % Math.pow(2, i + 1) === 0) {
@@ -2042,9 +2048,9 @@ async function createBackup(message) {
 	if (items) {
 		let stash = new Facet(items[message.path]) || {},
 			counter = stash.fields.counter || 1,
-			backupEnabled = items.backupEnabled || false,
+			backupEnabled = items.backupEnabled || true,
 			backupdir = items.backupdir || BACKUP_DIR,
-			max = items.numberOfBackups || 5,
+			max = items.numberOfBackups || 7,
 			nextChar = getNextChar(counter, max);
 
 		// imo this won't happen, but who knows.
@@ -2054,11 +2060,15 @@ async function createBackup(message) {
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
+			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+
 			itemId = await browser.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+				url: element,
 				filename: nameX,
 				conflictAction: "overwrite"
 			})
+
+			if (element) URL.revokeObjectURL(element);
 
 			if (itemId) {
 				results = await browser.downloads.search({id: itemId});
@@ -2088,11 +2098,16 @@ async function downloadWiki(message) {
 //	let test = path.join(message.subdir, path.basename(message.path));
 
 	// needed, for a roundtrip, to set up the right save directory.
+
+	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], { type: "text/plain"})),
+		url: element,
 		filename: path.join(message.subdir, path.basename(message.path)),
 		conflictAction: "overwrite"
 	});
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});
@@ -2119,12 +2134,16 @@ async function downloadDialog(message) {
 		results,
 		response = {};
 
+	var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+		url: element,
 		filename: path.basename(message.path),
 		conflictAction: "overwrite",
 		saveAs: true
 	})
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});
@@ -2148,11 +2167,15 @@ to find out the default position, to save your TiddlyWiki.<br/>
 You can delete it if you want. It will be recreated, if needed.<br/>
 `;
 
+	var element = URL.createObjectURL(new Blob([template], {type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([template], {type: "text/plain"})),
+		url: element,
 		filename: "beakon.tmp.html",
 		conflictAction: "overwrite"
 	});
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});

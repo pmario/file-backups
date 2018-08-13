@@ -25,8 +25,8 @@ async function save_options() {
 async function restore_options() {
 	var items = await browser.storage.local.get({
 		backupdir: "twBackups",
-		backupEnabled: false,
-		numberOfBackups: 5
+		backupEnabled: true,
+		numberOfBackups: 7
 	});
 
 	if (items) {

@@ -4,11 +4,17 @@ var backupdirNode;
 var backupEnabledNode;
 var amountNode;
 var counterNode;
+var versionNode;
+
+const manifest = browser.runtime.getManifest();
 
 function restore_options() {
 	backupdirNode = document.getElementById("backupdir");
 	backupEnabledNode = document.getElementById("backupenabled");
 	amountNode = document.getElementById("amount");
+	versionNode = document.getElementById("version");
+
+	versionNode.textContent = "V" + manifest.version;
 
 	function onError(err) {
 		console.log("storage.local.get error:", err);
@@ -16,8 +22,8 @@ function restore_options() {
 
 	function onGotStore(items) {
 		backupdirNode.value = items.backupdir || "twBackups";
-		backupEnabledNode.checked = items.backupEnabled || false;
-		amountNode.value = items.numberOfBackups || 5;
+		backupEnabledNode.checked = items.backupEnabled || true;
+		amountNode.value = items.numberOfBackups || 7;
 	};
 
 	let gettingItem = browser.storage.local.get();

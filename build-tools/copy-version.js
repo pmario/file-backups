@@ -1,4 +1,5 @@
-// not needed .. can be done by "web-ext" CLI from moz
+// used by npm run - package.json
+// Can be done by "web-ext" CLI from moz too
 "use strict";
 
 var jsonfile = require('jsonfile')
