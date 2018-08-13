@@ -1877,7 +1877,6 @@ var Facet = function ( /* [fields,] fields */ ) {
 					delete this.fields[t]; // If we get a field that's undefined, delete any previous field value
 				}
 			} else {
-				// Parse the field with the associated field module (if any)
 				var value = src[t];
 				// Freeze the field to keep it immutable
 				if (value != null && typeof value === "object") {
@@ -1887,7 +1886,7 @@ var Facet = function ( /* [fields,] fields */ ) {
 			}
 		}
 	}
-	// Freeze the tiddler against modification
+	// Freeze the facet against modification
 	Object.freeze(this.fields);
 	Object.freeze(this);
 };
@@ -2061,11 +2060,15 @@ async function createBackup(message) {
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
+			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+
 			itemId = await browser.downloads.download({
-				url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+				url: element,
 				filename: nameX,
 				conflictAction: "overwrite"
 			})
+
+			if (element) URL.revokeObjectURL(element);
 
 			if (itemId) {
 				results = await browser.downloads.search({id: itemId});
@@ -2095,11 +2098,16 @@ async function downloadWiki(message) {
 //	let test = path.join(message.subdir, path.basename(message.path));
 
 	// needed, for a roundtrip, to set up the right save directory.
+
+	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], { type: "text/plain"})),
+		url: element,
 		filename: path.join(message.subdir, path.basename(message.path)),
 		conflictAction: "overwrite"
 	});
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});
@@ -2126,12 +2134,16 @@ async function downloadDialog(message) {
 		results,
 		response = {};
 
+	var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([message.txt], {type: "text/plain"})),
+		url: element,
 		filename: path.basename(message.path),
 		conflictAction: "overwrite",
 		saveAs: true
 	})
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});
@@ -2155,11 +2167,15 @@ to find out the default position, to save your TiddlyWiki.<br/>
 You can delete it if you want. It will be recreated, if needed.<br/>
 `;
 
+	var element = URL.createObjectURL(new Blob([template], {type: "text/plain"}));
+
 	itemId = await browser.downloads.download({
-		url: URL.createObjectURL(new Blob([template], {type: "text/plain"})),
+		url: element,
 		filename: "beakon.tmp.html",
 		conflictAction: "overwrite"
 	});
+
+	if (element) URL.revokeObjectURL(element);
 
 	if (itemId) {
 		results = await browser.downloads.search({id: itemId});

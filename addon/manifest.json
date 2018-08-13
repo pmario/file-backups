@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "File Backups",
-  "version": "0.3.6",
+  "name": "File Backups - For TiddlyWiki",
+  "version": "0.3.7",
   "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
   "icons": {
     "32": "icons/diamond-32.png",
@@ -16,7 +16,7 @@
   },
   "browser_action": {
     "default_icon": "icons/diamond-64.png",
-    "default_title": "TiddlyBackup",
+    "default_title": "File Backups - For TiddlyWiki",
     "default_popup": "popup/defaultPopup.html",
     "browser_style": true
   },
