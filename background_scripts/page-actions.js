@@ -103,7 +103,9 @@ const pageActions = {
 
 		function gotTabInfo(tab) {
 			if (protocolIsApplicable(tab.url)) {
-				let gettingItem = browser.storage.local.get();
+				let gettingItem = browser.storage.local.get({
+					backupEnabled : true
+				});
 				gettingItem.then(onGotStore, onError);
 			} else browser.pageAction.hide(tab.id);
 		}
@@ -120,11 +122,11 @@ const pageActions = {
 		if (protocolIsApplicable(tab.url)) {
 			browser.pageAction.setIcon({
 				tabId: tab.id,
-				path: "icons/download.svg"
+				path: "icons/backup.svg"
 			});
 			browser.pageAction.setTitle({
 				tabId: tab.id,
-				title: TITLE_ENABLE
+				title: TITLE_DISABLE
 			});
 			browser.pageAction.show(tab.id);
 		} else {

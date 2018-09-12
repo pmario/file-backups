@@ -97,8 +97,36 @@ browser.pageAction.onClicked.addListener((tab) => {
 
 
 //
+// Background download() listener!!
+// This one is needed because, the downloaded blobs need to be revoked, to be GCed
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download#Return_value
 //
-// Bacground main() listener!!
+
+var blobs = {};
+
+function handleDownloadChanged(delta) {
+	if (delta.state && delta.state.current === "complete") {
+//		console.log(`Download ${delta.id} has completed.`, "blobs: ", blobs);
+
+		if (delta.id in blobs) {
+			URL.revokeObjectURL(blobs[delta.id]);
+			delete blobs[delta.id];
+		} else { // this should not happen!!
+			console.log(`Download ${delta.id} not found.`, "blobs: ", blobs);
+		}
+	} else { // a bit of error handling
+		console.log(`Download ${delta.id} was ${delta.state}.`, "blobs: ", blobs);
+	}
+
+}
+
+if (!browser.downloads.onChanged.hasListener(handleDownloadChanged)) {
+	browser.downloads.onChanged.addListener(handleDownloadChanged);
+}
+
+//
+//
+// Background main() listener!!
 //
 //
 browser.runtime.onMessage.addListener(handleMessages);
@@ -211,7 +239,7 @@ async function createBackup(message) {
 	if (items) {
 		let stash = new Facet(items[message.path]) || {},
 			counter = stash.fields.counter || 1,
-			backupEnabled = items.backupEnabled || true,
+			backupEnabled = (items.backupEnabled == undefined) ? true : items.backupEnabled,
 			backupdir = items.backupdir || BACKUP_DIR,
 			max = items.numberOfBackups || 7,
 			nextChar = getNextChar(counter, max);
@@ -229,18 +257,17 @@ async function createBackup(message) {
 				url: element,
 				filename: nameX,
 				conflictAction: "overwrite"
-			})
-
-			if (element) URL.revokeObjectURL(element);
+			});
 
 			if (itemId) {
+				blobs[itemId] = element;
 				results = await browser.downloads.search({id: itemId});
 			} // if itemId
 
 			// Store the config elements per tab.
 			counter = counter + 1;
 
-			browser.storage.local.set({
+			await browser.storage.local.set({
 				[message.path]: new Facet(stash, {
 					counter: counter
 				})
@@ -270,14 +297,16 @@ async function downloadWiki(message) {
 		conflictAction: "overwrite"
 	});
 
-	if (element) URL.revokeObjectURL(element);
-
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
 	}
 
+	let dirA = (osInfo.os === "win") ? message.path.toLowerCase() : message.path;
+	let dirB = (osInfo.os === "win") ? results[0].filename.toLowerCase() : results[0].filename;
+
 	// Check, if download dir is the same.
-	if (!(message.path === results[0].filename)) {
+	if (!(dirA === dirB)) {
 		return {relPath: "",
 				downloadWikiError: "Wrong Download Directory!",
 				downloadWikiInfo: results[0]};
@@ -306,9 +335,8 @@ async function downloadDialog(message) {
 		saveAs: true
 	})
 
-	if (element) URL.revokeObjectURL(element);
-
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
 	}
 
@@ -338,9 +366,8 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 		conflictAction: "overwrite"
 	});
 
-	if (element) URL.revokeObjectURL(element);
-
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
 	}
 
@@ -376,7 +403,7 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 			let stash = new Facet(items[message.path]) || {};
 
 			// Save config
-			browser.storage.local.set({
+			await browser.storage.local.set({
 				defaultDir: defaultDir,
 			[message.path]: new Facet(stash, {subdir: response.relPath})
 			});
@@ -423,10 +450,20 @@ async function prepareAndOpenNewTab(dlInfo) {
 
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
-		var test = await browser.tabs.create({
-			active: true,
-			url: dlInfo.filename
-		});
+
+// TODO: check
+//		Starting with FF 63, this seems to be broken.
+
+//		var test = await browser.tabs.create({
+//			active: true,
+//			url: dlInfo.filename
+//		});
+
+		dlInfo.filename = "file:\\\\" + dlInfo.filename;
+
+		return {relPath: "",
+				openNewTabError:"Please open your Wiki at:",
+				openNewTabInfo: dlInfo};
 	} else {
 		return {relPath: "",
 				openNewTabError:"Please open your Wiki at:",
