@@ -166,7 +166,7 @@ function injectMessageBox(doc) {
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
 	if (messageBox) {
 		var othersw = messageBox.getAttribute("data-message-box-creator") || null;
-		if (othersw) {
+		if (othersw !== PLUGIN_NAME) {
 			alert('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
 				'At the moment only 1 save mechanism can be active at once.\n' +
 				'We will temporarily deactivate the functionality, until the problem is resolved!');
