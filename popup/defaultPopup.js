@@ -21,12 +21,22 @@ function restore_options() {
 	}
 
 	function onGotStore(items) {
-		backupdirNode.value = items.backupdir || "twBackups";
-		backupEnabledNode.checked = items.backupEnabled || true;
-		amountNode.value = items.numberOfBackups || 7;
+		backupdirNode.value = items.backupdir;
+		backupEnabledNode.checked = items.backupEnabled;
+		amountNode.value = items.numberOfBackups;
 	};
 
-	let gettingItem = browser.storage.local.get();
+//	function onGotStore(items) {
+//		backupdirNode.value = items.backupdir || "twBackups";
+//		backupEnabledNode.checked = items.backupEnabled || true;
+//		amountNode.value = items.numberOfBackups || 7;
+//	};
+
+	let gettingItem = browser.storage.local.get({
+		backupdir : "twBackups",
+		backupEnabled: true,
+		numberOfBackups: 7
+	});
 	gettingItem.then(onGotStore, onError);
 }
 
