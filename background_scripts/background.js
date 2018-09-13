@@ -256,7 +256,8 @@ async function createBackup(message) {
 			itemId = await browser.downloads.download({
 				url: element,
 				filename: nameX,
-				conflictAction: "overwrite"
+				conflictAction: "overwrite",
+				saveAs: false
 			});
 
 			if (itemId) {
@@ -294,7 +295,8 @@ async function downloadWiki(message) {
 	itemId = await browser.downloads.download({
 		url: element,
 		filename: path.join(message.subdir, path.basename(message.path)),
-		conflictAction: "overwrite"
+		conflictAction: "overwrite",
+		saveAs: false
 	});
 
 	if (itemId) {
@@ -363,7 +365,8 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 	itemId = await browser.downloads.download({
 		url: element,
 		filename: "beakon.tmp.html",
-		conflictAction: "overwrite"
+		conflictAction: "overwrite",
+		saveAs: false
 	});
 
 	if (itemId) {
