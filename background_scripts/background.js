@@ -5,7 +5,6 @@ const BACKUP_DIR = "twBackups";
 // At the moment it always returns win32
 // startup() function needs to fix this
 const tempPath = require("../libs/path");
-const actions = require("./page-actions");
 
 var path,
     osInfo;
@@ -53,48 +52,6 @@ var Facet = function ( /* [fields,] fields */ ) {
 	Object.freeze(this.fields);
 	Object.freeze(this);
 };
-
-/*
-When first loaded, initialize the page action for all tabs.
-*/
-var gettingAllTabs = browser.tabs.query({});
-
-gettingAllTabs.then((tabs) => {
-//	console.log("tabs: ", tabs);
-	for (let tab of tabs) {
-		actions.initializePageAction(tab);
-	}
-});
-
-//
-//
-// Tab Actions
-//
-//
-browser.tabs.onActivated.addListener((tab) => {
-	var x = tab
-	x.id = tab.tabId;
-
-	actions.updatePageAction(x);
-	//    console.log("activated:", tab)
-});
-
-/*
-Each time a tab is updated, reset the page action for that tab.
-*/
-browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
-	tab.id = id;
-	actions.updatePageAction(tab);
-	//  console.log("update triggered:", tab)
-});
-
-/*
-Toggle CSS when the page action is clicked.
-*/
-browser.pageAction.onClicked.addListener((tab) => {
-	actions.toggleEnableBackups(tab);
-});
-
 
 //
 // Background download() listener!!
@@ -146,11 +103,7 @@ browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
 // should be straight forward and simple.
 // uses the following  construction to respond back to the contentScript:
 // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise
-async function handleMessages(message, sender, sendResponse) {
-	// Update tab icon, when main-popup save is clicked
-	if (message.msg === "updateBackupEnabled") {
-		return handleUpdateTabIcon(message);
-	}
+function handleMessages(message, sender, sendResponse) {
 
 	// Standard save-wiki message from contentScript
 	if (message.msg === "save-wiki") {
@@ -174,25 +127,6 @@ async function checkUrlConflict(message) {
 		}
 	}
 	return (count > 1);
-}
-
-async function handleUpdateTabIcon(message) {
-	function updateTab(tabs) {
-		if (tabs.length > 0) {
-			actions.messageUpdatePageAction(tabs[0], message);
-		}
-		return {};
-	}
-
-	function onError(error) {
-		console.log(`Error: ${error}`);
-	}
-
-	var gettingActive = browser.tabs.query({
-		currentWindow: true,
-		active: true
-	});
-	gettingActive.then(updateTab, onError);
 }
 
 
@@ -294,6 +228,9 @@ async function downloadWiki(message) {
 		results,
 		response = {};
 
+
+	let cnt;
+
 	// get info from local storage.
 	let items = await browser.storage.local.get(),
 		stash = new Facet(items[message.path]) || {};
@@ -314,13 +251,21 @@ async function downloadWiki(message) {
 	if (itemId) {
 		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
+//		results = await browser.downloads.search({limit: 1, orderBy: ["-startTime"]});
 	}
+
+		// Check, if download dir is the same.
+//	if (results[0].id != itemId) {
+//		return {relPath: "",
+//				downloadWikiError: "Beakon could not be saved!",
+//				downloadWikiInfo: results[0]};
+//	}
 
 	let dirA = (osInfo.os === "win") ? message.path.toLowerCase() : message.path;
 	let dirB = (osInfo.os === "win") ? results[0].filename.toLowerCase() : results[0].filename;
 
 	// Check, if download dir is the same.
-	if (!(dirA === dirB)) {
+	if (dirA !== dirB) {
 		return {relPath: "",
 				downloadWikiError: "Wrong Download Directory!",
 				downloadWikiInfo: results[0]};
@@ -332,6 +277,9 @@ async function downloadWiki(message) {
 	}
 
 	response.relPath = message.subdir;
+
+	cnt += 1;
+
 	return response;
 } // downloadWiki()
 
@@ -386,7 +334,7 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 		results = await browser.downloads.search({id: itemId});
 	}
 
-	if (results) {
+	if (results.length > 0) {
 		let rejectPath = false;
 		let defaultEl = path.parse(results[0].filename);
 		defaultEl.base = "";

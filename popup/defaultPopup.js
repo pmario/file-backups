@@ -53,13 +53,6 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 //	console.log("submit OK:", e);
 	e.preventDefault();
 
-	// Inform background, that backupEnabled may have been changed.
-	// It's needed for page-actions
-	browser.runtime.sendMessage({
-		msg: "updateBackupEnabled",
-		backupEnabled: backupEnabledNode.checked//,
-	});
-
 	window.close()
 }, false);
 
