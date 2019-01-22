@@ -4,6 +4,18 @@ const PLUGIN_NAME = "file-backups"
 
 document.addEventListener("DOMContentLoaded", main, false);
 
+//
+//
+// AddOn update listener!!
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
+//
+
+function handleUpdateAvailable(details) {
+  console.log(details.version);
+}
+
+browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
+
 /*
 var template = [
 	{

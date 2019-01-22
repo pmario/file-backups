@@ -131,6 +131,18 @@ if (!browser.downloads.onChanged.hasListener(handleDownloadChanged)) {
 //
 browser.runtime.onMessage.addListener(handleMessages);
 
+//
+//
+// Background update listener!!
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
+//
+
+function handleUpdateAvailable(details) {
+  console.log(details.version);
+}
+
+browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
+
 // should be straight forward and simple.
 // uses the following  construction to respond back to the contentScript:
 // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise
