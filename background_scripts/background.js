@@ -254,13 +254,6 @@ async function downloadWiki(message) {
 //		results = await browser.downloads.search({limit: 1, orderBy: ["-startTime"]});
 	}
 
-		// Check, if download dir is the same.
-//	if (results[0].id != itemId) {
-//		return {relPath: "",
-//				downloadWikiError: "Beakon could not be saved!",
-//				downloadWikiInfo: results[0]};
-//	}
-
 	let dirA = (osInfo.os === "win") ? message.path.toLowerCase() : message.path;
 	let dirB = (osInfo.os === "win") ? results[0].filename.toLowerCase() : results[0].filename;
 
@@ -328,6 +321,9 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 		conflictAction: "overwrite",
 		saveAs: false
 	});
+
+	// TODO remove hack
+	//await timeout(500);
 
 	if (itemId) {
 		blobs[itemId] = element;
@@ -414,6 +410,9 @@ async function prepareAndOpenNewTab(dlInfo) {
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
 
+		var opening = await browser.downloads.open(
+  			dlInfo.id      // integer
+		)
 // TODO: check
 //		Starting with FF 63, this seems to be broken.
 
@@ -421,6 +420,8 @@ async function openNewWiki(dlInfo) {
 //			active: true,
 //			url: dlInfo.filename
 //		});
+
+		// -----------------------------------
 
 		dlInfo.filename = "file:\\\\" + dlInfo.filename;
 
