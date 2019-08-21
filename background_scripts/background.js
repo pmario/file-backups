@@ -409,20 +409,6 @@ async function prepareAndOpenNewTab(dlInfo) {
 
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
-
-		var opening = await browser.downloads.open(
-  			dlInfo.id      // integer
-		)
-// TODO: check
-//		Starting with FF 63, this seems to be broken.
-
-//		var test = await browser.tabs.create({
-//			active: true,
-//			url: dlInfo.filename
-//		});
-
-		// -----------------------------------
-
 		dlInfo.filename = "file:\\\\" + dlInfo.filename;
 
 		return {relPath: "",
