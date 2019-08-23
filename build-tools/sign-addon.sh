@@ -6,6 +6,10 @@ addon_dir="addon"
 output_dir="$addon_dir/web-ext-artifacts"
 gh_pages="docs"
 
+# inside this git repo we'll pretend to be a new user
+git config user.name "pmario"
+git config user.email "pmariojo@gmail.com"
+
 # clear and re-create the out directory
 rm -rf $output_dir || exit 0;
 #mkdir $output_dir;  # web-ext creates it on the fly.
@@ -24,8 +28,8 @@ cp $output_dir/*.xpi $gh_pages
 cp README.md $gh_pages
 
 # inside this git repo we'll pretend to be a new user
-git config user.name "pmario"
-git config user.email "pmariojo@gmail.com"
+#git config user.name "pmario"
+#git config user.email "pmariojo@gmail.com"
 
 git checkout -b addon-signed
 
