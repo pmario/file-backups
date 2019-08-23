@@ -69,7 +69,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -79,150 +79,7 @@
 "use strict";
 
 
-const TITLE_ENABLE = "Enable Backups";
-const TITLE_DISABLE = "Disable Backups";
-const APPLICABLE_PROTOCOLS = ["file:", "file:"];
-
-/*
-Returns true only if the URL's protocol is in APPLICABLE_PROTOCOLS.
-*/
-function protocolIsApplicable(url) {
-	var anchor = document.createElement('a');
-	anchor.href = url;
-	return APPLICABLE_PROTOCOLS.includes(anchor.protocol);
-};
-
-const pageActions = {
-
-	toggleEnableBackups: function (tab) {
-		function gotTitle(title) {
-			if (title === TITLE_ENABLE) {
-				browser.pageAction.setIcon({
-					tabId: tab.id,
-					path: "icons/backup.svg"
-				});
-				browser.pageAction.setTitle({
-					tabId: tab.id,
-					title: TITLE_DISABLE
-				});
-				browser.storage.local.set({
-					backupEnabled: true
-				});
-			} else {
-				browser.pageAction.setIcon({
-					tabId: tab.id,
-					path: "icons/download.svg"
-				});
-				browser.pageAction.setTitle({
-					tabId: tab.id,
-					title: TITLE_ENABLE
-				});
-				browser.storage.local.set({
-					backupEnabled: false
-				});
-			}
-		}
-
-		if (protocolIsApplicable(tab.url)) {
-			var gettingTitle = browser.pageAction.getTitle({
-				tabId: tab.id
-			});
-			gettingTitle.then(gotTitle);
-		}
-	},
-
-	messageUpdatePageAction: function (tab, items) {
-		if (!protocolIsApplicable(tab.url)) return;
-
-		var icon, title;
-		if (items.backupEnabled) {
-			icon = "icons/backup.svg";
-			title = TITLE_DISABLE;
-		} else {
-			icon = "icons/download.svg";
-			title = TITLE_ENABLE;
-		}
-		browser.pageAction.setIcon({
-			tabId: tab.id,
-			path: icon
-		});
-		browser.pageAction.setTitle({
-			tabId: tab.id,
-			title: title
-		});
-		browser.pageAction.show(tab.id);
-	},
-
-	/*
-	Update the page action: set icon and title, then show.
-	Only operates on tabs whose URL's protocol is applicable.
-	*/
-	updatePageAction: function (tab) {
-		function onError(error) {};
-
-		function onGotStore(items) {
-			var icon, title;
-			if (items.backupEnabled) {
-				icon = "icons/backup.svg";
-				title = TITLE_DISABLE;
-			} else {
-				icon = "icons/download.svg"
-				title = TITLE_ENABLE
-			}
-			browser.pageAction.setIcon({
-				tabId: tab.id,
-				path: icon
-			});
-			browser.pageAction.setTitle({
-				tabId: tab.id,
-				title: title
-			});
-			browser.pageAction.show(tab.id);
-		};
-
-		function gotTabInfo(tab) {
-			if (protocolIsApplicable(tab.url)) {
-				let gettingItem = browser.storage.local.get();
-				gettingItem.then(onGotStore, onError);
-			} else browser.pageAction.hide(tab.id);
-		}
-
-		var gettingTitle = browser.tabs.get(tab.id);
-		gettingTitle.then(gotTabInfo);
-	},
-
-	/*
-	Initialize the page action: set icon and title, then show.
-	Only operates on tabs whose URL's protocol is applicable.
-	*/
-	initializePageAction: function (tab) {
-		if (protocolIsApplicable(tab.url)) {
-			browser.pageAction.setIcon({
-				tabId: tab.id,
-				path: "icons/download.svg"
-			});
-			browser.pageAction.setTitle({
-				tabId: tab.id,
-				title: TITLE_ENABLE
-			});
-			browser.pageAction.show(tab.id);
-		} else {
-			browser.pageAction.hide(tab.id);
-		}
-	}
-}
-
-module.exports = pageActions;
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-const process = __webpack_require__(4);
+const process = __webpack_require__(3);
 
 function assertPath(path) {
   if (typeof path !== 'string') {
@@ -1831,7 +1688,7 @@ posix.posix = win32.posix = posix;
 
 
 /***/ }),
-/* 2 */
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1841,8 +1698,7 @@ const BACKUP_DIR = "twBackups";
 
 // At the moment it always returns win32
 // startup() function needs to fix this
-const tempPath = __webpack_require__(1);
-const actions = __webpack_require__(0);
+const tempPath = __webpack_require__(0);
 
 var path,
     osInfo;
@@ -1891,63 +1747,57 @@ var Facet = function ( /* [fields,] fields */ ) {
 	Object.freeze(this);
 };
 
-/*
-When first loaded, initialize the page action for all tabs.
-*/
-var gettingAllTabs = browser.tabs.query({});
+//
+// Background download() listener!!
+// This one is needed because, the downloaded blobs need to be revoked, to be GCed
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download#Return_value
+//
 
-gettingAllTabs.then((tabs) => {
-//	console.log("tabs: ", tabs);
-	for (let tab of tabs) {
-		actions.initializePageAction(tab);
+var blobs = {};
+
+function handleDownloadChanged(delta) {
+	if (delta.state && delta.state.current === "complete") {
+//		console.log(`Download ${delta.id} has completed.`, "blobs: ", blobs);
+
+		if (delta.id in blobs) {
+			URL.revokeObjectURL(blobs[delta.id]);
+			delete blobs[delta.id];
+		} else { // this should not happen!!
+			console.log(`Download ${delta.id} not found.`, "blobs: ", blobs);
+		}
+	} else { // a bit of error handling
+		console.log(`Download ${delta.id} was ${delta.state}.`, "blobs: ", blobs);
 	}
-});
+
+}
+
+if (!browser.downloads.onChanged.hasListener(handleDownloadChanged)) {
+	browser.downloads.onChanged.addListener(handleDownloadChanged);
+}
 
 //
 //
-// Tab Actions
-//
-//
-browser.tabs.onActivated.addListener((tab) => {
-	var x = tab
-	x.id = tab.tabId;
-
-	actions.updatePageAction(x);
-	//    console.log("activated:", tab)
-});
-
-/*
-Each time a tab is updated, reset the page action for that tab.
-*/
-browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
-	tab.id = id;
-	actions.updatePageAction(tab);
-	//  console.log("update triggered:", tab)
-});
-
-/*
-Toggle CSS when the page action is clicked.
-*/
-browser.pageAction.onClicked.addListener((tab) => {
-	actions.toggleEnableBackups(tab);
-});
-
-
-//
-//
-// Bacground main() listener!!
+// Background main() listener!!
 //
 //
 browser.runtime.onMessage.addListener(handleMessages);
 
+//
+//
+// Background update listener!!
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
+//
+
+function handleUpdateAvailable(details) {
+  console.log(details.version);
+}
+
+browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
+
 // should be straight forward and simple.
 // uses the following  construction to respond back to the contentScript:
 // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise
-async function handleMessages(message, sender, sendResponse) {
-	// Update tab icon, when main-popup save is clicked
-	if (message.msg === "updateBackupEnabled") {
-		return handleUpdateTabIcon(message);
-	}
+function handleMessages(message, sender, sendResponse) {
 
 	// Standard save-wiki message from contentScript
 	if (message.msg === "save-wiki") {
@@ -1971,25 +1821,6 @@ async function checkUrlConflict(message) {
 		}
 	}
 	return (count > 1);
-}
-
-async function handleUpdateTabIcon(message) {
-	function updateTab(tabs) {
-		if (tabs.length > 0) {
-			actions.messageUpdatePageAction(tabs[0], message);
-		}
-		return {};
-	}
-
-	function onError(error) {
-		console.log(`Error: ${error}`);
-	}
-
-	var gettingActive = browser.tabs.query({
-		currentWindow: true,
-		active: true
-	});
-	gettingActive.then(updateTab, onError);
 }
 
 
@@ -2048,7 +1879,7 @@ async function createBackup(message) {
 	if (items) {
 		let stash = new Facet(items[message.path]) || {},
 			counter = stash.fields.counter || 1,
-			backupEnabled = items.backupEnabled || true,
+			backupEnabled = (items.backupEnabled == undefined) ? true : items.backupEnabled,
 			backupdir = items.backupdir || BACKUP_DIR,
 			max = items.numberOfBackups || 7,
 			nextChar = getNextChar(counter, max);
@@ -2065,19 +1896,19 @@ async function createBackup(message) {
 			itemId = await browser.downloads.download({
 				url: element,
 				filename: nameX,
-				conflictAction: "overwrite"
-			})
-
-			if (element) URL.revokeObjectURL(element);
+				conflictAction: "overwrite",
+				saveAs: false
+			});
 
 			if (itemId) {
+				blobs[itemId] = element;
 				results = await browser.downloads.search({id: itemId});
 			} // if itemId
 
 			// Store the config elements per tab.
 			counter = counter + 1;
 
-			browser.storage.local.set({
+			await browser.storage.local.set({
 				[message.path]: new Facet(stash, {
 					counter: counter
 				})
@@ -2090,6 +1921,9 @@ async function downloadWiki(message) {
 	let itemId,
 		results,
 		response = {};
+
+
+	let cnt;
 
 	// get info from local storage.
 	let items = await browser.storage.local.get(),
@@ -2104,17 +1938,21 @@ async function downloadWiki(message) {
 	itemId = await browser.downloads.download({
 		url: element,
 		filename: path.join(message.subdir, path.basename(message.path)),
-		conflictAction: "overwrite"
+		conflictAction: "overwrite",
+		saveAs: false
 	});
 
-	if (element) URL.revokeObjectURL(element);
-
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
+//		results = await browser.downloads.search({limit: 1, orderBy: ["-startTime"]});
 	}
 
+	let dirA = (osInfo.os === "win") ? message.path.toLowerCase() : message.path;
+	let dirB = (osInfo.os === "win") ? results[0].filename.toLowerCase() : results[0].filename;
+
 	// Check, if download dir is the same.
-	if (!(message.path === results[0].filename)) {
+	if (dirA !== dirB) {
 		return {relPath: "",
 				downloadWikiError: "Wrong Download Directory!",
 				downloadWikiInfo: results[0]};
@@ -2126,6 +1964,9 @@ async function downloadWiki(message) {
 	}
 
 	response.relPath = message.subdir;
+
+	cnt += 1;
+
 	return response;
 } // downloadWiki()
 
@@ -2143,9 +1984,8 @@ async function downloadDialog(message) {
 		saveAs: true
 	})
 
-	if (element) URL.revokeObjectURL(element);
-
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
 	}
 
@@ -2172,16 +2012,19 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 	itemId = await browser.downloads.download({
 		url: element,
 		filename: "beakon.tmp.html",
-		conflictAction: "overwrite"
+		conflictAction: "overwrite",
+		saveAs: false
 	});
 
-	if (element) URL.revokeObjectURL(element);
+	// TODO remove hack
+	//await timeout(500);
 
 	if (itemId) {
+		blobs[itemId] = element;
 		results = await browser.downloads.search({id: itemId});
 	}
 
-	if (results) {
+	if (results.length > 0) {
 		let rejectPath = false;
 		let defaultEl = path.parse(results[0].filename);
 		defaultEl.base = "";
@@ -2213,7 +2056,7 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 			let stash = new Facet(items[message.path]) || {};
 
 			// Save config
-			browser.storage.local.set({
+			await browser.storage.local.set({
 				defaultDir: defaultDir,
 			[message.path]: new Facet(stash, {subdir: response.relPath})
 			});
@@ -2260,10 +2103,11 @@ async function prepareAndOpenNewTab(dlInfo) {
 
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
-		var test = await browser.tabs.create({
-			active: true,
-			url: dlInfo.filename
-		});
+		dlInfo.filename = "file:\\\\" + dlInfo.filename;
+
+		return {relPath: "",
+				openNewTabError:"Please open your Wiki at:",
+				openNewTabInfo: dlInfo};
 	} else {
 		return {relPath: "",
 				openNewTabError:"Please open your Wiki at:",
@@ -2319,8 +2163,8 @@ async function handleSaveWiki(message) {
 
 
 /***/ }),
-/* 3 */,
-/* 4 */
+/* 2 */,
+/* 3 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser

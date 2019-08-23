@@ -69,12 +69,12 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 3:
+/***/ 2:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83,6 +83,18 @@
 const PLUGIN_NAME = "file-backups"
 
 document.addEventListener("DOMContentLoaded", main, false);
+
+//
+//
+// AddOn update listener!!
+// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
+//
+
+function handleUpdateAvailable(details) {
+  console.log(details.version);
+}
+
+browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
 
 /*
 var template = [
@@ -246,7 +258,7 @@ function injectMessageBox(doc) {
 	var messageBox = doc.getElementById("tiddlyfox-message-box");
 	if (messageBox) {
 		var othersw = messageBox.getAttribute("data-message-box-creator") || null;
-		if (othersw) {
+		if (othersw !== PLUGIN_NAME) {
 			alert('"' + PLUGIN_NAME + '" has detected another plugin named: "' + othersw + '"\n' +
 				'At the moment only 1 save mechanism can be active at once.\n' +
 				'We will temporarily deactivate the functionality, until the problem is resolved!');

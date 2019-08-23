@@ -69,12 +69,12 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 5);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 5:
+/***/ 4:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -101,12 +101,22 @@ function restore_options() {
 	}
 
 	function onGotStore(items) {
-		backupdirNode.value = items.backupdir || "twBackups";
-		backupEnabledNode.checked = items.backupEnabled || true;
-		amountNode.value = items.numberOfBackups || 7;
+		backupdirNode.value = items.backupdir;
+		backupEnabledNode.checked = items.backupEnabled;
+		amountNode.value = items.numberOfBackups;
 	};
 
-	let gettingItem = browser.storage.local.get();
+//	function onGotStore(items) {
+//		backupdirNode.value = items.backupdir || "twBackups";
+//		backupEnabledNode.checked = items.backupEnabled || true;
+//		amountNode.value = items.numberOfBackups || 7;
+//	};
+
+	let gettingItem = browser.storage.local.get({
+		backupdir : "twBackups",
+		backupEnabled: true,
+		numberOfBackups: 7
+	});
 	gettingItem.then(onGotStore, onError);
 }
 
@@ -122,13 +132,6 @@ document.getElementById("backup-form").addEventListener("submit", (e) => {
 
 //	console.log("submit OK:", e);
 	e.preventDefault();
-
-	// Inform background, that backupEnabled may have been changed.
-	// It's needed for page-actions
-	browser.runtime.sendMessage({
-		msg: "updateBackupEnabled",
-		backupEnabled: backupEnabledNode.checked//,
-	});
 
 	window.close()
 }, false);
