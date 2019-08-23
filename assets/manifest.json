@@ -20,10 +20,6 @@
     "default_popup": "popup/defaultPopup.html",
     "browser_style": true
   },
-  "page_action": {
-    "default_icon": "icons/spiral_gray.svg",
-    "browser_style": true
-  },
   "background": {
     "scripts": [
       "background_scripts/index.js"
