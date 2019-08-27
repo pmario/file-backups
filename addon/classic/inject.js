@@ -46,9 +46,12 @@ Returns text if successful, false if failed, null if not available
 */
 var injectedLoadFile = function(path) {
 	try {
+		// fix a problem introduced with FF 68 and 
+		// path differences between WinOS and *nix OSes
+		path = (path.charAt(0) !== "/") ? "/" + path : path;
 		// Just read the file synchronously
 		var xhReq = new XMLHttpRequest();
-		xhReq.open("GET", "file:///" + escape(path), false);
+		xhReq.open("GET", "file://" + escape(path), false);
 		xhReq.send(null);
 		return xhReq.responseText;
 	} catch(ex) {
