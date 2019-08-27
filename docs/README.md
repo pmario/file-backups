@@ -80,13 +80,13 @@ So the implemented sequence is:
 Which will result in a slightly better recovery coverage.
 
 ## Links
-
-[1] [https://tiddlywiki.com/#GettingStarted](https://tiddlywiki.com/#GettingStarted)
+ 
+[1] [https://tiddlywiki.com/#GettingStarted](https://tiddlywiki.com/#GettingStarted)  
 [2] [Overview Releases](https://github.com/pmario/file-backups/releases/)
 
 ## License
 
-Copyright Mario Pietsch 2017
+Copyright Mario Pietsch 2017-2019
 
 CC-BY-NC-SA ... [https://creativecommons.org/licenses/by-nc-sa/4.0](https://creativecommons.org/licenses/by-nc-sa/4.0)
 
