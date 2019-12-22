@@ -11,7 +11,9 @@ For an overview of this add on please see the introduction video: https://youtu.
 
 ## Installation
 
-To install, **go to: [Mozilla AddOn Store](https://addons.mozilla.org/de/firefox/addon/file-backups/)** 
+To install, **go to: [Mozilla AddOn Store](https://addons.mozilla.org/de/firefox/addon/file-backups/)**
+
+If you want to help with the AddOn development. Have a look at the [Beta-versions](https://github.com/pmario/file-backups/releases).
 
 ## File Storage Locations
 
@@ -70,14 +72,7 @@ K is save #1024 and 2 * 60 * 8 = **960**.
 
 ### The Modification
 
-The described mechanism has a "flaw", if we want a "per save" rotation. File "D" for instance, would only be be initialized after the 8th save. 
-
-So the implemented sequence is: 
-
-- Populate A, B, C, D ... then
-- Start with the described rotation schema
-
-Which will result in a slightly better recovery coverage.
+With the very first save, the plugin detects a new wiki, an "out of order" backup will be created. It looks like this: wiki-name(2019-08-13T11-54-07-179Z).html
 
 ## Links
  
@@ -89,4 +84,3 @@ Which will result in a slightly better recovery coverage.
 Copyright Mario Pietsch 2017-2019
 
 CC-BY-NC-SA ... [https://creativecommons.org/licenses/by-nc-sa/4.0](https://creativecommons.org/licenses/by-nc-sa/4.0)
-

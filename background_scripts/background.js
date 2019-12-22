@@ -409,11 +409,30 @@ async function prepareAndOpenNewTab(dlInfo) {
 
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
-		dlInfo.filename = "file:\\\\" + dlInfo.filename;
+
+/*
+		var opening = await browser.downloads.open(
+			dlInfo.id      // integer
+		)
+*/
+// TODO: check
+//        Starting with FF 63, this seems to be broken.
+//		dlInfo.filename = "file:\\\\" + dlInfo.filename;
+
+		var test = await browser.tabs.create({
+			active: true,
+			url: dlInfo.filename
+		});
+		
+		var x = await browser.tabs.reload(test.id, {bypassCache:true});
+		
+		var a = 1;
+/*
 
 		return {relPath: "",
 				openNewTabError:"Please open your Wiki at:",
 				openNewTabInfo: dlInfo};
+*/
 	} else {
 		return {relPath: "",
 				openNewTabError:"Please open your Wiki at:",
