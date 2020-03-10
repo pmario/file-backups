@@ -3,7 +3,7 @@
 ## Introduction
 This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at "Getting Started With TiddlyWiki"[1].
 
-This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56, 57 beta, 58 beta, (2017.11.09).
+This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56 ... up to FF 74 beta (2020.03.10).
 
 It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!
 
@@ -21,7 +21,7 @@ If you want to help with the AddOn development. Have a look at the [Beta-version
 
 To help keep you secure, most modern browsers limit writing files to only a few locations.
 
-This means this add on can only write to your downloads folder **and its subdirectories**.
+This means this add on can only write to your "Downloads" folder **and its subdirectories**.
 
 For example on Windows 7 or newer, it's usually `C:\Users\<name>\Downloads` 
 
@@ -81,6 +81,6 @@ With the very first save, the plugin detects a new wiki, an "out of order" backu
 
 ## License
 
-Copyright Mario Pietsch 2017-2019
+Copyright Mario Pietsch 2017-2020
 
 CC-BY-NC-SA ... [https://creativecommons.org/licenses/by-nc-sa/4.0](https://creativecommons.org/licenses/by-nc-sa/4.0)
