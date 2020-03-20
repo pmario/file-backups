@@ -74,6 +74,10 @@ K is save #1024 and 2 * 60 * 8 = **960**.
 
 With the very first save, the plugin detects a new wiki, an "out of order" backup will be created. It looks like this: wiki-name(2019-08-13T11-54-07-179Z).html
 
+## News and History
+
+Version overview can be found at: [News/History](https://pmario.github.io/file-backups/news/latest)
+
 ## Links
  
 [1] [https://tiddlywiki.com/#GettingStarted](https://tiddlywiki.com/#GettingStarted)  
