@@ -4,6 +4,8 @@ TLDR; This info is important for you, IF your PC is always on, your browser is n
 
 If _all_ of this is true for you, I highly recommend to go on reading if you don't want to loose some data!
 
+**Restart your browser, so the new version can be activated!**
+
 ## V0.4.0 What's New
 
  - The plugin, if downloaded in the background, will only be installed and activated at browser restart
