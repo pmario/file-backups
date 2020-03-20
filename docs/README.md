@@ -76,7 +76,8 @@ With the very first save, the plugin detects a new wiki, an "out of order" backu
 
 ## News and History
 
-Version overview can be found at: [News/History](https://pmario.github.io/file-backups/news/latest)
+Information about the latest version can be found at: [News/History](https://pmario.github.io/file-backups/news/latest)
+Older versions: TODO
 
 ## Links
  

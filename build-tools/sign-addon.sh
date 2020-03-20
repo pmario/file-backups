@@ -20,7 +20,7 @@ npm run build
 # now sign the addOn
 cd $addon_dir
 #echo I was in ${PWD}
-web-ext sign --api-key=${AMO_JWT_ISSUER} --api-secret=${AMO_JWT_SECRET}
+web-ext sign --api-key=${AMO_JWT_ISSUER} --api-secret=${AMO_JWT_SECRET} --channel unlisted
 cd ${OLDPWD}
 
 # go to the out directory and create a *new* Git repo

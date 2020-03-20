@@ -1,3 +1,5 @@
+[Home](https://pmario.github.io/file-backups)
+
 TLDR; This info is important for you, IF your PC is always on, your browser is never restarted, your TW tabs are always open _and_ you use file-backups plugin V0.3.5 or earlier.
 
 If _all_ of this is true for you, I highly recommend to go on reading if you don't want to loose some data!
@@ -47,7 +49,6 @@ Data-loss is possible if:
 It's edge-cases, but I know that there are some users, that use TWs that way. ...
 
  - The easiest way to be safe for those users is to restart the browser, once the AddOn is updated
- - Reloading a TW tab will do the same thing.
 
 The problem at the moment is, that there is no visible indication, that a new AddOn version has been installed and activated. (Sorry about that!)
 
