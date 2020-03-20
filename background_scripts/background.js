@@ -95,7 +95,9 @@ browser.runtime.onMessage.addListener(handleMessages);
 //
 
 function handleUpdateAvailable(details) {
-  console.log(details.version);
+	console.log(details.version);
+	browser.browserAction.setBadgeText({text:"!"});
+	browser.browserAction.setBadgeBackgroundColor({color: "#6600ff"});
 }
 
 browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
@@ -410,6 +412,11 @@ async function prepareAndOpenNewTab(dlInfo) {
 async function openNewWiki(dlInfo) {
 	if (osInfo.os === "win") {
 		dlInfo.filename = "file:\\\\" + dlInfo.filename;
+
+//		var test = await browser.tabs.create({
+//			active: true,
+//			url: dlInfo.filename
+//		});
 
 		return {relPath: "",
 				openNewTabError:"Please open your Wiki at:",

@@ -27,6 +27,11 @@ body {
 	flex-grow: 1;
 }
 
+.new-version {
+	background: #6600ff;
+	color: white;
+}
+
 input[type="number"] {
 	background-color: #fff;
 	border: 1px solid #b1b1b1;
