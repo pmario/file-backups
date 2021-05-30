@@ -5,7 +5,7 @@ This browser add on is designed to let you easily save and backup TiddlyWikis. I
 
 This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56 ... up to FF 74 beta (2020.03.10).
 
-It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched of!
+It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched off!
 
 For an overview of this add on please see the introduction video: https://youtu.be/KVLtID8nElU
 
