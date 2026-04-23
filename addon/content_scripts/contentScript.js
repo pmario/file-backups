@@ -146,18 +146,6 @@ function isTiddlyWiki5File(doc) {
 	return false;
 }
 
-// We may want to have special handling for non file based stuff too!
-function isTiddlyWiki5(doc) {
-	// Test whether the document is a TiddlyWiki. Check the meta info, which is new in TW5
-	var meta = document.getElementsByTagName("META");
-	if (meta) {
-		for (let i = 0; i < meta.length; i++) {
-			if (meta[i].content === "TiddlyWiki") return true;
-		}
-	}
-	return false;
-}
-
 function injectClassicScript(doc) {
 	var s = document.createElement('script');
 	s.src = browser.extension.getURL('classic/inject.js');

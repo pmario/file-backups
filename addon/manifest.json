@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "File Backups - For TiddlyWiki",
-  "version": "0.4.0",
+  "version": "0.4.6",
   "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
   "icons": {
     "32": "icons/diamond-32.png",
@@ -22,7 +22,8 @@
   },
   "background": {
     "scripts": [
-      "background_scripts/index.js"
+      "libs/path.js",
+      "background_scripts/background.js"
     ]
   },
   "options_ui": {
@@ -33,7 +34,7 @@
   "content_scripts": [
     {
       "js": [
-        "content_scripts/index.js"
+        "content_scripts/contentScript.js"
       ],
       "matches": [
         "file:///*.html",

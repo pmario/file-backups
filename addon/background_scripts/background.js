@@ -2,26 +2,20 @@
 
 const BACKUP_DIR = "twBackups";
 
-// At the moment it always returns win32
-// startup() function needs to fix this
-const tempPath = require("../libs/path");
-
+// `pathLib` is attached to the global by libs/path.js, which must be loaded
+// before this script (see manifest.json > background.scripts).
 var path,
-    osInfo;
+	osInfo;
 
 function getOsInfo(cb) {
 	browser.runtime.getPlatformInfo().then((info) => {
 		cb(info);
-	})
-};
+	});
+}
 
 getOsInfo((info) => {
-    osInfo = info;
-	if (info.os === "win") {
-		path = tempPath;
-	} else {
-		path = tempPath.posix;
-	}
+	osInfo = info;
+	path = (info.os === "win") ? pathLib.win32 : pathLib.posix;
 });
 
 // Derived from the $tw.Tiddler() ... but simplified the structure
@@ -178,8 +172,7 @@ function getNextChar(count, max) {
 
 async function createBackup(message) {
 	let items,
-		itemId,
-		results;
+		itemId;
 
 	// Backup using "Tower of Hanoi" backup schema
 	items = await browser.storage.local.get()
@@ -199,7 +192,7 @@ async function createBackup(message) {
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
-			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
 
 			itemId = await browser.downloads.download({
 				url: element,
@@ -210,7 +203,6 @@ async function createBackup(message) {
 
 			if (itemId) {
 				blobs[itemId] = element;
-				results = await browser.downloads.search({id: itemId});
 			} // if itemId
 
 			// Store the config elements per tab.
@@ -230,9 +222,6 @@ async function downloadWiki(message) {
 		results,
 		response = {};
 
-
-	let cnt;
-
 	// get info from local storage.
 	let items = await browser.storage.local.get(),
 		stash = new Facet(items[message.path]) || {};
@@ -241,7 +230,7 @@ async function downloadWiki(message) {
 
 	// needed, for a roundtrip, to set up the right save directory.
 
-	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/plain"}));
+	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/html"}));
 
 	itemId = await browser.downloads.download({
 		url: element,
@@ -273,8 +262,6 @@ async function downloadWiki(message) {
 
 	response.relPath = message.subdir;
 
-	cnt += 1;
-
 	return response;
 } // downloadWiki()
 
@@ -283,7 +270,7 @@ async function downloadDialog(message) {
 		results,
 		response = {};
 
-	var element = URL.createObjectURL(new Blob([message.txt], {type: "text/plain"}));
+	var element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
 
 	itemId = await browser.downloads.download({
 		url: element,
@@ -308,14 +295,13 @@ async function downloadDialog(message) {
 async function createBeakon(message) {
 	var itemId,
 		results,
-		savedAs,
 		response = {},
 		template = `This file was created by "file-backups" browser AddOn,<br/>
 to find out the default position, to save your TiddlyWiki.<br/>
 You can delete it if you want. It will be recreated, if needed.<br/>
 `;
 
-	var element = URL.createObjectURL(new Blob([template], {type: "text/plain"}));
+	var element = URL.createObjectURL(new Blob([template], {type: "text/html"}));
 
 	itemId = await browser.downloads.download({
 		url: element,
@@ -346,7 +332,6 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 
 		let y = relPath.split(path.sep);
 
-		savedAs = path.parse(results[0].filename);
 		y.shift(); // remove the ".."
 
 		if (y[0] === ".." || rejectPath) {
@@ -429,10 +414,7 @@ async function openNewWiki(dlInfo) {
 }
 
 async function handleSaveWiki(message) {
-	let allowBackup = false,
-		test = path.parse(message.path),
-		rel = path.relative(path.parse(message.path).dir, "Downloads"),
-		response = {};
+	let response = {};
 
 	var items = await browser.storage.local.get();
 
@@ -460,7 +442,7 @@ async function handleSaveWiki(message) {
 			// than save again
 			response = await createBeakon(message);
 			if (!response.relPath) {
-				message.saveAs === "yes";
+				message.saveas = "yes";
 				response = await downloadDialog(message);
 			} else {
 				message.subdir = response.relPath;

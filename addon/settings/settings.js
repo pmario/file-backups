@@ -13,7 +13,7 @@ async function save_options() {
 	var stat = await browser.storage.local.set({
 		backupdir: backupdir,
 		backupEnabled: document.getElementById("backup").checked,
-		numberOfBackups: document.getElementById('amount').value
+		numberOfBackups: document.getElementById('amount').valueAsNumber
 	})
 
 	if (stat) {

@@ -3,7 +3,6 @@
 var backupdirNode;
 var backupEnabledNode;
 var amountNode;
-var counterNode;
 var versionNode;
 var siteButtonNode;
 var okButtonNode;
@@ -72,22 +71,23 @@ function restore_options() {
 	gettingItem.then(onGotStore, onError);
 	
 	let getBadge = browser.browserAction.getBadgeText({});
-	getBadge.then(onGotBadge, this.onBadgeError)
+	getBadge.then(onGotBadge, onBadgeError)
 }
 
 document.addEventListener('DOMContentLoaded', restore_options);
 
 
-document.getElementById("backup-form").addEventListener("submit", (e) => {
-	browser.storage.local.set( {
-		backupdir: backupdirNode.value,
-		backupEnabled: backupEnabledNode.checked,
-		numberOfBackups : amountNode.valueAsNumber
-		});
-
-//	console.log("submit OK:", e);
+document.getElementById("backup-form").addEventListener("submit", async (e) => {
 	e.preventDefault();
-	window.close()
+	try {
+		await browser.storage.local.set({
+			backupdir: backupdirNode.value,
+			backupEnabled: backupEnabledNode.checked,
+			numberOfBackups: amountNode.valueAsNumber
+		});
+	} finally {
+		window.close();
+	}
 }, false);
 
 document.getElementById("form-ok").addEventListener("click", (e) => {
@@ -102,7 +102,7 @@ document.getElementById("form-ok").addEventListener("click", (e) => {
 			browser.browserAction.setBadgeText({text: ""})
 			showNewVersion("");
 		}
-	}, this.onBadgeError)
+	}, onBadgeError)
 	
 //	console.log("submit OK:", e);
 	e.preventDefault();
