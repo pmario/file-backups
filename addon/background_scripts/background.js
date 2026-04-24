@@ -31,34 +31,14 @@ getOsInfo((info) => {
 	path = (info.os === "win") ? pathLib.win32 : pathLib.posix;
 });
 
-// Derived from the $tw.Tiddler() ... but simplified the structure
-// Facets are used to manipulate store objects.
-// usage: facet = new Facet(otherFacet, {key:value}, {});
-var Facet = function ( /* [fields,] fields */ ) {
-	this.id = "!§$%&";
-	this.fields = Object.create(null);
-	for (var c = 0; c < arguments.length; c++) {
-		var arg = arguments[c] || {},
-			src = (arg.id === "!§$%&") ? arg.fields : arg;
-		for (var t in src) {
-			if (src[t] === undefined || src[t] === null) {
-				if (t in this.fields) {
-					delete this.fields[t]; // If we get a field that's undefined, delete any previous field value
-				}
-			} else {
-				var value = src[t];
-				// Freeze the field to keep it immutable
-				if (value != null && typeof value === "object") {
-					Object.freeze(value);
-				}
-				this.fields[t] = value;
-			}
-		}
-	}
-	// Freeze the facet against modification
-	Object.freeze(this.fields);
-	Object.freeze(this);
-};
+// Per-wiki entries in browser.storage.local are plain {counter, subdir, ...}
+// objects. Earlier versions wrapped them as Facet instances ({id, fields}),
+// so unwrapStash handles the legacy shape transparently.
+function unwrapStash(stored) {
+	if (!stored) return {};
+	if (stored.id === "!§$%&" && stored.fields) return Object.assign({}, stored.fields);
+	return Object.assign({}, stored);
+}
 
 //
 // Background download() listener!!
@@ -73,11 +53,14 @@ var blobs = {};
 // not ours — the map lookup below is the filter.
 function handleDownloadChanged(delta) {
 	if (!delta.state) return;
+
+	
 	const state = delta.state.current;
 	if (state !== "complete" && state !== "interrupted") return;
 	if (delta.id in blobs) {
 		URL.revokeObjectURL(blobs[delta.id]);
 		delete blobs[delta.id];
+// console.log("blobs should be empty", delta, blobs)
 	}
 }
 
@@ -188,8 +171,8 @@ async function createBackup(message) {
 	items = await browser.storage.local.get()
 
 	if (items) {
-		let stash = new Facet(items[message.path]) || {},
-			counter = stash.fields.counter || 1,
+		let stash = unwrapStash(items[message.path]),
+			counter = stash.counter || 1,
 			backupEnabled = (items.backupEnabled == undefined) ? true : items.backupEnabled,
 			backupdir = items.backupdir || BACKUP_DIR,
 			max = items.numberOfBackups || 9,
@@ -222,9 +205,7 @@ async function createBackup(message) {
 			counter = counter + 1;
 
 			await browser.storage.local.set({
-				[message.path]: new Facet(stash, {
-					counter: counter
-				})
+				[message.path]: Object.assign({}, stash, {counter: counter})
 			})
 		} // if backupEnabled
 	} // if items
@@ -235,14 +216,7 @@ async function downloadWiki(message) {
 		results,
 		response = {};
 
-	// get info from local storage.
-	let items = await browser.storage.local.get(),
-		stash = new Facet(items[message.path]) || {};
-
-//	let test = path.join(message.subdir, path.basename(message.path));
-
 	// needed, for a roundtrip, to set up the right save directory.
-
 	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/html"}));
 
 	try {
@@ -327,6 +301,7 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 	var element = URL.createObjectURL(new Blob([template], {type: "text/html"}));
 
 	try {
+
 		itemId = await browser.downloads.download({
 			url: element,
 			filename: "beakon.tmp.html",
@@ -369,12 +344,12 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 		let items = await browser.storage.local.get();
 
 		if (items) {
-			let stash = new Facet(items[message.path]) || {};
+			let stash = unwrapStash(items[message.path]);
 
 			// Save config
 			await browser.storage.local.set({
 				defaultDir: defaultDir,
-			[message.path]: new Facet(stash, {subdir: response.relPath})
+				[message.path]: Object.assign({}, stash, {subdir: response.relPath})
 			});
 		} // if items
 	} // if results
@@ -388,8 +363,7 @@ function timeout(ms) {
 
 async function prepareAndOpenNewTab(dlInfo) {
 	let items = await browser.storage.local.get(),
-		stash = new Facet(items[dlInfo.filename]) || {},
-		filename = dlInfo.filename,
+		stash = unwrapStash(items[dlInfo.filename]),
 		rejectPath;
 
 	let elem = path.parse(dlInfo.filename);
@@ -408,7 +382,7 @@ async function prepareAndOpenNewTab(dlInfo) {
 	}
 
 	await browser.storage.local.set({
-		[dlInfo.filename]: new Facet(stash, {subdir: rel})
+		[dlInfo.filename]: Object.assign({}, stash, {subdir: rel})
 	});
 
 	//TDOO remove this hack!!!
@@ -442,8 +416,8 @@ async function handleSaveWiki(message) {
 	var items = await browser.storage.local.get();
 
 	if (items) {
-		let stash = new Facet(items[message.path]) || {},
-			subdir = stash.fields.subdir || null;
+		let stash = unwrapStash(items[message.path]),
+			subdir = stash.subdir || null;
 
 		message.subdir = (message.subdir) ? message.subdir : (subdir) ? subdir : null;
 

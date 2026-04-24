@@ -1,6 +1,6 @@
 {
 	"name": "file-backups",
-	"version": "0.6.8",
+	"version": "0.6.9",
 	"description": "This browser add on is designed to let you easily save and backup TiddlyWikis.",
 	"scripts": {
 		"test": "node test/path.test.js",
