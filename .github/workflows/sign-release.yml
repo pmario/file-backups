@@ -1,0 +1,89 @@
+name: Sign Release
+
+# Public channel. Push to the `release` branch to cut a stable release:
+#   - run CI (lint + test)
+#   - submit to AMO with --channel listed (goes through AMO review, ends
+#     up at https://addons.mozilla.org/.../file-backups/)
+#   - create a GitHub Release tagged with the manifest version, release
+#     notes taken from docs/news/latest.md (which you author locally
+#     before promoting to release). No .xpi attached - users install
+#     from AMO.
+#   - deploy docs/ to GitHub Pages
+#
+# Requires:
+#   - AMO_JWT_ISSUER and AMO_JWT_SECRET configured as repository secrets
+#   - Repository settings > Pages > Build and deployment source set to
+#     "GitHub Actions" (one-time setup)
+#   - docs/news/latest.md updated with release notes BEFORE pushing
+#
+# Bump the version in package.json (and sync to addon/manifest.json) on
+# master before fast-forwarding to `release`. AMO rejects duplicate
+# versions; the previous unlisted beta version should not equal the
+# listed release version.
+#
+# --approval-timeout 0 makes web-ext return immediately after a successful
+# upload without waiting for AMO's human review, which can take hours to
+# days. The GitHub Release is created straight away; AMO publishes the
+# signed .xpi on its own schedule.
+
+on:
+  push:
+    branches: [release]
+
+permissions:
+  contents: write  # create the GitHub Release + tag
+  pages: write     # deploy Pages
+  id-token: write  # OIDC token for deploy-pages
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+      - name: Read manifest version
+        id: version
+        run: |
+          v=$(node -p "require('./addon/manifest.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to AMO (listed channel)
+        working-directory: addon
+        run: |
+          npx web-ext sign \
+            --api-key "${{ secrets.AMO_JWT_ISSUER }}" \
+            --api-secret "${{ secrets.AMO_JWT_SECRET }}" \
+            --channel listed \
+            --approval-timeout 0
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body_path: docs/news/latest.md
+          prerelease: false
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,3 +1,4 @@
 node_modules
 /addon/.web-extension-id
 /addon/web-ext-artifacts/
+/web-ext-artifacts/

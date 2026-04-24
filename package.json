@@ -7,8 +7,7 @@
 		"sync-version": "node build-tools/copy-version.js",
 		"lint": "cd addon && web-ext lint",
 		"build": "cd addon && web-ext build --overwrite-dest",
-		"run": "cd addon && web-ext run",
-		"sign": "bash ./build-tools/sign-addon.sh"
+		"run": "cd addon && web-ext run"
 	},
 	"license": "CC-BY-NC-SA",
 	"devDependencies": {

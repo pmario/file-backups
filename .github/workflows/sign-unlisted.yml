@@ -1,0 +1,60 @@
+name: Sign Unlisted
+
+# Beta channel. Push to the `unlisted` branch to cut a beta:
+#   - run CI (lint + test)
+#   - build and submit to AMO with --channel unlisted (auto-signed, not
+#     published on the AMO listing page)
+#   - attach the signed .xpi to a GitHub pre-release tagged with the
+#     manifest version, release notes auto-generated from commits.
+#
+# Bump the version in package.json (and sync to addon/manifest.json with
+# `npm run sync-version`) on master BEFORE fast-forwarding to `unlisted`.
+# AMO rejects duplicate versions, so a second push without a version bump
+# will fail loudly.
+
+on:
+  push:
+    branches: [unlisted]
+
+permissions:
+  contents: write  # create the GitHub Release + tag
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # release-notes generator needs full history
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+      - name: Read manifest version
+        id: version
+        run: |
+          v=$(node -p "require('./addon/manifest.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to AMO (unlisted channel)
+        working-directory: addon
+        run: |
+          npx web-ext sign \
+            --api-key "${{ secrets.AMO_JWT_ISSUER }}" \
+            --api-secret "${{ secrets.AMO_JWT_SECRET }}" \
+            --channel unlisted
+
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }} (beta)
+          prerelease: true
+          generate_release_notes: true
+          files: addon/web-ext-artifacts/*.xpi
