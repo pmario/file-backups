@@ -54,6 +54,21 @@ eq(w.join("foo", ".", "bar"),
 eq(w.join("..", "foo"),
    "..\\foo", "win32.join preserves ..");
 
+// Windows users may enter forward slashes in the backupdir field. Our win32
+// join must normalise both to backslash so downloads.download accepts the
+// resulting filename.
+eq(w.join(".", "my/nested", "notes.html", "notes(A).html"),
+   "my\\nested\\notes.html\\notes(A).html", "win32.join normalises user-entered forward slashes");
+
+eq(w.join(".", "a/b\\c", "notes.html"),
+   "a\\b\\c\\notes.html", "win32.join normalises mixed / and \\ in one input");
+
+eq(w.join(".", "a//b///c", "notes.html"),
+   "a\\b\\c\\notes.html", "win32.join collapses duplicate separators");
+
+eq(w.join("foo/bar", "baz/qux"),
+   "foo\\bar\\baz\\qux", "win32.join normalises slashes at boundaries");
+
 eq(w.relative(
 	"C:\\Users\\foo\\Downloads\\beakon.tmp.html",
 	"C:\\Users\\foo\\Downloads\\myWikis"
@@ -105,6 +120,25 @@ eq(p.join("./", "index.html"),
 
 eq(p.join(".", "foo", ".", "bar"),
    "foo/bar", "posix.join drops . segments");
+
+// On POSIX, backslash is a legal filename character, not a separator. Lock in
+// the Node-compatible behaviour: backslashes in user input stay literal.
+eq(p.join(".", "my\\nested", "notes.html"),
+   "my\\nested/notes.html", "posix.join keeps backslash literal (not a separator)");
+
+eq(p.join(".", "a\\b", "c"),
+   "a\\b/c", "posix.join treats 'a\\b' as a single segment");
+
+eq(p.parse("my\\nested/notes.html"), {
+	root: "",
+	dir: "my\\nested",
+	base: "notes.html",
+	ext: ".html",
+	name: "notes"
+}, "posix.parse treats backslash as part of a name");
+
+eq(p.basename("/home/foo/my\\wiki.html"),
+   "my\\wiki.html", "posix.basename returns backslash-containing filename verbatim");
 
 eq(p.isAbsolute("/foo"), true, "posix.isAbsolute abs");
 eq(p.isAbsolute("foo"), false, "posix.isAbsolute rel");
