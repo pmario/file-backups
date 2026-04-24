@@ -6,7 +6,15 @@ if (typeof browser === "undefined") {
 
 const PLUGIN_NAME = "file-backups"
 
-document.addEventListener("DOMContentLoaded", main, false);
+// When the extension is (re)installed while a TW tab is already open, the
+// background re-injects this script via scripting.executeScript. By that
+// point DOMContentLoaded has already fired, so listening for it would never
+// run main(). Detect already-loaded documents and call main() directly.
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", main, false);
+} else {
+	main();
+}
 
 /*
 var template = [

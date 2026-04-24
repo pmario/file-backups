@@ -89,6 +89,35 @@ function handleUpdateAvailable(details) {
 
 browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
 
+// On install / update / browser start, file:// tabs that were already open
+// don't have our content script attached — manifest content_scripts only
+// match on navigation, not on tabs that pre-date the extension load.
+// Inject explicitly. The content script's isTiddlyWiki* detection gates
+// activation, and its data-message-box-creator sentinel makes re-injection
+// idempotent on TW tabs that already have us.
+async function activateOpenTwTabs() {
+	let tabs;
+	try {
+		tabs = await browser.tabs.query({url: ["file:///*.html", "file:///*.htm"]});
+	} catch (err) {
+		return;
+	}
+	for (let tab of tabs) {
+		try {
+			await browser.scripting.executeScript({
+				target: {tabId: tab.id},
+				files: ["content_scripts/contentScript.js"]
+			});
+		} catch (err) {
+			// Tabs we can't access (privileged URLs that slipped through the
+			// query, tabs that closed mid-iteration, etc.) — ignore.
+		}
+	}
+}
+
+browser.runtime.onInstalled.addListener(activateOpenTwTabs);
+browser.runtime.onStartup.addListener(activateOpenTwTabs);
+
 // should be straight forward and simple.
 // uses the following  construction to respond back to the contentScript:
 // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise
