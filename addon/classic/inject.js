@@ -33,10 +33,8 @@ var injectedSaveFile = function(path,content) {
 		message.setAttribute("data-tiddlyfox-path",path);
 		message.setAttribute("data-tiddlyfox-content",content);
 		messageBox.appendChild(message);
-		// Create and dispatch the custom event to the extension
-		var event = document.createEvent("Events");
-		event.initEvent("tiddlyfox-save-file",true,false);
-		message.dispatchEvent(event);
+		// Dispatch the custom event to the extension
+		message.dispatchEvent(new CustomEvent("tiddlyfox-save-file", {bubbles: true}));
 	}
 	return true;
 };
@@ -51,7 +49,7 @@ var injectedLoadFile = function(path) {
 		path = (path.charAt(0) !== "/") ? "/" + path : path;
 		// Just read the file synchronously
 		var xhReq = new XMLHttpRequest();
-		xhReq.open("GET", "file://" + escape(path), false);
+		xhReq.open("GET", "file://" + encodeURI(path), false);
 		xhReq.send(null);
 		return xhReq.responseText;
 	} catch(ex) {

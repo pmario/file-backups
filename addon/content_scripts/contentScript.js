@@ -1,20 +1,12 @@
 'use strict';
 
+if (typeof browser === "undefined") {
+	globalThis.browser = globalThis.chrome;
+}
+
 const PLUGIN_NAME = "file-backups"
 
 document.addEventListener("DOMContentLoaded", main, false);
-
-//
-//
-// AddOn update listener!!
-// see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
-//
-
-function handleUpdateAvailable(details) {
-  console.log(details.version);
-}
-
-browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
 
 /*
 var template = [
@@ -148,7 +140,7 @@ function isTiddlyWiki5File(doc) {
 
 function injectClassicScript(doc) {
 	var s = document.createElement('script');
-	s.src = browser.extension.getURL('classic/inject.js');
+	s.src = browser.runtime.getURL('classic/inject.js');
 	(doc.head || doc.documentElement).appendChild(s);
 	s.onload = function () {
 		s.parentNode.removeChild(s);
@@ -239,10 +231,8 @@ function injectMessageBox(doc) {
 				message.parentNode.setAttribute("data-tiddlyfox-saveas", "no");
 			} // if (response.relPath === "")
 
-			let event1 = doc.createEvent("Events");
 			message.parentNode.setAttribute("data-tiddlyfox-subdir", response.subdir || "");
-			event1.initEvent("tiddlyfox-have-saved-file", true, false);
-			message.dispatchEvent(event1);
+			message.dispatchEvent(new CustomEvent("tiddlyfox-have-saved-file", {bubbles: true}));
 
 			// Remove element from the message box, to reduce DOM size
 			message.parentNode.removeChild(message);

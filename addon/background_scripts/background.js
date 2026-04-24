@@ -1,9 +1,22 @@
 "use strict";
 
+// Chromium service worker reaches this file via `background.service_worker` in
+// manifest.json and needs path.js imported explicitly. Firefox's event page
+// reaches it via `background.scripts`, which already loaded path.js first -
+// so the guard skips the import there.
+if (typeof pathLib === "undefined") {
+	// eslint-disable-next-line no-undef
+	importScripts("/libs/path.js");
+}
+
+// `browser.*` is native in Firefox; Chromium only exposes `chrome.*`. The two
+// APIs are compatible at the call sites we use (promise-returning) since MV3.
+if (typeof browser === "undefined") {
+	globalThis.browser = globalThis.chrome;
+}
+
 const BACKUP_DIR = "twBackups";
 
-// `pathLib` is attached to the global by libs/path.js, which must be loaded
-// before this script (see manifest.json > background.scripts).
 var path,
 	osInfo;
 
@@ -90,8 +103,8 @@ browser.runtime.onMessage.addListener(handleMessages);
 
 function handleUpdateAvailable(details) {
 	console.log(details.version);
-	browser.browserAction.setBadgeText({text:"!"});
-	browser.browserAction.setBadgeBackgroundColor({color: "#6600ff"});
+	browser.action.setBadgeText({text:"!"});
+	browser.action.setBadgeBackgroundColor({color: "#6600ff"});
 }
 
 browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);

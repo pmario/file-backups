@@ -1,30 +1,132 @@
 /*
- * These styles extend the styles from browser_styles, see http://design.firefox.com/photon/welcome.html
- * also see: chrome://browser/content/extension.css
+ * Popup styles. Previously extended the Firefox browser_style Photon
+ * stylesheet, which MV3 removed support for; the Photon-equivalent rules are
+ * now included inline.
  */
 
 * {
 	box-sizing: border-box;
 }
 
-/* For some reason the footer creates a horizontal overflow */
-body {
+body.panel {
+	margin: 0;
+	padding: 0;
+	min-width: 348px;
+	font: caption;
+	font-size: 13px;
+	color: #0c0c0d;
+	background: #fff;
 	overflow: hidden;
+	border: 1px solid #c8dcf0;
+	box-shadow: 0 1px 4px rgba(9, 150, 248, 0.08);
 }
 
-/* If the popup is shown in the "more" menu, the panel needs to be bigger */
-/* 348 is from my setting chrome-debugger Ctrl-Alt-Shift I*/
-.panel {
-	min-width: 348px;
+.panel-section {
+	display: flex;
+	flex-direction: row;
+	padding: 8px 16px;
+}
+
+.panel-section-header {
+	padding: 8px 16px;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+	background: #f9f9fa;
+	font-weight: 600;
+	align-items: center;
+}
+
+.panel-section-formElements {
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px 16px;
+}
+
+.panel-formElements-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .panel-formElements-item label {
-	width: 95px;
+	flex: 0 0 150px;
 }
 
-.panel-formElements-item output,
+.panel-formElements-item input[type="text"],
 .panel-formElements-item input[type="number"] {
 	flex-grow: 1;
+	min-width: 0;
+}
+
+.panel-section-footer {
+	padding: 0;
+	border-top: 1px solid rgba(0, 0, 0, 0.1);
+	background: #f9f9fa;
+}
+
+.panel-section-footer-button {
+	flex: 1;
+	padding: 6px 8px;
+	border: none;
+	background: transparent;
+	color: #0c0c0d;
+	font: caption;
+	font-size: 13px;
+	line-height: 1.3;
+	cursor: pointer;
+	text-align: center;
+	white-space: nowrap;
+}
+
+/* The "!" badge button between the two text buttons is compact. */
+.panel-section-footer-button#form-ok {
+	flex: 0 0 auto;
+	min-width: 32px;
+	padding: 6px 10px;
+}
+
+.panel-section-footer-button:hover {
+	background: rgba(0, 0, 0, 0.06);
+}
+
+.panel-section-footer-button:active {
+	background: rgba(0, 0, 0, 0.12);
+}
+
+.panel-section-footer-button.default {
+	font-weight: 600;
+}
+
+.panel-section-footer-separator {
+	width: 1px;
+	background: rgba(0, 0, 0, 0.1);
+	margin: 2px 0;
+}
+
+input[type="text"],
+input[type="number"] {
+	background-color: #fff;
+	border: 1px solid #b1b1b1;
+	border-radius: 2px;
+	padding: 0 6px;
+	height: 24px;
+	font: caption;
+	transition: border-color 150ms, box-shadow 150ms;
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover {
+	border-color: #858585;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+	border-color: #0996f8;
+	box-shadow: 0 0 0 2px rgba(97, 181, 255, 0.4);
+	outline: none;
+}
+
+input[type="checkbox"] {
+	margin: 0;
 }
 
 .new-version {
@@ -32,31 +134,10 @@ body {
 	color: white;
 }
 
-input[type="number"] {
-	background-color: #fff;
-	border: 1px solid #b1b1b1;
-	box-shadow: 0 0 0 0 rgba(97, 181, 255, 0);
-	font: caption;
-	padding: 0 6px 0;
-	transition-duration: 250ms;
-	transition-property: box-shadow;
-	height: 24px;
+.new-version:hover {
+	background: #5200cc;
 }
 
-input[type="number"]:hover {
-	border-color: #858585;
-}
-
-input[type="number"]:focus {
-	border-color: #0996f8;
-	box-shadow: 0 0 0 2px rgba(97, 181, 255, 0.75);
-}
-
-/* Reset the default styles for buttons if it's a footer button */
-button.panel-section-footer-button {
-	padding: 12px;
-	border: none;
-	margin: 0;
-	box-shadow: none;
-	background-color: none;
+.text-section-header {
+	flex: 1;
 }

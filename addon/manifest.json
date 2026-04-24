@@ -1,35 +1,33 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "File Backups - For TiddlyWiki",
-  "version": "0.4.6",
+  "version": "0.5.4",
   "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
   "icons": {
     "32": "icons/diamond-32.png",
     "64": "icons/diamond-64.png",
     "128": "icons/diamond-128.png"
   },
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "file-backups@pmario.github.io",
-      "strict_min_version": "57.0"
+      "strict_min_version": "115.0"
     }
   },
-  "browser_action": {
+  "action": {
     "default_icon": "icons/diamond-64.png",
     "default_title": "File Backups - For TiddlyWiki",
-    "default_popup": "popup/defaultPopup.html",
-    "browser_style": true
+    "default_popup": "popup/defaultPopup.html"
   },
   "background": {
     "scripts": [
       "libs/path.js",
       "background_scripts/background.js"
-    ]
+    ],
+    "service_worker": "background_scripts/background.js"
   },
   "options_ui": {
-    "page": "settings/settings.html",
-    "chrome_style": false,
-    "browser_style": false
+    "page": "settings/settings.html"
   },
   "content_scripts": [
     {
@@ -44,10 +42,16 @@
     }
   ],
   "web_accessible_resources": [
-    "classic/inject.js"
+    {
+      "resources": [
+        "classic/inject.js"
+      ],
+      "matches": [
+        "file:///*"
+      ]
+    }
   ],
   "permissions": [
-    "activeTab",
     "tabs",
     "storage",
     "downloads"

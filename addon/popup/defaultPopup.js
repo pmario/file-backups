@@ -1,5 +1,9 @@
 "use strict";
 
+if (typeof browser === "undefined") {
+	globalThis.browser = globalThis.chrome;
+}
+
 var backupdirNode;
 var backupEnabledNode;
 var amountNode;
@@ -54,7 +58,7 @@ function restore_options() {
 
 	function onGotBadge(text) {
 		showNewVersion(text);
-//		if (!text) browser.browserAction.setBadgeText({text: "!"})
+//		if (!text) browser.action.setBadgeText({text: "!"})
 	};
 	
 //	function onGotStore(items) {
@@ -70,7 +74,7 @@ function restore_options() {
 	});
 	gettingItem.then(onGotStore, onError);
 	
-	let getBadge = browser.browserAction.getBadgeText({});
+	let getBadge = browser.action.getBadgeText({});
 	getBadge.then(onGotBadge, onBadgeError)
 }
 
@@ -91,15 +95,15 @@ document.getElementById("backup-form").addEventListener("submit", async (e) => {
 }, false);
 
 document.getElementById("form-ok").addEventListener("click", (e) => {
-	let getBadge = browser.browserAction.getBadgeText({});
+	let getBadge = browser.action.getBadgeText({});
 	getBadge.then((text) => {
 		if (!text) {
-			browser.browserAction.setBadgeText({text: "!"});
-			browser.browserAction.setBadgeBackgroundColor({color: "#6600ff"});
+			browser.action.setBadgeText({text: "!"});
+			browser.action.setBadgeBackgroundColor({color: "#6600ff"});
 			showNewVersion("!");
 		}
 		else {
-			browser.browserAction.setBadgeText({text: ""})
+			browser.action.setBadgeText({text: ""})
 			showNewVersion("");
 		}
 	}, onBadgeError)

@@ -1,3 +1,7 @@
+if (typeof browser === "undefined") {
+	globalThis.browser = globalThis.chrome;
+}
+
 function showSavedMessage() {
 	// Update status to let user know options were saved.
 	var status = document.getElementById('status');
