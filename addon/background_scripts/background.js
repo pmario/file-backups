@@ -68,20 +68,17 @@ var Facet = function ( /* [fields,] fields */ ) {
 
 var blobs = {};
 
+// Revoke the blob URL when the download reaches any terminal state
+// (complete or interrupted). onChanged also fires for downloads that are
+// not ours — the map lookup below is the filter.
 function handleDownloadChanged(delta) {
-	if (delta.state && delta.state.current === "complete") {
-//		console.log(`Download ${delta.id} has completed.`, "blobs: ", blobs);
-
-		if (delta.id in blobs) {
-			URL.revokeObjectURL(blobs[delta.id]);
-			delete blobs[delta.id];
-		} else { // this should not happen!!
-			console.log(`Download ${delta.id} not found.`, "blobs: ", blobs);
-		}
-	} else { // a bit of error handling
-		console.log(`Download ${delta.id} was ${delta.state}.`, "blobs: ", blobs);
+	if (!delta.state) return;
+	const state = delta.state.current;
+	if (state !== "complete" && state !== "interrupted") return;
+	if (delta.id in blobs) {
+		URL.revokeObjectURL(blobs[delta.id]);
+		delete blobs[delta.id];
 	}
-
 }
 
 if (!browser.downloads.onChanged.hasListener(handleDownloadChanged)) {
@@ -207,16 +204,19 @@ async function createBackup(message) {
 
 			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
 
-			itemId = await browser.downloads.download({
-				url: element,
-				filename: nameX,
-				conflictAction: "overwrite",
-				saveAs: false
-			});
+			try {
+				itemId = await browser.downloads.download({
+					url: element,
+					filename: nameX,
+					conflictAction: "overwrite",
+					saveAs: false
+				});
+			} catch (err) {
+				URL.revokeObjectURL(element);
+				throw err;
+			}
 
-			if (itemId) {
-				blobs[itemId] = element;
-			} // if itemId
+			blobs[itemId] = element;
 
 			// Store the config elements per tab.
 			counter = counter + 1;
@@ -245,18 +245,20 @@ async function downloadWiki(message) {
 
 	var element = URL.createObjectURL(new Blob([message.txt], { type: "text/html"}));
 
-	itemId = await browser.downloads.download({
-		url: element,
-		filename: path.join(message.subdir, path.basename(message.path)),
-		conflictAction: "overwrite",
-		saveAs: false
-	});
-
-	if (itemId) {
-		blobs[itemId] = element;
-		results = await browser.downloads.search({id: itemId});
-//		results = await browser.downloads.search({limit: 1, orderBy: ["-startTime"]});
+	try {
+		itemId = await browser.downloads.download({
+			url: element,
+			filename: path.join(message.subdir, path.basename(message.path)),
+			conflictAction: "overwrite",
+			saveAs: false
+		});
+	} catch (err) {
+		URL.revokeObjectURL(element);
+		throw err;
 	}
+
+	blobs[itemId] = element;
+	results = await browser.downloads.search({id: itemId});
 
 	let dirA = (osInfo.os === "win") ? message.path.toLowerCase() : message.path;
 	let dirB = (osInfo.os === "win") ? results[0].filename.toLowerCase() : results[0].filename;
@@ -285,17 +287,25 @@ async function downloadDialog(message) {
 
 	var element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
 
-	itemId = await browser.downloads.download({
-		url: element,
-		filename: path.basename(message.path),
-		conflictAction: "overwrite",
-		saveAs: true
-	})
-
-	if (itemId) {
-		blobs[itemId] = element;
-		results = await browser.downloads.search({id: itemId});
+	try {
+		itemId = await browser.downloads.download({
+			url: element,
+			filename: path.basename(message.path),
+			conflictAction: "overwrite",
+			saveAs: true
+		});
+	} catch (err) {
+		URL.revokeObjectURL(element);
+		// Any failure here (user cancelled the Save As dialog, invalid
+		// filename, disk error, etc.) must resolve the background message
+		// Promise cleanly — otherwise Firefox retains the structured-cloned
+		// message (containing the full wiki HTML) in the sendRuntimeMessage
+		// holder indefinitely, leaking ~wikiSize of memory per cancel.
+		return {relPath: "", downloadDialogError: String(err)};
 	}
+
+	blobs[itemId] = element;
+	results = await browser.downloads.search({id: itemId});
 
 	if (results) {
 		// check relative path
@@ -316,20 +326,20 @@ You can delete it if you want. It will be recreated, if needed.<br/>
 
 	var element = URL.createObjectURL(new Blob([template], {type: "text/html"}));
 
-	itemId = await browser.downloads.download({
-		url: element,
-		filename: "beakon.tmp.html",
-		conflictAction: "overwrite",
-		saveAs: false
-	});
-
-	// TODO remove hack
-	//await timeout(500);
-
-	if (itemId) {
-		blobs[itemId] = element;
-		results = await browser.downloads.search({id: itemId});
+	try {
+		itemId = await browser.downloads.download({
+			url: element,
+			filename: "beakon.tmp.html",
+			conflictAction: "overwrite",
+			saveAs: false
+		});
+	} catch (err) {
+		URL.revokeObjectURL(element);
+		throw err;
 	}
+
+	blobs[itemId] = element;
+	results = await browser.downloads.search({id: itemId});
 
 	if (results.length > 0) {
 		let rejectPath = false;

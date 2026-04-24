@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "File Backups - For TiddlyWiki",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "TiddlyWiki saving and backup, using a Tower of Hanoi strategy!",
   "icons": {
     "32": "icons/diamond-32.png",
@@ -13,7 +13,9 @@
       "id": "file-backups@pmario.github.io",
       "strict_min_version": "115.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
