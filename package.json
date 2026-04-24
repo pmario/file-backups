@@ -12,6 +12,6 @@
 	},
 	"license": "CC-BY-NC-SA",
 	"devDependencies": {
-		"web-ext": "^4.1.0"
+		"web-ext": "^10.1.0"
 	}
 }
