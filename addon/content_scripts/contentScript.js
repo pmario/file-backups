@@ -138,9 +138,9 @@ function isTiddlyWiki5File(doc) {
 	return false;
 }
 
-function injectClassicScript(doc) {
+function injectPageScript(doc, resourcePath) {
 	var s = document.createElement('script');
-	s.src = browser.runtime.getURL('classic/inject.js');
+	s.src = browser.runtime.getURL(resourcePath);
 	(doc.head || doc.documentElement).appendChild(s);
 	s.onload = function () {
 		s.parentNode.removeChild(s);
@@ -151,7 +151,7 @@ function injectClassicScript(doc) {
 function injectMessageBox(doc) {
 	// check, if we are TWclassic!!
 	if (isTiddlyWikiClassicFile(doc)) {
-		injectClassicScript(doc);
+		injectPageScript(doc, 'classic/inject.js');
 	}
 
 	// Inject the message box
@@ -239,6 +239,13 @@ function injectMessageBox(doc) {
 		}
 		return false;
 	}, false);
+
+	// Inject the TW5 page-context bridge now that the messagebox and our save
+	// listener are in place. The bridge attaches a capture-phase listener on
+	// the same element so it runs before the one above.
+	if (isTiddlyWiki5File(doc)) {
+		injectPageScript(doc, 'tw5-bridge.js');
+	}
 }
 
 function saveFile(filePath, content, subdir, backupdir, saveas, cb) {

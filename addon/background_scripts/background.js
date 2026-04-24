@@ -195,7 +195,7 @@ async function createBackup(message) {
 			counter = stash.fields.counter || 1,
 			backupEnabled = (items.backupEnabled == undefined) ? true : items.backupEnabled,
 			backupdir = items.backupdir || BACKUP_DIR,
-			max = items.numberOfBackups || 7,
+			max = items.numberOfBackups || 9,
 			nextChar = getNextChar(counter, max);
 
 		// imo this won't happen, but who knows.
@@ -437,7 +437,10 @@ async function handleSaveWiki(message) {
 
 		message.subdir = (message.subdir) ? message.subdir : (subdir) ? subdir : null;
 
-		if (message.subdir) {
+		// Explicit "Save As" from the user wins over everything else.
+		if (message.saveas === "yes") {
+			response = await downloadDialog(message);
+		} else if (message.subdir) {
 			// normal download
 			// everything is known, data from local storage is set.
 			response = await downloadWiki(message);
@@ -446,9 +449,6 @@ async function handleSaveWiki(message) {
 			if (response.relPath === "") {
 				response = await downloadDialog(message);
 			}
-		} else if (message.saveas === "yes") {
-			// save dialog
-			response = await downloadDialog(message);
 		} else {
 			// 2 click save
 			// we need to save temp(x).html to find out where the download directory is.

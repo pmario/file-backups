@@ -70,7 +70,7 @@ function restore_options() {
 	let gettingItem = browser.storage.local.get({
 		backupdir : "twBackups",
 		backupEnabled: true,
-		numberOfBackups: 7
+		numberOfBackups: 9
 	});
 	gettingItem.then(onGotStore, onError);
 	

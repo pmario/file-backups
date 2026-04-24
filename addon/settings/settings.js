@@ -30,7 +30,7 @@ async function restore_options() {
 	var items = await browser.storage.local.get({
 		backupdir: "twBackups",
 		backupEnabled: true,
-		numberOfBackups: 7
+		numberOfBackups: 9
 	});
 
 	if (items) {
