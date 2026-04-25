@@ -1,0 +1,6 @@
+title: $:/temp/plugins/file-backups/shortcut/save-milestone
+tags: $:/tags/KeyboardShortcut
+key: ((save-milestone))
+
+\whitespace trim
+TODO

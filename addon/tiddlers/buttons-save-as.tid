@@ -1,0 +1,10 @@
+title: $:/temp/plugins/file-backups/buttons/save-as
+tags: $:/tags/PageControls
+caption: {{$:/core/images/download-button}} save as
+description: Save a copy of this wiki to a chosen location (opens the native Save As dialog)
+
+\whitespace trim
+<$button tooltip="Save wiki to a chosen location" aria-label="save as" class=<<tv-config-toolbar-class>>>
+{{$:/temp/plugins/file-backups/shortcut/save-as}}
+{{$:/core/images/download-button}}
+</$button>

@@ -1,0 +1,7 @@
+title: $:/temp/plugins/file-backups/shortcut/save-as
+tags: $:/tags/KeyboardShortcut
+key: ((save-wiki-as))
+
+\whitespace trim
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/next-saveAs" text="yes"/>
+<$action-sendmessage $message="tm-save-wiki"/>

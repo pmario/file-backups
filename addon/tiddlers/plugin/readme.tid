@@ -1,0 +1,7 @@
+title: $:/temp/plugins/file-backups/readme
+
+! File Backups — extension assets
+
+These tiddlers are installed automatically by the [[File Backups browser extension|https://github.com/pmario/file-backups]] and ship the UI elements the extension needs (currently the "save as" toolbar button, more to follow).
+
+They live under `$:/temp/plugins/file-backups/*` so they don't dirty the wiki and never get serialised into your saved wiki file. They are recreated in memory each time you open a wiki while the extension is active.

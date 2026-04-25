@@ -14,10 +14,21 @@
  *
  * The capture-phase approach is deliberate: `$tw.wiki.addEventListener("change", ...)`
  * fires asynchronously, too late to influence the save already in flight.
+ *
+ * UI tiddlers (button, shortcut recipes, readme, license) are shipped as
+ * native TW .tid files under addon/tiddlers/. The bridge fetches them at
+ * install time, parses the standard TW header/body format, and addTiddler-s
+ * each. Authors edit real .tid files (drag in/out of TW round-trips cleanly)
+ * instead of hand-escaped strings inside this JS file.
  */
 
 (function () {
 	"use strict";
+
+	// Capture our own URL synchronously while the script is still running —
+	// document.currentScript becomes null once the IIFE returns.
+	var SCRIPT_SRC = (document.currentScript && document.currentScript.src) || "";
+	var BASE_URL = SCRIPT_SRC.replace(/[^/]*$/, "");
 
 	// When the extension is disabled or reinstalled, content scripts and the
 	// background are torn down but page-context scripts (this file) are not —
@@ -33,6 +44,42 @@
 	}
 	window.__fileBackupsBridgeInstalled = true;
 
+	// Shipped tiddler assets that overwrite on every page load — only the
+	// ones that need to drive widget refresh (the toolbar buttons + their
+	// shortcut-action recipes). All under $:/temp/* so they're wiped on F5
+	// and re-installed by the bridge.
+	var TIDDLER_FILES = [
+		"tiddlers/buttons-save-as.tid",
+		"tiddlers/shortcut-save-as.tid",
+		"tiddlers/shortcut-save-milestone.tid"
+	];
+
+	// Tiddlers shipped as SHADOWS via a runtime plugin bundle. Two reasons
+	// to use shadows here:
+	//   1. The keyboard-manager config tiddlers ($:/config/shortcuts/<name>,
+	//      $:/config/ShortcutInfo/<name>) must live at exact paths outside
+	//      $:/temp/, so shipping them as real tiddlers would dirty the wiki.
+	//   2. Readme and license are informational; making them shadows means
+	//      they live alongside the config tiddlers in one bundle the user
+	//      can inspect under "$:/temp/plugins/file-backups/config" in TW.
+	// Shadows satisfy getTiddlerText / getTiddlersWithTag the same as real
+	// tiddlers, but they don't trigger SaverFilter and they auto-defer to
+	// any real tiddler the user later creates at the same title — so user
+	// customisation overrides the defaults with no guard logic on our side.
+	// The wrapper plugin tiddler lives at $:/temp/* so it doesn't dirty
+	// either, and uses a non-standard plugin-type so it stays out of
+	// Control Panel > Plugins.
+	var CONFIG_TIDDLER_FILES = [
+		"tiddlers/plugin/config/shortcuts-save-wiki-as.tid",
+		"tiddlers/plugin/config/ShortcutInfo-save-wiki-as.tid",
+		"tiddlers/plugin/config/shortcuts-save-milestone.tid",
+		"tiddlers/plugin/config/ShortcutInfo-save-milestone.tid",
+		"tiddlers/plugin/readme.tid",
+		"tiddlers/plugin/license.tid"
+	];
+	var CONFIG_BUNDLE_TITLE = "$:/temp/plugins/file-backups/config";
+	var CONFIG_BUNDLE_TYPE = "file-backups-assets";
+
 	var retries = 0;
 	function waitForReady() {
 		var twReady = typeof $tw !== "undefined" && $tw.wiki && typeof $tw.wiki.addTiddler === "function";
@@ -46,67 +93,84 @@
 	}
 	waitForReady();
 
-	function install() {
-		installShadowTiddlers();
-		attachSaveListener();
+	async function install() {
+		try {
+			attachSaveListener();
+			await Promise.all([
+				installTiddlersFromAssets(TIDDLER_FILES),
+				installShadowBundleFromAssets(CONFIG_TIDDLER_FILES, CONFIG_BUNDLE_TITLE, CONFIG_BUNDLE_TYPE)
+			]);
+		} catch (err) {
+			console.log("[fb-bridge] install failed:", err);
+		}
 	}
 
-	// Install the bridge's UI tiddlers as plain real tiddlers under
-	// $:/temp/plugins/file-backups/*.
-	//
-	// Earlier versions used a TW shadow plugin bundle, but shadow change
-	// events (isShadow=true) don't reliably trigger list-widget refresh on
-	// first-time-shadow-appearance — so on extension (re)install into an
-	// already-loaded TW page the toolbar buttons rendered with action
-	// widgets that didn't actually fire on click.
-	//
-	// Plain tiddlers under $:/temp/ are equivalent to shadows in the only
-	// two dimensions that matter for us:
-	//   - $:/config/SaverFilter excludes $:/temp/* → no dirty bump.
-	//   - $:/core/save/all (the wiki-file save template) also excludes
-	//     $:/temp/* → tiddlers never get serialised into the user's wiki.
-	// And they fire ordinary change events, which TW's list widget refreshes
-	// on unambiguously, so the toolbar updates the same way it would after
-	// any normal user-driven tiddler add. Same path as fresh boot.
-	function installShadowTiddlers() {
-		var tiddlers = [
-			{
-				title: "$:/temp/plugins/file-backups/buttons/save-as",
-				tags: "$:/tags/PageControls",
-				caption: "{{$:/core/images/download-button}} save as",
-				description: "Save a copy of this wiki to a chosen location (opens the native Save As dialog)",
-				text: [
-					"\\whitespace trim",
-					"<$button tooltip=\"Save wiki to a chosen location\" aria-label=\"save as\" class=<<tv-config-toolbar-class>>>",
-					"<$action-setfield $tiddler=\"$:/temp/plugins/file-backups/next-saveAs\" text=\"yes\"/>",
-					"<$action-sendmessage $message=\"tm-save-wiki\"/>",
-					"{{$:/core/images/download-button}}",
-					"</$button>"
-				].join("\n")
-			},
-			{
-				title: "$:/temp/plugins/file-backups/readme",
-				text: [
-					"! File Backups — extension assets",
-					"",
-					"These tiddlers are installed automatically by the [[File Backups browser extension|https://github.com/pmario/file-backups]] and ship the UI elements the extension needs (currently the \"save as\" toolbar button, more to follow).",
-					"",
-					"They live under `$:/temp/plugins/file-backups/*` so they don't dirty the wiki and never get serialised into your saved wiki file. They are recreated in memory each time you open a wiki while the extension is active."
-				].join("\n")
-			},
-			{
-				title: "$:/temp/plugins/file-backups/license",
-				text: [
-					"Copyright (c) 2017-2026 Mario Pietsch",
-					"",
-					"Licensed under the BSD 3-Clause License.",
-					"Full text: https://opensource.org/licenses/BSD-3-Clause"
-				].join("\n")
+	// Parse the standard TW .tid file format:
+	//   key: value
+	//   key: value
+	//   <blank line>
+	//   <text body up to EOF>
+	function parseTid(raw) {
+		// Normalise line endings and strip the file's trailing newline (most
+		// editors save with one). Without this, single-line text bodies like
+		// "alt-S\n" break TW's keyboard parser — split("-") yields ["alt",
+		// "S\n"] and the named-key lookup fails on the "\n" suffix.
+		var text = raw.replace(/\r\n/g, "\n").replace(/\n$/, "");
+		var blank = text.indexOf("\n\n");
+		var fields = {};
+		if (blank < 0) {
+			fields.text = text;
+			return fields;
+		}
+		text.slice(0, blank).split("\n").forEach(function (line) {
+			var c = line.indexOf(":");
+			if (c > 0) {
+				fields[line.slice(0, c).trim()] = line.slice(c + 1).trim();
 			}
-		];
+		});
+		fields.text = text.slice(blank + 2);
+		return fields;
+	}
 
-		tiddlers.forEach(function (fields) {
+	async function installTiddlersFromAssets(files) {
+		await Promise.all(files.map(async function (path) {
+			var raw = await fetch(BASE_URL + path).then(function (r) { return r.text(); });
+			var fields = parseTid(raw);
 			$tw.wiki.addTiddler(new $tw.Tiddler(fields));
+		}));
+	}
+
+	// Bundle a set of .tid assets into a runtime plugin so their tiddlers
+	// become shadows in the wiki. Used for tiddlers whose titles must live
+	// outside $:/temp/ but which we don't want to dirty the wiki — shadows
+	// are read by getTiddlerText / getTiddlersWithTag the same as real
+	// tiddlers, but they don't trigger SaverFilter and they auto-defer to
+	// any real tiddler the user later creates at the same title.
+	async function installShadowBundleFromAssets(files, wrapperTitle, pluginType) {
+		var pluginContents = {tiddlers: {}};
+		await Promise.all(files.map(async function (path) {
+			var raw = await fetch(BASE_URL + path).then(function (r) { return r.text(); });
+			var fields = parseTid(raw);
+			if (fields.title) {
+				pluginContents.tiddlers[fields.title] = fields;
+			}
+		}));
+		$tw.wiki.addTiddler(new $tw.Tiddler({
+			title: wrapperTitle,
+			type: "application/json",
+			"plugin-type": pluginType,
+			text: JSON.stringify(pluginContents)
+		}));
+		$tw.wiki.readPluginInfo([wrapperTitle]);
+		$tw.wiki.registerPluginTiddlers(pluginType, [wrapperTitle]);
+		$tw.wiki.unpackPluginTiddlers();
+		// Notify keyboard-manager / other listeners that the shadow set
+		// changed so they re-cache. Keyboard manager's handleShortcutChanges
+		// includes detectNewShortcuts which watches $:/config/shortcuts/
+		// prefix changes — both shadow and real changes flow through the
+		// same change-event pipeline.
+		Object.keys(pluginContents.tiddlers).forEach(function (title) {
+			$tw.wiki.enqueueTiddlerEvent(title, false, true);
 		});
 	}
 
