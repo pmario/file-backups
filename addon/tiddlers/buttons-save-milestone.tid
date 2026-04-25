@@ -1,10 +1,10 @@
 title: $:/temp/plugins/file-backups/buttons/save-milestone
 tags: $:/tags/PageControls
-caption: {{$:/core/images/download-button}} save milestone
+caption: {{$:/core/images/spiral}} save milestone
 description: Save a copy of this wiki as a milestone wiki with it's own name
 
 \whitespace trim
-<$button tooltip="Save wiki to a chosen location" aria-label="save as" class=<<tv-config-toolbar-class>>>
+<$button tooltip="Save wiki as a milestone" aria-label="save as" class=<<tv-config-toolbar-class>>>
 {{$:/temp/plugins/file-backups/shortcut/save-milestone}}
-{{$:/core/images/download-button}}
+{{$:/core/images/spiral}}
 </$button>

@@ -1,0 +1,19 @@
+{
+  "real": [
+    "tiddlers/buttons-save-as.tid",
+    "tiddlers/buttons-save-milestone.tid",
+    "tiddlers/shortcut-save-as.tid",
+    "tiddlers/shortcut-save-milestone.tid"
+  ],
+  "shadow": [
+    "tiddlers/plugin/config/ShortcutInfo-save-milestone.tid",
+    "tiddlers/plugin/config/ShortcutInfo-save-wiki-as.tid",
+    "tiddlers/plugin/config/shortcuts-save-milestone.tid",
+    "tiddlers/plugin/config/shortcuts-save-wiki-as.tid",
+    "tiddlers/plugin/config/visibility-save-as.tid",
+    "tiddlers/plugin/config/visibility-save-milestone.tid",
+    "tiddlers/plugin/control-panel/settings.tid",
+    "tiddlers/plugin/license.tid",
+    "tiddlers/plugin/readme.tid"
+  ]
+}

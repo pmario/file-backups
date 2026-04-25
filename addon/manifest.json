@@ -52,6 +52,7 @@
       "resources": [
         "classic/inject.js",
         "tw5-bridge.js",
+        "tiddlers/index.json",
         "tiddlers/*.tid",
         "tiddlers/plugin/*.tid",
         "tiddlers/plugin/config/*.tid"

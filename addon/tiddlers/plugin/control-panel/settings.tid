@@ -1,0 +1,21 @@
+title: $:/ControlPanel/Settings/FileBackups
+tags: $:/tags/ControlPanel/SettingsTab
+caption: FileBackups
+
+\define lingo-base() $:/language/TiddlerInfo/
+\define config-base() $:/config/PageControlButtons/Visibility/
+\define tv-config-toolbar-icons() yes
+\define tv-config-toolbar-text() yes
+
+This settings area was installed by FileBackups browser AddOn. 
+
+''Show Save As Button in SideBar''
+
+{{ $:/temp/plugins/file-backups/buttons/save-as || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
+
+''Show Save Milstone Button in SideBar''
+
+{{ $:/temp/plugins/file-backups/buttons/save-milestone || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
+
+
+

@@ -5,8 +5,12 @@
 	"scripts": {
 		"test": "node test/path.test.js && node test/validate.test.js",
 		"sync-version": "node build-tools/copy-version.js",
+		"stage": "node build-tools/index-tiddlers.js",
+		"prelint": "npm run stage",
 		"lint": "cd addon && web-ext lint",
+		"prebuild": "npm run stage",
 		"build": "cd addon && web-ext build --overwrite-dest",
+		"prerun": "npm run stage",
 		"run": "cd addon && web-ext run"
 	},
 	"license": "CC-BY-NC-SA",
