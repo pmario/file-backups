@@ -19,6 +19,20 @@
 (function () {
 	"use strict";
 
+	// When the extension is disabled or reinstalled, content scripts and the
+	// background are torn down but page-context scripts (this file) are not —
+	// the bridge from the previous extension lifecycle stays bound to the
+	// messagebox. The newly-injected content script then loads a SECOND bridge
+	// instance, which would attach a second capture-phase listener. Both fire
+	// per save: the first reads the temp tiddler and deletes it, the second
+	// reads undefined and overwrites data-tiddlyfox-saveas back to "no".
+	// Result: Save As silently degrades to normal save until F5.
+	// Detect the prior instance and bail.
+	if (window.__fileBackupsBridgeInstalled) {
+		return;
+	}
+	window.__fileBackupsBridgeInstalled = true;
+
 	var retries = 0;
 	function waitForReady() {
 		var twReady = typeof $tw !== "undefined" && $tw.wiki && typeof $tw.wiki.addTiddler === "function";
@@ -37,89 +51,62 @@
 		attachSaveListener();
 	}
 
-	// Install the bridge's UI tiddlers as TW shadow tiddlers via a runtime
-	// plugin bundle.
+	// Install the bridge's UI tiddlers as plain real tiddlers under
+	// $:/temp/plugins/file-backups/*.
 	//
-	// Why a plugin bundle and not plain $tw.wiki.addTiddler:
-	//   - $:/config/SaverFilter ([all[]] minus $:/state/ and $:/temp/) marks
-	//     any non-temp tiddler change as dirty. A plain addTiddler would make
-	//     the wiki appear unsaved the moment the page loads.
-	//   - $:/core/save/all uses [is[tiddler]] which excludes shadow tiddlers,
-	//     so shadows never get serialised into the wiki file.
-	//   - saver-handler's change listener checks `if(change.normal)` so shadow
-	//     change events don't count toward dirty either.
+	// Earlier versions used a TW shadow plugin bundle, but shadow change
+	// events (isShadow=true) don't reliably trigger list-widget refresh on
+	// first-time-shadow-appearance — so on extension (re)install into an
+	// already-loaded TW page the toolbar buttons rendered with action
+	// widgets that didn't actually fire on click.
 	//
-	// The plugin *wrapper* tiddler is itself a real tiddler and would normally
-	// trigger dirty, so we title it under $:/temp/ which SaverFilter already
-	// excludes. TW's plugin registration checks the tiddler's fields (type +
-	// plugin-type), not its title prefix — verified in TW boot.js.
+	// Plain tiddlers under $:/temp/ are equivalent to shadows in the only
+	// two dimensions that matter for us:
+	//   - $:/config/SaverFilter excludes $:/temp/* → no dirty bump.
+	//   - $:/core/save/all (the wiki-file save template) also excludes
+	//     $:/temp/* → tiddlers never get serialised into the user's wiki.
+	// And they fire ordinary change events, which TW's list widget refreshes
+	// on unambiguously, so the toolbar updates the same way it would after
+	// any normal user-driven tiddler add. Same path as fresh boot.
 	function installShadowTiddlers() {
-		var pluginTitle = "$:/temp/plugins/file-backups";
-
-		var pluginContents = {
-			tiddlers: {
-				"$:/temp/plugins/file-backups/buttons/save-as": {
-					title: "$:/temp/plugins/file-backups/buttons/save-as",
-					tags: "$:/tags/PageControls",
-					caption: "{{$:/core/images/download-button}} save as",
-					description: "Save a copy of this wiki to a chosen location (opens the native Save As dialog)",
-					text: [
-						"\\whitespace trim",
-						"<$button tooltip=\"Save wiki to a chosen location\" aria-label=\"save as\" class=<<tv-config-toolbar-class>>>",
-						"<$action-setfield $tiddler=\"$:/temp/plugins/file-backups/next-saveAs\" text=\"yes\"/>",
-						"<$action-sendmessage $message=\"tm-save-wiki\"/>",
-						"{{$:/core/images/download-button}}",
-						"</$button>"
-					].join("\n")
-				},
-				"$:/temp/plugins/file-backups/readme": {
-					title: "$:/temp/plugins/file-backups/readme",
-					text: [
-						"! File Backups — extension assets",
-						"",
-						"This plugin bundle is installed automatically by the [[File Backups browser extension|https://github.com/pmario/file-backups]] and ships the UI elements the extension needs (currently the \"save as\" toolbar button, more to follow).",
-						"",
-						"It is ''not'' a regular TiddlyWiki plugin — you cannot install or uninstall it from within TiddlyWiki. It is loaded into memory every time you open a wiki while the extension is active, and it does not get saved into your wiki file."
-					].join("\n")
-				},
-				"$:/temp/plugins/file-backups/license": {
-					title: "$:/temp/plugins/file-backups/license",
-					text: [
-						"Copyright (c) 2017-2026 Mario Pietsch",
-						"",
-						"Licensed under the BSD 3-Clause License.",
-						"Full text: https://opensource.org/licenses/BSD-3-Clause"
-					].join("\n")
-				}
+		var tiddlers = [
+			{
+				title: "$:/temp/plugins/file-backups/buttons/save-as",
+				tags: "$:/tags/PageControls",
+				caption: "{{$:/core/images/download-button}} save as",
+				description: "Save a copy of this wiki to a chosen location (opens the native Save As dialog)",
+				text: [
+					"\\whitespace trim",
+					"<$button tooltip=\"Save wiki to a chosen location\" aria-label=\"save as\" class=<<tv-config-toolbar-class>>>",
+					"<$action-setfield $tiddler=\"$:/temp/plugins/file-backups/next-saveAs\" text=\"yes\"/>",
+					"<$action-sendmessage $message=\"tm-save-wiki\"/>",
+					"{{$:/core/images/download-button}}",
+					"</$button>"
+				].join("\n")
+			},
+			{
+				title: "$:/temp/plugins/file-backups/readme",
+				text: [
+					"! File Backups — extension assets",
+					"",
+					"These tiddlers are installed automatically by the [[File Backups browser extension|https://github.com/pmario/file-backups]] and ship the UI elements the extension needs (currently the \"save as\" toolbar button, more to follow).",
+					"",
+					"They live under `$:/temp/plugins/file-backups/*` so they don't dirty the wiki and never get serialised into your saved wiki file. They are recreated in memory each time you open a wiki while the extension is active."
+				].join("\n")
+			},
+			{
+				title: "$:/temp/plugins/file-backups/license",
+				text: [
+					"Copyright (c) 2017-2026 Mario Pietsch",
+					"",
+					"Licensed under the BSD 3-Clause License.",
+					"Full text: https://opensource.org/licenses/BSD-3-Clause"
+				].join("\n")
 			}
-		};
+		];
 
-		// plugin-type: "file-backups-assets" (not the standard "plugin") hides
-		// the wrapper from Control Panel > Plugins / Themes / Languages tabs,
-		// which filter on hard-coded plugin-type values. TW's registration
-		// machinery is type-agnostic beyond string equality.
-		$tw.wiki.addTiddler(new $tw.Tiddler({
-			title: pluginTitle,
-			type: "application/json",
-			"plugin-type": "file-backups-assets",
-			name: "File Backups",
-			description: "Browser extension bridge for the file-backups addon",
-			author: "Mario Pietsch",
-			list: "readme license",
-			text: JSON.stringify(pluginContents)
-		}));
-
-		$tw.wiki.readPluginInfo([pluginTitle]);
-		$tw.wiki.registerPluginTiddlers("file-backups-assets", [pluginTitle]);
-		$tw.wiki.unpackPluginTiddlers();
-
-		// unpackPluginTiddlers() rebuilds the shadowTiddlers map but does not
-		// enqueue change events, so already-rendered widgets don't know about
-		// the new shadows. Notify them explicitly as shadow changes (isShadow
-		// = true) so SaverFilter's `if(change.normal)` check continues to
-		// exclude these changes from the dirty count.
-		Object.keys(pluginContents.tiddlers).forEach(function (title) {
-			$tw.wiki.enqueueTiddlerEvent(title, false, true);
+		tiddlers.forEach(function (fields) {
+			$tw.wiki.addTiddler(new $tw.Tiddler(fields));
 		});
 	}
 
