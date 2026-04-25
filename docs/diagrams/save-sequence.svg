@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1080" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12">
+  <defs>
+    <marker id="seqArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+    </marker>
+    <marker id="seqArrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0996f8"/>
+    </marker>
+    <marker id="seqArrowReturn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <text x="600" y="28" text-anchor="middle" font-size="18" font-weight="600">file-backups — save click sequence (V0.7.4)</text>
+  <text x="600" y="48" text-anchor="middle" font-size="12" fill="#666">User clicks TW core's Save button on a TW5 wiki at file:///F:/index.html — extension is installed and active.</text>
+
+  <!-- Lane positions: x-centre 100, 320, 540, 760, 980, 1140 -->
+  <!-- Headers -->
+  <g font-weight="600" font-size="13" text-anchor="middle">
+    <rect x="40"   y="70" width="120" height="40" rx="4" fill="#eaf3ff" stroke="#9ec1e8"/>
+    <text x="100"  y="95">TW page</text>
+    <rect x="200"  y="70" width="120" height="40" rx="4" fill="#eaf3ff" stroke="#9ec1e8"/>
+    <text x="260"  y="95">tw5-bridge</text>
+    <rect x="360"  y="70" width="120" height="40" rx="4" fill="#fff1de" stroke="#e8b87a"/>
+    <text x="420"  y="95">contentScript</text>
+    <rect x="520"  y="70" width="120" height="40" rx="4" fill="#fff1de" stroke="#e8b87a"/>
+    <text x="580"  y="95">background</text>
+    <rect x="680"  y="70" width="120" height="40" rx="4" fill="#f2f2f2" stroke="#bbb"/>
+    <text x="740"  y="95">downloads API</text>
+    <rect x="840"  y="70" width="120" height="40" rx="4" fill="#f2f2f2" stroke="#bbb"/>
+    <text x="900"  y="95">storage.local</text>
+    <rect x="1000" y="70" width="160" height="40" rx="4" fill="#eee9d6" stroke="#bdb393"/>
+    <text x="1080" y="95">disk (Downloads)</text>
+  </g>
+
+  <!-- Lifelines -->
+  <g stroke="#bbb" stroke-dasharray="2,4">
+    <line x1="100"  y1="115" x2="100"  y2="1040"/>
+    <line x1="260"  y1="115" x2="260"  y2="1040"/>
+    <line x1="420"  y1="115" x2="420"  y2="1040"/>
+    <line x1="580"  y1="115" x2="580"  y2="1040"/>
+    <line x1="740"  y1="115" x2="740"  y2="1040"/>
+    <line x1="900"  y1="115" x2="900"  y2="1040"/>
+    <line x1="1080" y1="115" x2="1080" y2="1040"/>
+  </g>
+
+  <!-- Phase: synchronous click chain -->
+  <rect x="20" y="135" width="1160" height="22" fill="#eef6ff" stroke="#9ec1e8"/>
+  <text x="600" y="151" text-anchor="middle" font-weight="600" fill="#0c4d80">SYNCHRONOUS — single JS turn from click through tiddlyfox-save-file</text>
+
+  <!-- 1: user clicks save -->
+  <text x="60" y="175" font-size="11">①</text>
+  <line x1="40" y1="175" x2="100" y2="175" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="105" y="171" font-size="11">user clicks Save button</text>
+
+  <!-- 2: tm-save-wiki dispatched -->
+  <text x="60" y="205" font-size="11">②</text>
+  <text x="105" y="201" font-size="11">action widget → dispatch tm-save-wiki → saver-handler picks tiddlyfox saver</text>
+
+  <!-- 3: tiddlyfox saver creates msgDiv + dispatches event -->
+  <text x="60" y="235" font-size="11">③</text>
+  <text x="105" y="231" font-size="11">tiddlyfox saver: create msgDiv with data-tiddlyfox-{path,content}, append to messagebox, dispatch event</text>
+
+  <!-- 4 capture phase: page → bridge -->
+  <text x="60" y="270" font-size="11">④</text>
+  <line x1="100" y1="270" x2="260" y2="270" stroke="#0996f8" marker-end="url(#seqArrowAccent)"/>
+  <text x="135" y="266" font-size="11" fill="#0996f8">CAPTURE phase: tiddlyfox-save-file</text>
+  <rect x="245" y="278" width="380" height="46" fill="#fff" stroke="#0996f8"/>
+  <text x="252" y="294" font-size="11" fill="#0c4d80" font-weight="600">bridge capture handler:</text>
+  <text x="252" y="308" font-size="11">t = getTiddler(next-saveAs); armed = false; not the save-as path</text>
+  <text x="252" y="320" font-size="11">setAttr(messagebox, "data-tiddlyfox-saveas", "no")</text>
+
+  <!-- 5 bubble phase: page → contentScript -->
+  <text x="60" y="355" font-size="11">⑤</text>
+  <line x1="100" y1="355" x2="420" y2="355" stroke="#0996f8" marker-end="url(#seqArrowAccent)"/>
+  <text x="135" y="351" font-size="11" fill="#0996f8">BUBBLE phase: tiddlyfox-save-file</text>
+  <rect x="345" y="363" width="430" height="60" fill="#fff" stroke="#0996f8"/>
+  <text x="352" y="380" font-size="11" fill="#0c4d80" font-weight="600">content script bubble handler:</text>
+  <text x="352" y="394" font-size="11">read msgDiv.{path, content, …} + parent.{subdir, saveas, backupdir}</text>
+  <text x="352" y="408" font-size="11">build msg = {msg:"save-wiki", path, content, subdir, saveas:"no", txt}</text>
+  <text x="352" y="420" font-size="11">browser.runtime.sendMessage(msg)  ⇢  Firefox structured-clones msg (~MB)</text>
+
+  <!-- Phase: async background -->
+  <rect x="20" y="445" width="1160" height="22" fill="#fff4e0" stroke="#e8b87a"/>
+  <text x="600" y="461" text-anchor="middle" font-weight="600" fill="#7a4a0c">ASYNC — message delivered to background, response awaited; msg clone stays pinned in-memory until Promise settles</text>
+
+  <!-- 6 sendMessage to bg -->
+  <text x="60" y="490" font-size="11">⑥</text>
+  <line x1="420" y1="490" x2="580" y2="490" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="445" y="486" font-size="11">runtime.sendMessage  →  handleMessages → handleSaveWiki(msg)</text>
+
+  <!-- 7 storage read -->
+  <text x="60" y="520" font-size="11">⑦</text>
+  <line x1="580" y1="520" x2="900" y2="520" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="516" font-size="11">await storage.local.get()</text>
+  <line x1="900" y1="540" x2="580" y2="540" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <text x="600" y="535" font-size="11" fill="#666">items including stash for "F:/index.html"</text>
+
+  <!-- 8 route -->
+  <text x="60" y="572" font-size="11">⑧</text>
+  <text x="600" y="570" font-size="11">handleSaveWiki: saveas !== "yes", subdir from stash → downloadWiki(message)</text>
+
+  <!-- 9 createObjectURL + downloads.download -->
+  <text x="60" y="600" font-size="11">⑨</text>
+  <text x="600" y="596" font-size="11">downloadWiki: blob = new Blob([txt], type:"text/html");  url = URL.createObjectURL(blob)</text>
+
+  <text x="60" y="625" font-size="11">⑩</text>
+  <line x1="580" y1="625" x2="740" y2="625" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="621" font-size="11">downloads.download({url, filename:"./index.html", overwrite, saveAs:false})</text>
+  <line x1="740" y1="643" x2="1080" y2="643" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="900" y="639" font-size="11">write file</text>
+  <line x1="1080" y1="660" x2="740" y2="660" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <line x1="740" y1="676" x2="580" y2="676" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <text x="600" y="672" font-size="11" fill="#666">itemId  →  blobs[itemId] = url</text>
+
+  <!-- 11 search -->
+  <text x="60" y="705" font-size="11">⑪</text>
+  <line x1="580" y1="705" x2="740" y2="705" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="701" font-size="11">downloads.search({id:itemId})</text>
+  <line x1="740" y1="722" x2="580" y2="722" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <text x="600" y="718" font-size="11" fill="#666">results[0].filename — verify dir matches expected ✓</text>
+
+  <!-- 12 backup -->
+  <text x="60" y="752" font-size="11">⑫</text>
+  <text x="600" y="748" font-size="11">createBackup: counter, getNextChar (Tower of Hanoi), nameX = "./twBackups/index.html/index(C).html"</text>
+  <line x1="580" y1="772" x2="740" y2="772" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="768" font-size="11">downloads.download(backup blob)</text>
+  <line x1="740" y1="788" x2="1080" y2="788" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="900" y="784" font-size="11">write backup</text>
+  <line x1="580" y1="808" x2="900" y2="808" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="804" font-size="11">storage.local.set({path: {…stash, counter+1}})</text>
+
+  <!-- 13 return -->
+  <rect x="20" y="830" width="1160" height="22" fill="#eef6ff" stroke="#9ec1e8"/>
+  <text x="600" y="846" text-anchor="middle" font-weight="600" fill="#0c4d80">SYNCHRONOUS again — response delivered, structured-clone holder released, TW save complete</text>
+
+  <text x="60" y="875" font-size="11">⑬</text>
+  <line x1="580" y1="875" x2="420" y2="875" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <text x="445" y="871" font-size="11" fill="#666">handleSaveWiki returns {relPath: stash.subdir}; clone released</text>
+
+  <text x="60" y="905" font-size="11">⑭</text>
+  <line x1="420" y1="905" x2="100" y2="905" stroke="#888" stroke-dasharray="3,2" marker-end="url(#seqArrowReturn)"/>
+  <text x="135" y="901" font-size="11" fill="#666">cb(response): write data-tiddlyfox-subdir; dispatch tiddlyfox-have-saved-file; remove msgDiv</text>
+
+  <text x="60" y="935" font-size="11">⑮</text>
+  <text x="105" y="931" font-size="11">tiddlyfox saver hears tiddlyfox-have-saved-file → callback(null) → save indicator clears</text>
+
+  <!-- 16 onChanged terminal -->
+  <rect x="20" y="952" width="1160" height="22" fill="#fff4e0" stroke="#e8b87a"/>
+  <text x="600" y="968" text-anchor="middle" font-weight="600" fill="#7a4a0c">ASYNC tail — downloads onChanged events fire later for both downloads</text>
+
+  <text x="60" y="998" font-size="11">⑯</text>
+  <line x1="740" y1="998" x2="580" y2="998" stroke="#222" marker-end="url(#seqArrow)"/>
+  <text x="600" y="994" font-size="11">downloads.onChanged: state="complete" for itemId &amp; backup itemId</text>
+  <text x="600" y="1018" font-size="11">handleDownloadChanged: URL.revokeObjectURL(blobs[id]); delete blobs[id]   — leak-free</text>
+</svg>

@@ -118,6 +118,16 @@ async function activateOpenTwTabs() {
 browser.runtime.onInstalled.addListener(activateOpenTwTabs);
 browser.runtime.onStartup.addListener(activateOpenTwTabs);
 
+// Open an info page on uninstall asking the user to reload any open
+// TiddlyWiki tabs. WebExtensions provide no in-process uninstall hook
+// (management.onUninstalled fires for OTHER extensions only) — setUninstallURL
+// is the one signal we get, and a static page is enough to point users at the
+// $:/temp/plugins/file-backups/* clean-up step.
+// browser.runtime.setUninstallURL("https://pmario.github.io/file-backups/uninstalled.html").
+// TODO use uninstalled page instead of /issues (which is for testing)
+browser.runtime.setUninstallURL("https://github.com/pmario/file-backups/issues").
+catch(function () {});
+
 // should be straight forward and simple.
 // uses the following  construction to respond back to the contentScript:
 // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_an_asynchronous_response_using_a_Promise

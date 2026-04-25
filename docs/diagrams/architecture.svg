@@ -1,0 +1,197 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 720" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0996f8"/>
+    </marker>
+  </defs>
+
+  <text x="590" y="30" text-anchor="middle" font-size="18" font-weight="600">file-backups — architecture (V0.7.4)</text>
+  <text x="590" y="52" text-anchor="middle" font-size="12" fill="#666">Components, execution contexts, and the message paths between them</text>
+
+  <!-- Lane backgrounds -->
+  <rect x="40"   y="80" width="220" height="600" fill="#fafbff" stroke="#dde2ee"/>
+  <rect x="280"  y="80" width="220" height="600" fill="#fafbff" stroke="#dde2ee"/>
+  <rect x="520"  y="80" width="220" height="600" fill="#fff8f0" stroke="#eed9b8"/>
+  <rect x="760"  y="80" width="220" height="600" fill="#fff8f0" stroke="#eed9b8"/>
+  <rect x="1000" y="80" width="140" height="600" fill="#f3f3f3" stroke="#cccccc"/>
+
+  <!-- Lane headers -->
+  <text x="150"  y="105" text-anchor="middle" font-weight="600">TW page (C1)</text>
+  <text x="150"  y="122" text-anchor="middle" fill="#666" font-size="11">Page world — TW core</text>
+  <text x="390"  y="105" text-anchor="middle" font-weight="600">tw5-bridge.js (C2)</text>
+  <text x="390"  y="122" text-anchor="middle" fill="#666" font-size="11">Page world — injected</text>
+  <text x="630"  y="105" text-anchor="middle" font-weight="600">content script (C3)</text>
+  <text x="630"  y="122" text-anchor="middle" fill="#666" font-size="11">Isolated world — extension</text>
+  <text x="870"  y="105" text-anchor="middle" font-weight="600">background (C4)</text>
+  <text x="870"  y="122" text-anchor="middle" fill="#666" font-size="11">Event page / SW — extension</text>
+  <text x="1070" y="105" text-anchor="middle" font-weight="600">Browser (C5)</text>
+  <text x="1070" y="122" text-anchor="middle" fill="#666" font-size="11">downloads, storage…</text>
+
+  <!-- Lane separator above contents -->
+  <line x1="40" y1="140" x2="1140" y2="140" stroke="#bbb" stroke-dasharray="3,3"/>
+
+  <!-- C1 boxes -->
+  <rect x="60" y="170" width="180" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="150" y="190" text-anchor="middle">$tw.wiki  (singleton)</text>
+  <text x="150" y="208" text-anchor="middle" fill="#666" font-size="11">tiddlers + shadows + events</text>
+
+  <rect x="60" y="240" width="180" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="150" y="260" text-anchor="middle">tiddlyfox saver</text>
+  <text x="150" y="278" text-anchor="middle" fill="#666" font-size="11">creates msg div on click</text>
+
+  <rect x="60" y="310" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="150" y="332" text-anchor="middle">page-controls toolbar</text>
+  <text x="150" y="350" text-anchor="middle" fill="#666" font-size="11">renders save / save-as</text>
+  <text x="150" y="364" text-anchor="middle" fill="#666" font-size="11">buttons via $list filter</text>
+
+  <rect x="60" y="390" width="180" height="60" rx="4" fill="#fff" stroke="#0996f8" stroke-width="1.5"/>
+  <text x="150" y="412" text-anchor="middle">#tiddlyfox-message-box</text>
+  <text x="150" y="430" text-anchor="middle" fill="#666" font-size="11">DOM — shared event hub</text>
+  <text x="150" y="444" text-anchor="middle" fill="#666" font-size="11">CAPTURE → BUBBLE</text>
+
+  <rect x="60" y="470" width="180" height="80" rx="4" fill="#fff" stroke="#333"/>
+  <text x="150" y="490" text-anchor="middle">$:/temp/plugins/</text>
+  <text x="150" y="506" text-anchor="middle">file-backups/*</text>
+  <text x="150" y="524" text-anchor="middle" fill="#666" font-size="11">save-as button</text>
+  <text x="150" y="538" text-anchor="middle" fill="#666" font-size="11">readme · license</text>
+
+  <!-- C2 -->
+  <rect x="300" y="170" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="390" y="192" text-anchor="middle">IIFE guard</text>
+  <text x="390" y="210" text-anchor="middle" fill="#666" font-size="11">window.__fileBackupsBridge</text>
+  <text x="390" y="224" text-anchor="middle" fill="#666" font-size="11">Installed (idempotent)</text>
+
+  <rect x="300" y="250" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="390" y="272" text-anchor="middle">installShadowTiddlers</text>
+  <text x="390" y="290" text-anchor="middle" fill="#666" font-size="11">addTiddler × 3 plain</text>
+  <text x="390" y="304" text-anchor="middle" fill="#666" font-size="11">tiddlers under $:/temp/</text>
+
+  <rect x="300" y="330" width="180" height="80" rx="4" fill="#fff" stroke="#0996f8" stroke-width="1.5"/>
+  <text x="390" y="352" text-anchor="middle">attachSaveListener</text>
+  <text x="390" y="370" text-anchor="middle" fill="#666" font-size="11">CAPTURE listener on</text>
+  <text x="390" y="384" text-anchor="middle" fill="#666" font-size="11">tiddlyfox-save-file →</text>
+  <text x="390" y="398" text-anchor="middle" fill="#666" font-size="11">writes data-tiddlyfox-saveas</text>
+
+  <!-- C3 -->
+  <rect x="540" y="170" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="630" y="192" text-anchor="middle">main()</text>
+  <text x="630" y="210" text-anchor="middle" fill="#666" font-size="11">isTiddlyWiki5 / Classic</text>
+  <text x="630" y="224" text-anchor="middle" fill="#666" font-size="11">detection gate</text>
+
+  <rect x="540" y="250" width="180" height="80" rx="4" fill="#fff" stroke="#333"/>
+  <text x="630" y="270" text-anchor="middle">injectMessageBox</text>
+  <text x="630" y="288" text-anchor="middle" fill="#666" font-size="11">create / claim messagebox</text>
+  <text x="630" y="302" text-anchor="middle" fill="#666" font-size="11">attach BUBBLE listener</text>
+  <text x="630" y="316" text-anchor="middle" fill="#666" font-size="11">inject tw5-bridge.js</text>
+
+  <rect x="540" y="350" width="180" height="80" rx="4" fill="#fff" stroke="#0996f8" stroke-width="1.5"/>
+  <text x="630" y="370" text-anchor="middle">saveFile()</text>
+  <text x="630" y="388" text-anchor="middle" fill="#666" font-size="11">reads msg div attrs</text>
+  <text x="630" y="402" text-anchor="middle" fill="#666" font-size="11">sendMessage(save-wiki, …</text>
+  <text x="630" y="416" text-anchor="middle" fill="#666" font-size="11">saveas, subdir, txt)</text>
+
+  <rect x="540" y="450" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="630" y="472" text-anchor="middle">cb(response)</text>
+  <text x="630" y="490" text-anchor="middle" fill="#666" font-size="11">writes data-tiddlyfox-subdir</text>
+  <text x="630" y="504" text-anchor="middle" fill="#666" font-size="11">fires tiddlyfox-have-saved-file</text>
+
+  <!-- C4 -->
+  <rect x="780" y="170" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="870" y="192" text-anchor="middle">handleMessages</text>
+  <text x="870" y="210" text-anchor="middle" fill="#666" font-size="11">routes save-wiki /</text>
+  <text x="870" y="224" text-anchor="middle" fill="#666" font-size="11">checkUrlConflict</text>
+
+  <rect x="780" y="250" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="870" y="272" text-anchor="middle">handleSaveWiki</text>
+  <text x="870" y="290" text-anchor="middle" fill="#666" font-size="11">saveas? subdir? beakon?</text>
+  <text x="870" y="304" text-anchor="middle" fill="#666" font-size="11">→ chooses path</text>
+
+  <rect x="780" y="330" width="180" height="80" rx="4" fill="#fff" stroke="#0996f8" stroke-width="1.5"/>
+  <text x="870" y="352" text-anchor="middle">downloadDialog · downloadWiki</text>
+  <text x="870" y="370" text-anchor="middle">createBackup · createBeakon</text>
+  <text x="870" y="388" text-anchor="middle" fill="#666" font-size="11">Blob → ObjectURL →</text>
+  <text x="870" y="402" text-anchor="middle" fill="#666" font-size="11">downloads.download(…)</text>
+
+  <rect x="780" y="430" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="870" y="452" text-anchor="middle">activateOpenTwTabs</text>
+  <text x="870" y="470" text-anchor="middle" fill="#666" font-size="11">onInstalled / onStartup →</text>
+  <text x="870" y="484" text-anchor="middle" fill="#666" font-size="11">scripting.executeScript</text>
+
+  <rect x="780" y="510" width="180" height="60" rx="4" fill="#fff" stroke="#333"/>
+  <text x="870" y="532" text-anchor="middle">handleDownloadChanged</text>
+  <text x="870" y="550" text-anchor="middle" fill="#666" font-size="11">complete / interrupted →</text>
+  <text x="870" y="564" text-anchor="middle" fill="#666" font-size="11">URL.revokeObjectURL</text>
+
+  <!-- C5 -->
+  <rect x="1015" y="170" width="115" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="1072" y="190" text-anchor="middle">downloads</text>
+  <text x="1072" y="207" text-anchor="middle" fill="#666" font-size="11">.download</text>
+  <text x="1072" y="221" text-anchor="middle" fill="#666" font-size="11">.search · .onChanged</text>
+
+  <rect x="1015" y="240" width="115" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="1072" y="260" text-anchor="middle">storage.local</text>
+  <text x="1072" y="277" text-anchor="middle" fill="#666" font-size="11">per-wiki stash</text>
+  <text x="1072" y="291" text-anchor="middle" fill="#666" font-size="11">{counter, subdir}</text>
+
+  <rect x="1015" y="310" width="115" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="1072" y="330" text-anchor="middle">tabs · scripting</text>
+  <text x="1072" y="347" text-anchor="middle" fill="#666" font-size="11">query file:///</text>
+  <text x="1072" y="361" text-anchor="middle" fill="#666" font-size="11">executeScript</text>
+
+  <rect x="1015" y="380" width="115" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="1072" y="400" text-anchor="middle">runtime</text>
+  <text x="1072" y="417" text-anchor="middle" fill="#666" font-size="11">sendMessage</text>
+  <text x="1072" y="431" text-anchor="middle" fill="#666" font-size="11">setUninstallURL</text>
+
+  <rect x="1015" y="450" width="115" height="50" rx="4" fill="#fff" stroke="#333"/>
+  <text x="1072" y="470" text-anchor="middle">file system</text>
+  <text x="1072" y="487" text-anchor="middle" fill="#666" font-size="11">Downloads dir</text>
+  <text x="1072" y="501" text-anchor="middle" fill="#666" font-size="11">+ twBackups/</text>
+
+  <!-- Connections -->
+  <!-- C4 → C3 (executeScript) -->
+  <line x1="780" y1="455" x2="720" y2="200" stroke="#333" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="745" y="335" font-size="10" fill="#666" transform="rotate(-72 745 335)">scripting.executeScript</text>
+
+  <!-- C3 → C2 (inject script) -->
+  <line x1="540" y1="290" x2="480" y2="200" stroke="#333" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="495" y="248" font-size="10" fill="#666">injectPageScript</text>
+
+  <!-- C2 → C1 (addTiddler / attach listener) -->
+  <line x1="300" y1="280" x2="240" y2="195" stroke="#333" marker-end="url(#arrow)"/>
+  <text x="245" y="248" font-size="10" fill="#666">addTiddler</text>
+  <line x1="300" y1="380" x2="240" y2="412" stroke="#0996f8" marker-end="url(#arrowAccent)"/>
+  <text x="248" y="402" font-size="10" fill="#0996f8">addEventListener (capture)</text>
+
+  <!-- C3 → C1 (create messagebox + bubble listener) -->
+  <line x1="540" y1="305" x2="240" y2="420" stroke="#0996f8" marker-end="url(#arrowAccent)"/>
+  <text x="380" y="365" font-size="10" fill="#0996f8">create #tiddlyfox-message-box + bubble listener</text>
+
+  <!-- C1 → C3 (save-wiki message via Browser runtime) -->
+  <line x1="240" y1="425" x2="540" y2="395" stroke="#333" marker-end="url(#arrow)"/>
+
+  <!-- C3 → C5 → C4 (sendMessage round-trip) -->
+  <line x1="720" y1="395" x2="1015" y2="405" stroke="#333" marker-end="url(#arrow)"/>
+  <line x1="1015" y1="408" x2="780" y2="200" stroke="#333" marker-end="url(#arrow)"/>
+  <text x="850" y="395" font-size="10" fill="#666">runtime.sendMessage</text>
+
+  <!-- C4 → C5 → C6 -->
+  <line x1="960" y1="370" x2="1015" y2="195" stroke="#333" marker-end="url(#arrow)"/>
+  <line x1="1015" y1="265" x2="960" y2="380" stroke="#333" marker-end="url(#arrow)"/>
+  <text x="990" y="285" font-size="10" fill="#666">downloads</text>
+  <text x="990" y="298" font-size="10" fill="#666">storage</text>
+
+  <!-- Legend -->
+  <rect x="60" y="600" width="1080" height="70" fill="#fafafa" stroke="#ddd"/>
+  <text x="80" y="622" font-weight="600">Legend</text>
+  <line x1="80" y1="640" x2="120" y2="640" stroke="#333" marker-end="url(#arrow)"/>
+  <text x="130" y="644" font-size="11">message / call</text>
+  <line x1="240" y1="640" x2="280" y2="640" stroke="#333" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="290" y="644" font-size="11">install-time injection</text>
+  <line x1="430" y1="640" x2="470" y2="640" stroke="#0996f8" marker-end="url(#arrowAccent)"/>
+  <text x="480" y="644" font-size="11">save-flow critical path (capture-phase ordering, sendMessage clone)</text>
+  <text x="80" y="660" font-size="11" fill="#666">Lane colours: blue-tinted = page world (untrusted, persists across extension reload). Orange = extension world (torn down on disable/reinstall). Grey = browser-provided.</text>
+</svg>
