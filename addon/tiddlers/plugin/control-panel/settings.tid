@@ -4,10 +4,10 @@ caption: FileBackups
 
 \define lingo-base() $:/language/TiddlerInfo/
 \define config-base() $:/config/PageControlButtons/Visibility/
-\define tv-config-toolbar-icons() yes
-\define tv-config-toolbar-text() yes
 
 This settings area was installed by FileBackups browser AddOn. 
+
+<$let tv-config-toolbar-icons=yes tv-config-toolbar-text=yes>
 
 ''Show Save As Button in SideBar''
 
@@ -17,5 +17,5 @@ This settings area was installed by FileBackups browser AddOn.
 
 {{ $:/temp/plugins/file-backups/buttons/save-milestone || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
 
-
+</$let>
 
