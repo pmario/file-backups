@@ -55,7 +55,8 @@
         "tiddlers/index.json",
         "tiddlers/*.tid",
         "tiddlers/plugin/*.tid",
-        "tiddlers/plugin/config/*.tid"
+        "tiddlers/plugin/config/*.tid",
+        "tiddlers/plugin/control-panel/*.tid"
       ],
       "matches": [
         "file:///*"
