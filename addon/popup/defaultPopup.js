@@ -103,6 +103,10 @@ document.getElementById("backup-form").addEventListener("submit", async (e) => {
 			backupEnabled: backupEnabledNode.checked,
 			numberOfBackups: amountNode.valueAsNumber
 		});
+		// Clear the "!" badge — if it was raised by the background's
+		// invalid-backupdir check, the value is now known good. (Coincident
+		// new-version notifications will resurface on the next update.)
+		await browser.action.setBadgeText({text: ""});
 	} finally {
 		window.close();
 	}

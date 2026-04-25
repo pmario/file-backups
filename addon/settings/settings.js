@@ -33,7 +33,14 @@ async function save_options() {
 
 	if (stat) {
 		console.log("storage.local.set error:", stat)
-	} else showSavedMessage();
+	} else {
+		// Clear the "!" badge — if it was raised by the background's
+		// invalid-backupdir check, the value is now known good.
+		try {
+			await browser.action.setBadgeText({text: ""});
+		} catch (err) {}
+		showSavedMessage();
+	}
 }
 
 // Restores select box and text fields

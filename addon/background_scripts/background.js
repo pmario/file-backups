@@ -8,6 +8,10 @@ if (typeof pathLib === "undefined") {
 	// eslint-disable-next-line no-undef
 	importScripts("/libs/path.js");
 }
+if (typeof validateBackupDir === "undefined") {
+	// eslint-disable-next-line no-undef
+	importScripts("/libs/validate.js");
+}
 
 // `browser.*` is native in Firefox; Chromium only exposes `chrome.*`. The two
 // APIs are compatible at the call sites we use (promise-returning) since MV3.
@@ -117,6 +121,30 @@ async function activateOpenTwTabs() {
 
 browser.runtime.onInstalled.addListener(activateOpenTwTabs);
 browser.runtime.onStartup.addListener(activateOpenTwTabs);
+
+// On install / browser start, check whether the stored backupdir is one that
+// downloads.download will reject (e.g. a value left over from a pre-V0.8.0
+// session before the popup / settings page started validating). If so, raise
+// the same "!" badge the new-version notification uses — opening the popup
+// reveals the actual problem inline on the field. The badge is cleared by
+// the popup/settings save handler when the user persists a valid value.
+async function checkBackupdirAlert() {
+	let items;
+	try {
+		items = await browser.storage.local.get({backupdir: ""});
+	} catch (err) {
+		return;
+	}
+	if (validateBackupDir(items.backupdir)) {
+		try {
+			await browser.action.setBadgeText({text: "!"});
+			await browser.action.setBadgeBackgroundColor({color: "#6600ff"});
+		} catch (err) {}
+	}
+}
+
+browser.runtime.onInstalled.addListener(checkBackupdirAlert);
+browser.runtime.onStartup.addListener(checkBackupdirAlert);
 
 // Open an info page on uninstall asking the user to reload any open
 // TiddlyWiki tabs. WebExtensions provide no in-process uninstall hook
