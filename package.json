@@ -1,9 +1,9 @@
 {
 	"name": "file-backups",
-	"version": "0.7.4",
+	"version": "0.8.0",
 	"description": "This browser add on is designed to let you easily save and backup TiddlyWikis.",
 	"scripts": {
-		"test": "node test/path.test.js",
+		"test": "node test/path.test.js && node test/validate.test.js",
 		"sync-version": "node build-tools/copy-version.js",
 		"lint": "cd addon && web-ext lint",
 		"build": "cd addon && web-ext build --overwrite-dest",

@@ -18,8 +18,9 @@
 			</div>
 			<div class="panel-formElements-item">
 				<label for="backupdir">Backup Directory:</label>
-				<input pattern="[^:'\x22*?<>]+" type="text" id="backupdir" required>
+				<input type="text" id="backupdir" required aria-describedby="backupdir-error">
 			</div>
+			<div class="validation-error" id="backupdir-error" role="alert"></div>
 			<div class="panel-formElements-item">
 				<label for="amount">Number of Backup Files:</label>
 				<input type="number" id="amount" min="1" step="1" max="26" required>
@@ -33,6 +34,7 @@
 			<button id="form-bg" class="panel-section-footer-button">Homepage & Support</button>
 		</footer>
 	</form>
+	<script src="../libs/validate.js"></script>
 	<script src="defaultPopup.js"></script>
 </body>
 

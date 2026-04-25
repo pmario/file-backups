@@ -141,3 +141,23 @@ input[type="checkbox"] {
 .text-section-header {
 	flex: 1;
 }
+
+.validation-error {
+	padding: 0 16px 8px 16px;
+	color: #b91c1c;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.validation-error:empty {
+	display: none;
+}
+
+input.invalid {
+	border-color: #b91c1c;
+}
+
+input.invalid:focus {
+	border-color: #b91c1c;
+	box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.25);
+}

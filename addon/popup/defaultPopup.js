@@ -5,11 +5,13 @@ if (typeof browser === "undefined") {
 }
 
 var backupdirNode;
+var backupdirErrorNode;
 var backupEnabledNode;
 var amountNode;
 var versionNode;
 var siteButtonNode;
 var okButtonNode;
+var submitButtonNode;
 
 const manifest = browser.runtime.getManifest();
 
@@ -17,6 +19,13 @@ var NEWURL;
 
 function onBadgeError(err) {
 	console.log("getBadgeText error:", err);
+}
+
+function refreshBackupdirValidity() {
+	var msg = validateBackupDir(backupdirNode.value);
+	backupdirErrorNode.textContent = msg || "";
+	backupdirNode.classList.toggle("invalid", !!msg);
+	submitButtonNode.disabled = !!msg;
 }
 
 function showNewVersion(text) {
@@ -35,17 +44,20 @@ function showNewVersion(text) {
 
 function restore_options() {
 	backupdirNode = document.getElementById("backupdir");
+	backupdirErrorNode = document.getElementById("backupdir-error");
 	backupEnabledNode = document.getElementById("backupenabled");
 	amountNode = document.getElementById("amount");
 	versionNode = document.getElementById("version");
 	siteButtonNode = document.getElementById("form-bg");
 	okButtonNode = document.getElementById("form-ok");
+	submitButtonNode = document.querySelector("#backup-form button[type='submit']");
 
 	versionNode.textContent = "V" + manifest.version;
 
 	NEWURL = "https://pmario.github.io/file-backups";
 
-	
+	backupdirNode.addEventListener("input", refreshBackupdirValidity);
+
 	function onError(err) {
 		console.log("storage.local.get error:", err);
 	}
@@ -54,6 +66,7 @@ function restore_options() {
 		backupdirNode.value = items.backupdir;
 		backupEnabledNode.checked = items.backupEnabled;
 		amountNode.value = items.numberOfBackups;
+		refreshBackupdirValidity();
 	};
 
 	function onGotBadge(text) {
@@ -83,6 +96,7 @@ document.addEventListener('DOMContentLoaded', restore_options);
 
 document.getElementById("backup-form").addEventListener("submit", async (e) => {
 	e.preventDefault();
+	if (validateBackupDir(backupdirNode.value)) return; // belt-and-braces — button is already disabled
 	try {
 		await browser.storage.local.set({
 			backupdir: backupdirNode.value,

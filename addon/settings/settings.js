@@ -11,9 +11,20 @@ function showSavedMessage() {
 	}, 750);
 }
 
+function refreshBackupdirValidity() {
+	var input = document.getElementById('backupdir');
+	var err = document.getElementById('backupdir-error');
+	var save = document.getElementById('save');
+	var msg = validateBackupDir(input.value);
+	err.textContent = msg || "";
+	input.classList.toggle("invalid", !!msg);
+	save.disabled = !!msg;
+}
+
 // Saves options to chrome.storage.sync.
 async function save_options() {
 	var backupdir = document.getElementById('backupdir').value;
+	if (validateBackupDir(backupdir)) return; // belt-and-braces — button is already disabled
 	var stat = await browser.storage.local.set({
 		backupdir: backupdir,
 		backupEnabled: document.getElementById("backup").checked,
@@ -38,7 +49,9 @@ async function restore_options() {
 		document.getElementById('amount').value = items.numberOfBackups;
 		document.getElementById("backup").checked = items.backupEnabled;
 	}
+	refreshBackupdirValidity();
 }
 
 document.addEventListener('DOMContentLoaded', restore_options);
+document.getElementById('backupdir').addEventListener('input', refreshBackupdirValidity);
 document.getElementById('save').addEventListener('click', save_options);

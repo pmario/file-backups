@@ -59,6 +59,27 @@
 			font-size: 24px;
 		}
 
+		.validation-error {
+			color: #b91c1c;
+			font-size: 13px;
+			margin-top: 4px;
+			line-height: 1.35;
+		}
+
+		.validation-error:empty {
+			display: none;
+		}
+
+		input.invalid {
+			border-color: #b91c1c;
+			outline: none;
+		}
+
+		button[disabled] {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
 	</style>
 </head>
 
@@ -71,7 +92,10 @@
 			</tr>
 			<tr>
 				<td align="right"><label for="backupdir">Backup Directory:</label></td>
-				<td align="left"><input id="backupdir" pattern="[^:'\x22*?<>]+" type="text" value="" /></td>
+				<td align="left">
+					<input id="backupdir" type="text" value="" aria-describedby="backupdir-error" />
+					<div class="validation-error" id="backupdir-error" role="alert"></div>
+				</td>
 			</tr>
 			<tr>
 				<td align="right"><label for="amount">Number of Backup Files:</label></td>
@@ -234,6 +258,7 @@
 	<p>Copyright Mario Pietsch 2017</p>
 	<p>CC-BY-NC-SA ... <a href="https://creativecommons.org/licenses/by-nc-sa/4.0" rel="nofollow">https://creativecommons.org/licenses/by-nc-sa/4.0</a></p>
 
+	<script src="../libs/validate.js"></script>
 	<script src="settings.js"></script>
 </body>
 
