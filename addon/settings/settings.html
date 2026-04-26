@@ -43,15 +43,21 @@
 		#save {
 			width: 100%;
 			font-weight: 600;
-			background: lightGreen;
+			background: #e0e0e0;
 			border: none;
 			padding: 10px;
 			text-align: center;
 			font-size: 16px;
+			transition: background-color 150ms;
 		}
 
-		#save:hover {
-			background: #690;
+		#save.dirty {
+			background: lightGreen;
+		}
+
+		#save.dirty:hover {
+			background: mediumseagreen;
+			color: white;
 		}
 
 		#status {
@@ -100,6 +106,10 @@
 			<tr>
 				<td align="right"><label for="amount">Number of Backup Files:</label></td>
 				<td align="left"><input type="number" id="amount" min="1" step="1" max="26" required></td>
+			</tr>
+			<tr>
+				<td align="right"><label for="showBetaUpdates">Check for Beta Updates:</label></td>
+				<td align="left"><input type="checkbox" id="showBetaUpdates"></td>
 			</tr>
 			<tr>
 				<td align="right"><button id="save">Save</button></td>

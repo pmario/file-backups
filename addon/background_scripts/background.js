@@ -185,18 +185,19 @@ async function refreshBadge() {
 }
 
 // Fetch version.json and decide whether to flag an update.
-//   - Auto-fired triggers (onInstalled, onStartup, popup-open) honour the
-//     autoCheckForUpdates pref AND the 12h throttle.
+//   - Auto-fired triggers (onInstalled, onStartup, popup-open) only run when
+//     the user has opted into the beta channel (showBetaUpdates=true).
+//     Stable-only users rely on Firefox's native AMO onUpdateAvailable path.
+//     Auto triggers also honour the 12h throttle.
 //   - Manual ({force:true}) bypasses both gates; user explicitly clicked.
 // Filters applied AFTER fetch:
-//   - data.beta && !showBetaUpdates  → suppress (user did not opt in)
+//   - data.beta && !showBetaUpdates  → suppress (defence-in-depth for force)
 //   - data.version === dismissed     → suppress (user clicked Got it on it)
 //   - compareVersions(remote,local)<=0 → suppress (we are at or ahead)
 async function checkForUpdate({force = false} = {}) {
 	let state;
 	try {
 		state = await browser.storage.local.get({
-			autoCheckForUpdates: true,
 			showBetaUpdates: false,
 			lastUpdateCheckAt: 0,
 			updateAvailable: null,
@@ -207,7 +208,7 @@ async function checkForUpdate({force = false} = {}) {
 	}
 
 	if (!force) {
-		if (!state.autoCheckForUpdates) return state.updateAvailable;
+		if (!state.showBetaUpdates) return state.updateAvailable;
 		if (Date.now() - state.lastUpdateCheckAt < UPDATE_CHECK_THROTTLE_MS) {
 			return state.updateAvailable;
 		}
@@ -315,16 +316,9 @@ function handleMessages(message, sender, sendResponse) {
 	}
 
 	// Popup-open trigger for the active update-check. Honours throttle + pref.
-	// Returns the resulting (or pre-existing) updateAvailable object so the
-	// popup can render without a second storage round-trip.
+	// No-ops silently when showBetaUpdates is off — stable users rely on AMO.
 	if (message.msg === "checkForUpdate") {
 		return checkForUpdate({force: false});
-	}
-
-	// Popup [Check for Update] button. Bypasses throttle + autoCheckForUpdates
-	// pref; the user explicitly asked.
-	if (message.msg === "checkForUpdateNow") {
-		return checkForUpdate({force: true});
 	}
 
 	// Popup [Got it] dismiss. Records the latest version so we don't re-prompt

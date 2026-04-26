@@ -93,6 +93,16 @@ body.panel {
 
 .panel-section-footer-button.default {
 	font-weight: 600;
+	transition: background-color 150ms;
+}
+
+.panel-section-footer-button.default.dirty {
+	background: lightGreen;
+}
+
+.panel-section-footer-button.default.dirty:hover {
+	background: mediumseagreen;
+	color: white;
 }
 
 .panel-section-footer-separator {

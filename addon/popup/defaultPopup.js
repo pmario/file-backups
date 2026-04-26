@@ -17,6 +17,11 @@ var chipViewBtnNode;
 var chipDismissBtnNode;
 var footerInfoBtnNode;
 
+// Captured during restore_options(); the form is "dirty" when any field
+// diverges from baseline. Save Settings button toggles green to signal
+// unsaved changes, gray otherwise.
+var baseline = null;
+
 const manifest = browser.runtime.getManifest();
 
 const WHATSNEW_BASE = "https://pmario.github.io/file-backups/whatsnew";
@@ -32,28 +37,47 @@ function whatsNewUrlForInstalledVersion() {
 	return WHATSNEW_BASE + "/" + major + "-" + minor + ".html";
 }
 
+function readForm() {
+	return {
+		backupdir: backupdirNode.value,
+		backupEnabled: backupEnabledNode.checked,
+		numberOfBackups: amountNode.valueAsNumber
+	};
+}
+
+function isDirty() {
+	if (!baseline) return false;
+	var cur = readForm();
+	for (var k in baseline) {
+		if (baseline[k] !== cur[k]) return true;
+	}
+	return false;
+}
+
+function refreshSaveDirty() {
+	submitButtonNode.classList.toggle("dirty", isDirty());
+}
+
 function refreshBackupdirValidity() {
 	var msg = validateBackupDir(backupdirNode.value);
 	backupdirErrorNode.textContent = msg || "";
 	backupdirNode.classList.toggle("invalid", !!msg);
 	submitButtonNode.disabled = !!msg;
+	refreshSaveDirty();
 }
 
 // Render chip + footer button based on storage state.
 //   chip       → visible only when storage.local.updateAvailable is set
 //                  stable: "Update available → X.Y.Z"
 //                  beta:   "What's New → X.Y.Z"
-//   footer btn → autoCheckForUpdates=false → "Check for Update" (manual trigger)
-//                autoCheckForUpdates=true  → "What's New[ → X.Y.Z]" (passive link)
+//   footer btn → always "What's New[ → X.Y.Z]" — passive link to updateAvailable.url
+//                if set, else the installed-version's What's New page.
 async function renderUpdateUI() {
 	let state;
 	try {
-		state = await browser.storage.local.get({
-			autoCheckForUpdates: true,
-			updateAvailable: null
-		});
+		state = await browser.storage.local.get({updateAvailable: null});
 	} catch (err) {
-		state = {autoCheckForUpdates: true, updateAvailable: null};
+		state = {updateAvailable: null};
 	}
 
 	const upd = state.updateAvailable;
@@ -69,45 +93,19 @@ async function renderUpdateUI() {
 				await browser.runtime.sendMessage({msg: "dismissUpdate"});
 			} catch (err) {}
 			chipNode.hidden = true;
-			// Re-render the footer button — it may now read "What's New" without
-			// the version suffix because updateAvailable just got cleared.
 			await renderUpdateUI();
 		};
 	} else {
 		chipNode.hidden = true;
 	}
 
-	if (state.autoCheckForUpdates) {
-		const label = upd && upd.latest ? "What's New → " + upd.latest : "What's New";
-		const url = (upd && upd.url) || whatsNewUrlForInstalledVersion();
-		footerInfoBtnNode.textContent = label;
-		footerInfoBtnNode.disabled = false;
-		footerInfoBtnNode.onclick = function () {
-			browser.tabs.create({url});
-			window.close();
-		};
-	} else {
-		footerInfoBtnNode.textContent = "Check for Update";
-		footerInfoBtnNode.disabled = false;
-		footerInfoBtnNode.onclick = onCheckForUpdateClick;
-	}
-}
-
-async function onCheckForUpdateClick() {
-	const original = footerInfoBtnNode.textContent;
-	footerInfoBtnNode.textContent = "Checking…";
-	footerInfoBtnNode.disabled = true;
-	try {
-		await browser.runtime.sendMessage({msg: "checkForUpdateNow"});
-	} catch (err) {
-		// Silent fail — fetch errors are already handled in background.
-	}
-	// Restore (or re-render to "What's New" if a result came in — though
-	// autoCheckForUpdates is false here so the button stays "Check for Update".
-	// renderUpdateUI() also redraws the chip if updateAvailable was set.)
-	footerInfoBtnNode.disabled = false;
-	footerInfoBtnNode.textContent = original;
-	await renderUpdateUI();
+	const label = upd && upd.latest ? "What's New → " + upd.latest : "What's New";
+	const url = (upd && upd.url) || whatsNewUrlForInstalledVersion();
+	footerInfoBtnNode.textContent = label;
+	footerInfoBtnNode.onclick = function () {
+		browser.tabs.create({url});
+		window.close();
+	};
 }
 
 function restore_options() {
@@ -127,6 +125,8 @@ function restore_options() {
 	versionNode.textContent = "V" + manifest.version;
 
 	backupdirNode.addEventListener("input", refreshBackupdirValidity);
+	backupEnabledNode.addEventListener("change", refreshSaveDirty);
+	amountNode.addEventListener("input", refreshSaveDirty);
 
 	function onError(err) {
 		console.log("storage.local.get error:", err);
@@ -136,6 +136,7 @@ function restore_options() {
 		backupdirNode.value = items.backupdir;
 		backupEnabledNode.checked = items.backupEnabled;
 		amountNode.value = items.numberOfBackups;
+		baseline = readForm();
 		refreshBackupdirValidity();
 	}
 
