@@ -2,9 +2,6 @@ title: $:/ControlPanel/Settings/FileBackups
 tags: $:/tags/ControlPanel/SettingsTab
 caption: FileBackups
 
-\define lingo-base() $:/language/TiddlerInfo/
-\define config-base() $:/config/PageControlButtons/Visibility/
-
 This settings area was installed by FileBackups browser AddOn.
 
 {{$:/ControlPanel/Settings/Milestones}}
@@ -13,14 +10,13 @@ This settings area was installed by FileBackups browser AddOn.
 
 !! Settings
 
-<$let tv-config-toolbar-icons=yes tv-config-toolbar-text=yes>
-
-''Show Save As Button in SideBar''
-
-{{ $:/temp/plugins/file-backups/buttons/save-as || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
-
-''Show Save Milestone Button in SideBar''
-
-{{ $:/temp/plugins/file-backups/buttons/save-milestone || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
+<$let tv-config-toolbar-icons=yes tv-config-toolbar-text=yes tv-config-toolbar-class="tc-btn-invisible">
+<div class="fb-cp-row">
+<div>''Action''</div><div>''Description''</div>
+<div>{{$:/temp/plugins/file-backups/buttons/save-as}}</div>
+<div>''Show Save As Button in SideBar''<br>{{$:/temp/plugins/file-backups/buttons/save-as!!description}}<br><$checkbox tiddler="$:/config/PageControlButtons/Visibility/$:/temp/plugins/file-backups/buttons/save-as" field="text" checked="show" unchecked="hide" default="show"/> Show in toolbar</div>
+<div>{{$:/temp/plugins/file-backups/buttons/save-milestone}}</div>
+<div>''Show Save Milestone Button in SideBar''<br>{{$:/temp/plugins/file-backups/buttons/save-milestone!!description}}<br><$checkbox tiddler="$:/config/PageControlButtons/Visibility/$:/temp/plugins/file-backups/buttons/save-milestone" field="text" checked="show" unchecked="hide" default="show"/> Show in toolbar</div>
+</div>
 
 </$let>

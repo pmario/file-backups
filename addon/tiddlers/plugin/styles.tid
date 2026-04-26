@@ -14,6 +14,18 @@ input.fb-label-width {
 	width: 25em;
 }
 
+.fb-cp-row {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 1em;
+	align-items: start;
+	padding: 0.5em 0;
+}
+
+.fb-cp-row + .fb-cp-row {
+	border-top: 1px solid <<colour table-border>>;
+}
+
 @keyframes fb-milestone-flash {
 	0%, 100% { background-color: transparent; }
 	50%      { background-color: <<colour alert-background>>; }
