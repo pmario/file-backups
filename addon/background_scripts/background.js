@@ -12,6 +12,10 @@ if (typeof validateBackupDir === "undefined") {
 	// eslint-disable-next-line no-undef
 	importScripts("/libs/validate.js");
 }
+if (typeof compareVersions === "undefined") {
+	// eslint-disable-next-line no-undef
+	importScripts("/libs/compare-versions.js");
+}
 
 // `browser.*` is native in Firefox; Chromium only exposes `chrome.*`. The two
 // APIs are compatible at the call sites we use (promise-returning) since MV3.
@@ -20,6 +24,27 @@ if (typeof browser === "undefined") {
 }
 
 const BACKUP_DIR = "twBackups";
+
+// Active update-check (file-backups-fs1). The extension fetches a small JSON
+// from pmario.github.io describing the latest released version. host_permissions
+// in manifest.json is scoped to that one origin. AMO's runtime.onUpdateAvailable
+// is the parallel signal for AMO-installed users; both feed the same
+// storage.local.updateAvailable shape so the popup chip handles both uniformly.
+const VERSION_URL = "https://pmario.github.io/file-backups/version.json";
+const WHATSNEW_BASE_URL = "https://pmario.github.io/file-backups/whatsnew";
+const UPDATE_CHECK_THROTTLE_MS = 12 * 60 * 60 * 1000; // 12h between automatic checks
+
+// Build the What's New URL for an installed version: "0.10.0-beta.1" → "<base>/0-10.html".
+// Used as the [What's New] footer link target when no update is currently
+// flagged (i.e. the user is on the latest version, or auto-check has not run
+// yet). When an update IS flagged, version.json's `url` field takes precedence.
+function whatsNewUrlForVersion(version) {
+	const cleaned = String(version || "").trim().replace(/^v/i, "").split("+")[0].split("-")[0];
+	const parts = cleaned.split(".");
+	const major = parts[0] || "0";
+	const minor = parts[1] || "0";
+	return WHATSNEW_BASE_URL + "/" + major + "-" + minor + ".html";
+}
 
 var path,
 	osInfo;
@@ -85,10 +110,23 @@ browser.runtime.onMessage.addListener(handleMessages);
 // see: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onUpdateAvailable
 //
 
-function handleUpdateAvailable(details) {
-	console.log(details.version);
-	browser.action.setBadgeText({text:"!"});
-	browser.action.setBadgeBackgroundColor({color: "#6600ff"});
+// AMO update path: fires only for AMO-installed extensions when AMO has a
+// newer signed version. Persist via the same shape the active check uses so
+// the popup chip flow handles both paths uniformly. AMO only signs stable
+// releases, so beta=false here.
+async function handleUpdateAvailable(details) {
+	try {
+		await browser.storage.local.set({
+			updateAvailable: {
+				latest: details.version,
+				beta: false,
+				url: whatsNewUrlForVersion(details.version),
+				fetchedAt: Date.now(),
+				source: "amo"
+			}
+		});
+		await refreshBadge();
+	} catch (err) {}
 }
 
 browser.runtime.onUpdateAvailable.addListener(handleUpdateAvailable);
@@ -122,29 +160,122 @@ async function activateOpenTwTabs() {
 browser.runtime.onInstalled.addListener(activateOpenTwTabs);
 browser.runtime.onStartup.addListener(activateOpenTwTabs);
 
-// On install / browser start, check whether the stored backupdir is one that
-// downloads.download will reject (e.g. a value left over from a pre-V0.8.0
-// session before the popup / settings page started validating). If so, raise
-// the same "!" badge the new-version notification uses — opening the popup
-// reveals the actual problem inline on the field. The badge is cleared by
-// the popup/settings save handler when the user persists a valid value.
-async function checkBackupdirAlert() {
-	let items;
+// Two independent signals can raise the toolbar badge:
+//   - backupdir invalid  → "!"   (downloads.download would reject; saves fail)
+//   - update available   → "↻"   (AMO onUpdateAvailable, OR active check)
+// They share storage.local but distinct glyphs. "!" takes priority because
+// saving is broken — that's more urgent than an update notification. The
+// popup's save handler messages "refreshBadge" after persisting a valid
+// backupdir so the badge re-evaluates instead of being cleared blindly.
+async function refreshBadge() {
+	let state;
 	try {
-		items = await browser.storage.local.get({backupdir: ""});
-	} catch (err) {
-		return;
+		state = await browser.storage.local.get({backupdir: "", updateAvailable: null});
+	} catch (err) { return; }
+	let text = "";
+	if (validateBackupDir(state.backupdir)) {
+		text = "!";
+	} else if (state.updateAvailable) {
+		text = "↻";
 	}
-	if (validateBackupDir(items.backupdir)) {
-		try {
-			await browser.action.setBadgeText({text: "!"});
-			await browser.action.setBadgeBackgroundColor({color: "#6600ff"});
-		} catch (err) {}
-	}
+	try {
+		await browser.action.setBadgeText({text});
+		await browser.action.setBadgeBackgroundColor({color: "#6600ff"});
+	} catch (err) {}
 }
 
-browser.runtime.onInstalled.addListener(checkBackupdirAlert);
-browser.runtime.onStartup.addListener(checkBackupdirAlert);
+// Fetch version.json and decide whether to flag an update.
+//   - Auto-fired triggers (onInstalled, onStartup, popup-open) honour the
+//     autoCheckForUpdates pref AND the 12h throttle.
+//   - Manual ({force:true}) bypasses both gates; user explicitly clicked.
+// Filters applied AFTER fetch:
+//   - data.beta && !showBetaUpdates  → suppress (user did not opt in)
+//   - data.version === dismissed     → suppress (user clicked Got it on it)
+//   - compareVersions(remote,local)<=0 → suppress (we are at or ahead)
+async function checkForUpdate({force = false} = {}) {
+	let state;
+	try {
+		state = await browser.storage.local.get({
+			autoCheckForUpdates: true,
+			showBetaUpdates: false,
+			lastUpdateCheckAt: 0,
+			updateAvailable: null,
+			dismissedUpdateVersion: null
+		});
+	} catch (err) {
+		return null;
+	}
+
+	if (!force) {
+		if (!state.autoCheckForUpdates) return state.updateAvailable;
+		if (Date.now() - state.lastUpdateCheckAt < UPDATE_CHECK_THROTTLE_MS) {
+			return state.updateAvailable;
+		}
+	}
+
+	let data;
+	try {
+		const resp = await fetch(VERSION_URL, {cache: "no-cache"});
+		if (!resp.ok) {
+			// Server reachable but returned non-2xx (404/500/etc). Mark the
+			// check time so we don't hammer a broken endpoint, but don't change
+			// updateAvailable.
+			await browser.storage.local.set({lastUpdateCheckAt: Date.now()});
+			return state.updateAvailable;
+		}
+		data = await resp.json();
+	} catch (err) {
+		// Network error or invalid JSON. Don't update lastUpdateCheckAt so the
+		// next trigger retries — transient failures shouldn't block notifications
+		// for 12h.
+		return state.updateAvailable;
+	}
+
+	await browser.storage.local.set({lastUpdateCheckAt: Date.now()});
+
+	const remote = data && data.version;
+	if (!remote) return state.updateAvailable;
+
+	const local = browser.runtime.getManifest().version;
+	if (compareVersions(remote, local) <= 0) {
+		// We are at or ahead of remote. If a stale updateAvailable lingers
+		// (e.g. release was rolled back), clear it.
+		if (state.updateAvailable) {
+			await browser.storage.local.set({updateAvailable: null});
+			await refreshBadge();
+		}
+		return null;
+	}
+
+	if (data.beta === true && !state.showBetaUpdates) {
+		return state.updateAvailable;
+	}
+
+	if (state.dismissedUpdateVersion === remote) {
+		return state.updateAvailable;
+	}
+
+	const updateAvailable = {
+		latest: remote,
+		beta: data.beta === true,
+		url: data.url || whatsNewUrlForVersion(remote),
+		fetchedAt: Date.now(),
+		source: "fetch"
+	};
+	await browser.storage.local.set({updateAvailable});
+	await refreshBadge();
+	return updateAvailable;
+}
+
+// Wire the auto-fired triggers. Both call checkForUpdate (which decides
+// whether to actually fetch based on pref + throttle), and refreshBadge so
+// any stale backupdir flag also gets re-evaluated.
+async function checkOnLifecycleEvent() {
+	await checkForUpdate();
+	await refreshBadge();
+}
+browser.runtime.onInstalled.addListener(checkOnLifecycleEvent);
+browser.runtime.onStartup.addListener(checkOnLifecycleEvent);
 
 // Open an info page on uninstall asking the user to reload any open
 // TiddlyWiki tabs. WebExtensions provide no in-process uninstall hook
@@ -169,6 +300,43 @@ function handleMessages(message, sender, sendResponse) {
 	// Check tabs, if TW file URL is open already.
 	if (message.msg === "checkUrlConflict") {
 		return checkUrlConflict(message);
+	}
+
+	// Popup-open trigger for the active update-check. Honours throttle + pref.
+	// Returns the resulting (or pre-existing) updateAvailable object so the
+	// popup can render without a second storage round-trip.
+	if (message.msg === "checkForUpdate") {
+		return checkForUpdate({force: false});
+	}
+
+	// Popup [Check for Update] button. Bypasses throttle + autoCheckForUpdates
+	// pref; the user explicitly asked.
+	if (message.msg === "checkForUpdateNow") {
+		return checkForUpdate({force: true});
+	}
+
+	// Popup [Got it] dismiss. Records the latest version so we don't re-prompt
+	// for the same one, clears the chip, and re-evaluates the badge (which may
+	// fall back to "!" if the backupdir is also flagged, or clear entirely).
+	if (message.msg === "dismissUpdate") {
+		return (async () => {
+			const {updateAvailable} = await browser.storage.local.get({updateAvailable: null});
+			if (updateAvailable && updateAvailable.latest) {
+				await browser.storage.local.set({
+					dismissedUpdateVersion: updateAvailable.latest,
+					updateAvailable: null
+				});
+				await refreshBadge();
+			}
+			return null;
+		})();
+	}
+
+	// Popup/settings save handler triggers this after persisting a valid
+	// backupdir so the "!" badge clears (or downgrades to "↻" if an update
+	// is also pending).
+	if (message.msg === "refreshBadge") {
+		return refreshBadge();
 	}
 }
 
