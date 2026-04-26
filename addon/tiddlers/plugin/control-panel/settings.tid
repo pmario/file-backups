@@ -19,7 +19,7 @@ This settings area was installed by FileBackups browser AddOn.
 
 {{ $:/temp/plugins/file-backups/buttons/save-as || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
 
-''Show Save Milstone Button in SideBar''
+''Show Save Milestone Button in SideBar''
 
 {{ $:/temp/plugins/file-backups/buttons/save-milestone || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
 
