@@ -10,6 +10,13 @@
 	<div class="panel-section panel-section-header">
 		<div class="text-section-header">File Backups - For TiddlyWiki - <span id="version" style="font-size: .7em">Version</span></div>
 	</div>
+
+	<div id="update-chip" class="panel-section update-chip" hidden>
+		<span class="update-chip-label" id="update-chip-label"></span>
+		<button type="button" id="update-chip-view" class="update-chip-button">View</button>
+		<button type="button" id="update-chip-dismiss" class="update-chip-button">Got it</button>
+	</div>
+
 	<form id="backup-form">
 		<section class="panel-section panel-section-formElements">
 			<div class="panel-formElements-item">
@@ -29,9 +36,7 @@
 		<footer class="panel-section panel-section-footer">
 			<button type="submit" class="panel-section-footer-button default">Save Settings</button>
 			<div class="panel-section-footer-separator"></div>
-			<button id="form-ok" class="panel-section-footer-button">!</button>
-			<div class="panel-section-footer-separator"></div>
-			<button id="form-bg" class="panel-section-footer-button">Homepage & Support</button>
+			<button type="button" id="footer-info-btn" class="panel-section-footer-button">What's New</button>
 		</footer>
 	</form>
 	<script src="../libs/validate.js"></script>

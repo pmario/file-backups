@@ -77,19 +77,18 @@ body.panel {
 	white-space: nowrap;
 }
 
-/* The "!" badge button between the two text buttons is compact. */
-.panel-section-footer-button#form-ok {
-	flex: 0 0 auto;
-	min-width: 32px;
-	padding: 6px 10px;
-}
-
 .panel-section-footer-button:hover {
 	background: rgba(0, 0, 0, 0.06);
 }
 
 .panel-section-footer-button:active {
 	background: rgba(0, 0, 0, 0.12);
+}
+
+.panel-section-footer-button:disabled {
+	color: #999;
+	cursor: default;
+	background: transparent;
 }
 
 .panel-section-footer-button.default {
@@ -129,17 +128,54 @@ input[type="checkbox"] {
 	margin: 0;
 }
 
-.new-version {
-	background: #6600ff;
-	color: white;
-}
-
-.new-version:hover {
-	background: #5200cc;
-}
-
 .text-section-header {
 	flex: 1;
+}
+
+/* Update-available chip — the alert surface between header and form when
+ * storage.local.updateAvailable is set. Pastel blue bar with slightly
+ * darker buttons; readable dark text on light background. */
+.update-chip {
+	background: #dbeafe;
+	color: #0c0c0d;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 16px;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* `[hidden]` from the HTML attribute would normally yield display:none, but
+ * the .panel-section flex rule wins on specificity. Restore the hide. */
+.update-chip[hidden] {
+	display: none;
+}
+
+.update-chip-label {
+	flex: 1;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.update-chip-button {
+	flex: 0 0 auto;
+	padding: 4px 10px;
+	border: 1px solid #93c5fd;
+	background: #bfdbfe;
+	color: #0c0c0d;
+	font: caption;
+	font-size: 12px;
+	cursor: pointer;
+	border-radius: 3px;
+}
+
+.update-chip-button:hover {
+	background: #93c5fd;
+}
+
+.update-chip-button:active {
+	background: #60a5fa;
 }
 
 .validation-error {

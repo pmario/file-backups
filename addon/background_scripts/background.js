@@ -277,6 +277,18 @@ async function checkOnLifecycleEvent() {
 browser.runtime.onInstalled.addListener(checkOnLifecycleEvent);
 browser.runtime.onStartup.addListener(checkOnLifecycleEvent);
 
+// Defensive: re-evaluate the badge whenever a key it depends on changes in
+// storage.local. Production writers (popup save, dismissUpdate handler,
+// checkForUpdate, AMO listener) already call refreshBadge directly, so this
+// is mostly belt-and-braces for dev-tools console injection and any future
+// caller that forgets the manual refresh.
+browser.storage.onChanged.addListener((changes, areaName) => {
+	if (areaName !== "local") return;
+	if (changes.updateAvailable || changes.backupdir) {
+		refreshBadge();
+	}
+});
+
 // Open an info page on uninstall asking the user to reload any open
 // TiddlyWiki tabs. WebExtensions provide no in-process uninstall hook
 // (management.onUninstalled fires for OTHER extensions only) — setUninstallURL
