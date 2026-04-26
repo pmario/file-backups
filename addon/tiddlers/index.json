@@ -20,6 +20,7 @@
     "tiddlers/plugin/milestone-modal.tid",
     "tiddlers/plugin/milestone-recent-list.tid",
     "tiddlers/plugin/readme.tid",
-    "tiddlers/plugin/styles.tid"
+    "tiddlers/plugin/styles.tid",
+    "tiddlers/plugin/test/cp-row.tid"
   ]
 }

@@ -57,7 +57,8 @@
         "tiddlers/*.tid",
         "tiddlers/plugin/*.tid",
         "tiddlers/plugin/config/*.tid",
-        "tiddlers/plugin/control-panel/*.tid"
+        "tiddlers/plugin/control-panel/*.tid",
+        "tiddlers/plugin/test/*.tid"
       ],
       "matches": [
         "file:///*"

@@ -350,6 +350,29 @@ function handleMessages(message, sender, sendResponse) {
 	if (message.msg === "refreshBadge") {
 		return refreshBadge();
 	}
+
+	// Dev test affordance (beta builds only). The CP test buttons in
+	// addon/tiddlers/plugin/test/cp-row.tid let pmario exercise the chip
+	// + badge UX without waiting for a live release. Writes a fake
+	// updateAvailable; storage.onChanged picks it up and refreshes the badge.
+	// Clears any prior dismissedUpdateVersion so re-injection after Got it
+	// behaves as expected.
+	if (message.msg === "testInjectUpdate") {
+		return (async () => {
+			const isBeta = message.kind === "beta";
+			await browser.storage.local.set({
+				updateAvailable: {
+					latest: isBeta ? "0.10.0-beta.1" : "0.10.0",
+					beta: isBeta,
+					url: WHATSNEW_BASE_URL + "/0-10.html",
+					fetchedAt: Date.now(),
+					source: "test"
+				},
+				dismissedUpdateVersion: null
+			});
+			return null;
+		})();
+	}
 }
 
 // Check, if there is an other tab, with the same URL open already?

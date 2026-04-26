@@ -105,6 +105,7 @@
 		try {
 			attachSaveListener();
 			attachMilestoneFlashCleanup();
+			attachTestInjectListener();
 			var index = await fetch(BASE_URL + INDEX_FILE).then(function (r) { return r.json(); });
 			await Promise.all([
 				installTiddlersFromAssets(index.real || []),
@@ -113,6 +114,27 @@
 		} catch (err) {
 			console.log("[fb-bridge] install failed:", err);
 		}
+	}
+
+	// Dev test affordance (beta builds only — the test/ shadow folder is
+	// stripped from stable builds by the build-time gate). The CP test buttons
+	// write "stable" or "beta" to a temp tiddler; we observe the change, fire
+	// a CustomEvent on the messagebox so the content script can forward to
+	// background, and delete the temp so re-clicks re-fire the event.
+	function attachTestInjectListener() {
+		var TEST_TITLE = "$:/temp/plugins/file-backups/test/inject-update";
+		$tw.wiki.addEventListener("change", function (changes) {
+			if (!changes[TEST_TITLE]) return;
+			var t = $tw.wiki.getTiddler(TEST_TITLE);
+			if (!t) return; // deletion event from our own cleanup below
+			var kind = t.fields.text;
+			if (kind !== "stable" && kind !== "beta") return;
+			var box = document.getElementById("tiddlyfox-message-box");
+			if (box) {
+				box.dispatchEvent(new CustomEvent("file-backups-test-inject", {detail: {kind: kind}}));
+			}
+			$tw.wiki.deleteTiddler(TEST_TITLE);
+		});
 	}
 
 	// When the milestone flash animation finishes (after its 3 keyframe

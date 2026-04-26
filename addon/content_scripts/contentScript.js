@@ -251,6 +251,18 @@ function injectMessageBox(doc) {
 		return false;
 	}, false);
 
+	// Dev test affordance (beta-only). The bridge dispatches this CustomEvent
+	// when the user clicks a Test button in CP > Settings > FileBackups; we
+	// forward to background which writes the fake updateAvailable into
+	// storage.local. Stable builds don't ship the CP test buttons, so the
+	// event never fires there; the listener is harmless either way.
+	messageBox.addEventListener("file-backups-test-inject", function (e) {
+		var kind = e && e.detail && e.detail.kind;
+		if (kind !== "stable" && kind !== "beta") return;
+		browser.runtime.sendMessage({msg: "testInjectUpdate", kind: kind})
+			.catch(function () {});
+	}, false);
+
 	// Inject the TW5 page-context bridge now that the messagebox and our save
 	// listener are in place. The bridge attaches a capture-phase listener on
 	// the same element so it runs before the one above.

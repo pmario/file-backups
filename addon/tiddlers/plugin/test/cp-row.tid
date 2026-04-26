@@ -1,0 +1,17 @@
+title: $:/ControlPanel/Settings/FileBackups/TestUpdate
+
+---
+
+!! Dev test affordance
+
+''Beta-build only.'' These buttons inject a fake update notification into `storage.local.updateAvailable` so the toolbar badge and popup chip can be exercised without a live release. Stripped from stable builds by the build-time test-tiddler gate.
+
+<$button>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-update" text="stable"/>
+Test stable update
+</$button>
+&nbsp;
+<$button>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-update" text="beta"/>
+Test beta update
+</$button>

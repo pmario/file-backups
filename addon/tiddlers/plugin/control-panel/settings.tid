@@ -20,3 +20,5 @@ This settings area was installed by FileBackups browser AddOn.
 </div>
 
 </$let>
+
+<$transclude tiddler="$:/ControlPanel/Settings/FileBackups/TestUpdate" mode="block"/>
