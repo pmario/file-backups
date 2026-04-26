@@ -3,23 +3,33 @@
  * extension's content script. Runs in the page's JavaScript context so it can
  * reach `$tw.wiki`.
  *
- * Installs a "save as" toolbar button. Clicking it sets
- * `$:/temp/plugins/file-backups/next-saveAs = "yes"` and dispatches the normal TW
- * save (`tm-save-wiki`). When TW then fires `tiddlyfox-save-file` on the
- * messagebox, this bridge's capture-phase listener runs first, reads the temp
- * tiddler, and sets `data-tiddlyfox-saveas` on the messagebox synchronously.
- * The content script's existing bubble-phase listener then reads that
- * attribute and forwards `msg.saveas = "yes"` to the background, which opens
- * the native Save As dialog. The temp tiddler is cleared on consumption.
+ * Provides two "arming" flows that piggyback on TW's normal tm-save-wiki:
+ *
+ *   Save As — toolbar button writes `$:/temp/plugins/file-backups/next-
+ *     saveAs = "yes"` and dispatches tm-save-wiki. When TW then fires
+ *     tiddlyfox-save-file on the messagebox, the bridge's capture-phase
+ *     listener reads the temp tiddler and sets data-tiddlyfox-saveas on
+ *     the messagebox synchronously, before the content script's bubble-
+ *     phase listener reads it. Content script forwards saveas:"yes" to
+ *     background → downloadDialog → native Save As dialog.
+ *
+ *   Milestone — modal/CP form writes next-milestone-{label,ts} temp
+ *     tiddlers and dispatches tm-save-wiki. The same capture-phase
+ *     listener transfers those values onto data-file-backups-milestone*
+ *     attributes. Content script forwards them as msg.milestone* fields.
+ *     Background's createMilestoneFile() writes a separate timestamped
+ *     file alongside the Tower-of-Hanoi rotation in the backup dir.
  *
  * The capture-phase approach is deliberate: `$tw.wiki.addEventListener("change", ...)`
  * fires asynchronously, too late to influence the save already in flight.
  *
- * UI tiddlers (button, shortcut recipes, readme, license) are shipped as
- * native TW .tid files under addon/tiddlers/. The bridge fetches them at
- * install time, parses the standard TW header/body format, and addTiddler-s
- * each. Authors edit real .tid files (drag in/out of TW round-trips cleanly)
- * instead of hand-escaped strings inside this JS file.
+ * UI tiddlers (toolbar buttons, shortcut recipes, modal, CP form, readme,
+ * license, keyboard config) are shipped as native TW .tid files under
+ * addon/tiddlers/. An indexer (build-tools/index-tiddlers.js, run as a
+ * pre-script before web-ext) writes tiddlers/index.json, which the bridge
+ * fetches at install time, then loads each .tid via the standard TW
+ * header/body parser. Authoring stays in real .tid files (drag in/out of
+ * TW round-trips) instead of hand-escaped strings inside this JS file.
  */
 
 (function () {
@@ -53,13 +63,16 @@
 	//            Used for tiddlers that drive widget refresh (toolbar
 	//            buttons, $:/tags/KeyboardShortcut action recipes).
 	//   shadow — .tid files under addon/tiddlers/plugin/** are bundled
-	//            into a runtime plugin and registered as shadows. Used for
-	//            tiddlers whose titles must live outside $:/temp/ (the
-	//            keyboard-manager config tiddlers at fixed paths) and for
-	//            informational tiddlers (readme/license) we don't want to
-	//            re-emit on every page load. Shadows don't trigger
-	//            SaverFilter and auto-defer to any real tiddler the user
-	//            later creates at the same title.
+	//            into a runtime plugin and registered as shadows. Used
+	//            for tiddlers whose titles must live OUTSIDE $:/temp/ —
+	//            the keyboard-manager config tiddlers at fixed paths
+	//            ($:/config/shortcuts/<name>, $:/config/ShortcutInfo/
+	//            <name>, $:/config/PageControlButtons/Visibility/<title>)
+	//            plus the standard plugin-style readme and license. As
+	//            shadows they don't trigger SaverFilter and auto-defer to
+	//            any real tiddler the user later creates at the same
+	//            title — so user customisation overrides our defaults
+	//            without any extra guard logic on our side.
 	// The plugin wrapper itself lives at $:/temp/* so it doesn't dirty
 	// either, and uses a non-standard plugin-type so it stays out of
 	// Control Panel > Plugins.
@@ -69,7 +82,15 @@
 
 	var retries = 0;
 	function waitForReady() {
-		var twReady = typeof $tw !== "undefined" && $tw.wiki && typeof $tw.wiki.addTiddler === "function";
+		// $tw.boot.executedStartupModules.story is set true when the
+		// `story` startup module finishes (it declares `after: ["startup"]`,
+		// so by the time it runs, $tw.wiki + plugins + macros are all in
+		// place). Tighter gate than just `$tw.wiki.addTiddler` existence,
+		// which is true much earlier during boot.
+		var twReady = typeof $tw !== "undefined"
+			&& $tw.boot
+			&& $tw.boot.executedStartupModules
+			&& $tw.boot.executedStartupModules.story === true;
 		var boxReady = !!document.getElementById("tiddlyfox-message-box");
 		if (twReady && boxReady) {
 			install();
@@ -83,6 +104,7 @@
 	async function install() {
 		try {
 			attachSaveListener();
+			attachMilestoneFlashCleanup();
 			var index = await fetch(BASE_URL + INDEX_FILE).then(function (r) { return r.json(); });
 			await Promise.all([
 				installTiddlersFromAssets(index.real || []),
@@ -91,6 +113,20 @@
 		} catch (err) {
 			console.log("[fb-bridge] install failed:", err);
 		}
+	}
+
+	// When the milestone flash animation finishes (after its 3 keyframe
+	// iterations), wipe the just-saved state tiddler so the same entry
+	// doesn't re-flash on every subsequent modal open / CP render. Filtering
+	// on animationName makes the listener inert for any other animations on
+	// the page.
+	function attachMilestoneFlashCleanup() {
+		document.addEventListener("animationend", function (e) {
+			if (e.animationName === "fb-milestone-flash" &&
+				typeof $tw !== "undefined" && $tw.wiki && typeof $tw.wiki.deleteTiddler === "function") {
+				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/milestone/just-saved");
+			}
+		});
 	}
 
 	// .tid parser — matches TW's own application/x-tiddler deserializer
@@ -176,11 +212,26 @@
 	function attachSaveListener() {
 		var box = document.getElementById("tiddlyfox-message-box");
 		box.addEventListener("tiddlyfox-save-file", function () {
-			var t = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-saveAs");
-			var armed = !!(t && t.fields.text === "yes");
-			box.setAttribute("data-tiddlyfox-saveas", armed ? "yes" : "no");
-			if (armed) {
+			// Save As arming
+			var saveAsT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-saveAs");
+			var saveAsArmed = !!(saveAsT && saveAsT.fields.text === "yes");
+			box.setAttribute("data-tiddlyfox-saveas", saveAsArmed ? "yes" : "no");
+			if (saveAsArmed) {
 				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-saveAs");
+			}
+
+			// Milestone arming. The form action sets two temp tiddlers
+			// synchronously before dispatching tm-save-wiki, so both are in
+			// place by the time TW's tiddlyfox saver fires this event.
+			var labelT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-milestone-label");
+			var tsT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-milestone-ts");
+			var milestoneArmed = !!(tsT && tsT.fields.text);
+			box.setAttribute("data-file-backups-milestone", milestoneArmed ? "yes" : "no");
+			if (milestoneArmed) {
+				box.setAttribute("data-file-backups-milestone-label", (labelT && labelT.fields.text) || "");
+				box.setAttribute("data-file-backups-milestone-ts", tsT.fields.text);
+				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-milestone-label");
+				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-milestone-ts");
 			}
 		}, true);
 	}

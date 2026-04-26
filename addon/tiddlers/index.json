@@ -12,8 +12,14 @@
     "tiddlers/plugin/config/shortcuts-save-wiki-as.tid",
     "tiddlers/plugin/config/visibility-save-as.tid",
     "tiddlers/plugin/config/visibility-save-milestone.tid",
+    "tiddlers/plugin/control-panel/milestones.tid",
     "tiddlers/plugin/control-panel/settings.tid",
     "tiddlers/plugin/license.tid",
-    "tiddlers/plugin/readme.tid"
+    "tiddlers/plugin/milestone-actions.tid",
+    "tiddlers/plugin/milestone-form.tid",
+    "tiddlers/plugin/milestone-modal.tid",
+    "tiddlers/plugin/milestone-recent-list.tid",
+    "tiddlers/plugin/readme.tid",
+    "tiddlers/plugin/styles.tid"
   ]
 }

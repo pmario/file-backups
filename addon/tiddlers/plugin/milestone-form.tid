@@ -1,0 +1,12 @@
+title: $:/temp/plugins/file-backups/milestone/form
+
+\import [[$:/temp/plugins/file-backups/milestone/actions]]
+
+<div style="display:grid; grid-template-columns:max-content 1fr; gap:0.4em 0.8em; align-items:center; margin:0.6em 0;">
+<div>Label:</div>
+<div><$edit-text tiddler="$:/temp/plugins/file-backups/milestone/label" tag="input" class="fb-label-width" placeholder="optional, used in filename" default="" focus="yes"/><%if [[$:/temp/plugins/file-backups/milestone/label]get[text]length[]compare:number:gt[40]] %><span class="fb-warning">Limit 40 characters</span><%endif%></div>
+<div>Description:</div>
+<div><$edit-text tiddler="$:/temp/plugins/file-backups/milestone/description" tag="input" class="fb-fill-width" placeholder="one-line description" default=""/></div>
+</div>
+
+<$button actions=<<save-milestone>> class="tc-btn-primary">{{$:/core/images/done-button}} Save milestone</$button>

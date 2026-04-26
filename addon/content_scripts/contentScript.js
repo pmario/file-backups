@@ -190,10 +190,13 @@ function injectMessageBox(doc) {
 			saveas = message.parentNode.getAttribute("data-tiddlyfox-saveas"), // <-- see parentNode
 			path = message.getAttribute("data-tiddlyfox-path"),
 			content = message.getAttribute("data-tiddlyfox-content"),
-			backupdir = message.getAttribute("data-tiddlyfox-backupdir");
+			backupdir = message.getAttribute("data-tiddlyfox-backupdir"),
+			milestone = message.parentNode.getAttribute("data-file-backups-milestone") === "yes",
+			milestoneLabel = message.parentNode.getAttribute("data-file-backups-milestone-label"),
+			milestoneTs = message.parentNode.getAttribute("data-file-backups-milestone-ts");
 
 		// Save the file
-		saveFile(path, content, subdir, backupdir, saveas, cb);
+		saveFile(path, content, subdir, backupdir, saveas, milestone, milestoneLabel, milestoneTs, cb);
 
 		// using it that way, allows us to establishe a 2 way communication between
 		// bg and tiddlyFox saver, within TW, in a backwards compatible way.
@@ -256,7 +259,7 @@ function injectMessageBox(doc) {
 	}
 }
 
-function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
+function saveFile(filePath, content, subdir, backupdir, saveas, milestone, milestoneLabel, milestoneTs, cb) {
 	let msg = {},
 		stat;
 
@@ -268,6 +271,9 @@ function saveFile(filePath, content, subdir, backupdir, saveas, cb) {
 		msg.saveas = saveas;
 		msg.backupdir = backupdir;
 		msg.txt = content;
+		msg.milestone = milestone;
+		msg.milestoneLabel = milestoneLabel;
+		msg.milestoneTs = milestoneTs;
 
 		stat = browser.runtime.sendMessage(msg)
 

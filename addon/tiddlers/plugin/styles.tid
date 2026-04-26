@@ -1,0 +1,35 @@
+title: $:/temp/plugins/file-backups/styles
+tags: $:/tags/Stylesheet
+code-body: yes
+
+\rules only filteredtranscludeinline transcludeinline macrocallinline filteredtranscludeblock transcludeblock macrocallblock
+
+input.fb-fill-width,
+textarea.fb-fill-width {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+input.fb-label-width {
+	width: 25em;
+}
+
+@keyframes fb-milestone-flash {
+	0%, 100% { background-color: transparent; }
+	50%      { background-color: <<colour alert-background>>; }
+}
+
+li.fb-flash {
+	animation: fb-milestone-flash 0.5s ease-in-out 3;
+}
+
+.fb-warning {
+	color: #b91c1c;
+	margin-left: 0.6em;
+	font-size: 0.85em;
+}
+
+ul.fb-fade-bottom {
+	-webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+	        mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}

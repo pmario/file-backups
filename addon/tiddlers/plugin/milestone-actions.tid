@@ -1,0 +1,24 @@
+title: $:/temp/plugins/file-backups/milestone/actions
+
+\whitespace trim
+\procedure save-milestone()
+<$let
+  ts={{{ [<now "YYYY-0MM-0DD-0hh-0mm-0ss">] }}}
+  label={{{ [{$:/temp/plugins/file-backups/milestone/label}split[]limit[40]join[]] }}}
+  desc={{$:/temp/plugins/file-backups/milestone/description}}
+  history-value={{{ [<label>addsuffix[ - ]addsuffix<desc>trim[]] }}}
+>
+<!-- On first save (tiddler doesn't yet have an origin field) set the type so subsequent $index writes serialise as dictionary lines, plus origin to mark the tiddler's source. Guarded by !has[origin] so user edits to either field aren't reverted on later saves. -->
+<$list filter="[[$:/milestones]!has[origin]]" variable="ignore">
+<$action-setfield $tiddler="$:/milestones" type="application/x-tiddler-dictionary" origin="file-backups AddOn"/>
+</$list>
+<$action-setfield $tiddler="$:/milestones" $index=<<ts>> $value=<<history-value>>/>
+<!-- Mark this ts as the just-saved entry so the recent-list can flash it. -->
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/milestone/just-saved" text=<<ts>>/>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/next-milestone-label" text=<<label>>/>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/next-milestone-ts" text=<<ts>>/>
+<$action-sendmessage $message="tm-save-wiki"/>
+<$action-deletetiddler $tiddler="$:/temp/plugins/file-backups/milestone/label"/>
+<$action-deletetiddler $tiddler="$:/temp/plugins/file-backups/milestone/description"/>
+</$let>
+\end

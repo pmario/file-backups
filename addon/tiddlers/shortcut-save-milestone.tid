@@ -3,4 +3,4 @@ tags: $:/tags/KeyboardShortcut
 key: ((save-milestone))
 
 \whitespace trim
-<!-- TODO -->
+<$action-sendmessage $message="tm-modal" $param="$:/temp/plugins/file-backups/milestone/modal"/>

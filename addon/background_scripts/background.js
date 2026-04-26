@@ -278,6 +278,48 @@ async function createBackup(message) {
 	} // if items
 };
 
+// User-triggered milestone snapshot. Writes an extra file alongside the
+// Tower-of-Hanoi rotation in the same backup directory, named
+// <wiki>(<ts>[-<label>])<ext>. conflictAction "uniquify" so multiple
+// milestones at the same second don't overwrite each other.
+function sanitizeMilestoneLabel(raw) {
+	return String(raw || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 40);
+}
+
+async function createMilestoneFile(message) {
+	let items = await browser.storage.local.get();
+	if (!items) return;
+	let backupdir = items.backupdir || BACKUP_DIR;
+	let pathX = path.parse(message.path);
+	let label = sanitizeMilestoneLabel(message.milestoneLabel);
+	let ts = String(message.milestoneTs || "");
+	let stem = pathX.name + "(" + ts + ")" + (label ? "-" + label : "");
+	let nameX = path.join(message.subdir, backupdir, pathX.base, stem + pathX.ext);
+
+	let element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
+	let itemId;
+	try {
+		itemId = await browser.downloads.download({
+			url: element,
+			filename: nameX,
+			conflictAction: "uniquify",
+			saveAs: false
+		});
+	} catch (err) {
+		URL.revokeObjectURL(element);
+		// Don't rethrow — main wiki save already succeeded; the milestone
+		// is the optional extra. Failure is logged for diagnostics only.
+		console.log("createMilestoneFile error:", err);
+		return;
+	}
+	blobs[itemId] = element;
+}
+
 async function downloadWiki(message) {
 	let itemId,
 		results,
@@ -314,6 +356,10 @@ async function downloadWiki(message) {
 	if (results) {
 		// Create a backup
 		await createBackup(message);
+		// User-triggered milestone snapshot, alongside the Hanoi rotation
+		if (message.milestone) {
+			await createMilestoneFile(message);
+		}
 	}
 
 	response.relPath = message.subdir;

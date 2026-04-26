@@ -5,7 +5,13 @@ caption: FileBackups
 \define lingo-base() $:/language/TiddlerInfo/
 \define config-base() $:/config/PageControlButtons/Visibility/
 
-This settings area was installed by FileBackups browser AddOn. 
+This settings area was installed by FileBackups browser AddOn.
+
+{{$:/ControlPanel/Settings/Milestones}}
+
+---
+
+!! Settings
 
 <$let tv-config-toolbar-icons=yes tv-config-toolbar-text=yes>
 
@@ -18,4 +24,3 @@ This settings area was installed by FileBackups browser AddOn.
 {{ $:/temp/plugins/file-backups/buttons/save-milestone || $:/core/ui/ControlPanel/Toolbars/ItemTemplate}}
 
 </$let>
-

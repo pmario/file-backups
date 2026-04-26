@@ -1,0 +1,10 @@
+title: $:/temp/plugins/file-backups/milestone/modal
+subtitle: file-backups: ''Save a Milestone Snapshot'' : <<now "YYYY-0MM-0DD 0hh:0mm:0ss">>
+
+{{$:/temp/plugins/file-backups/milestone/form}}
+
+---
+
+''[[Last 5 milestones|$:/milestones]]''
+
+{{$:/temp/plugins/file-backups/milestone/recent-list}}

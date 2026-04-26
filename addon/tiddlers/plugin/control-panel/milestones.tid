@@ -1,0 +1,13 @@
+title: $:/ControlPanel/Settings/Milestones
+
+!! Save a new milestone
+
+Current time: <<now "YYYY-0MM-0DD 0hh:0mm:0ss">>
+
+{{$:/temp/plugins/file-backups/milestone/form}}
+
+!! [[Milestones Data|$:/milestones]]
+
+Last 5 Milestones
+
+{{$:/temp/plugins/file-backups/milestone/recent-list}}

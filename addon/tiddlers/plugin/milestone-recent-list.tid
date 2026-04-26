@@ -1,0 +1,7 @@
+title: $:/temp/plugins/file-backups/milestone/recent-list
+
+<ul class={{{ [[$:/milestones]indexes[]count[]compare:number:gt[5]then[fb-fade-bottom]] }}}>
+<$list filter="[[$:/milestones]indexes[]!sort[]limit[5]]" emptyMessage="<li>//No milestones yet//</li>" variable="ts">
+<li class={{{ [<ts>match{$:/temp/plugins/file-backups/milestone/just-saved}then[fb-flash]] }}}><<ts>>: <$transclude tiddler="$:/milestones" index=<<ts>>/></li>
+</$list>
+</ul>
