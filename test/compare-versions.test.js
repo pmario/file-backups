@@ -14,94 +14,78 @@ function eq(actual, expected, label) {
 	}
 }
 
-// One sanity check per code path. The breakage tests below exercise corners.
+function eqJson(actual, expected, label) {
+	eq(JSON.stringify(actual), JSON.stringify(expected), label);
+}
+
+// === compareVersions ====================================================
+
+// Sanity checks (one of each path).
 eq(compareVersions("0.9.0", "0.9.0"), 0, "equal");
-eq(compareVersions("0.10.0", "0.9.0"), 1, "minor parsed numerically — '10' > '9' is the bug a string-sort would hit");
-eq(compareVersions("0.10.0", "0.10.0-beta.1"), 1, "release > prerelease at same x.y.z");
-eq(compareVersions("0.10.0-beta.10", "0.10.0-beta.9"), 1, "numeric prerelease id parsed numerically");
-eq(compareVersions("0.10.0-beta.1", "0.10.0-alpha.5"), 1, "alpha < beta lex on alphanumeric ids");
+eq(compareVersions("0.10.0", "0.9.0"), 1, "minor parsed numerically — '10' > '9' (string sort would fail)");
+eq(compareVersions("1.0.0", "0.99.99"), 1, "major dominates");
 
-// --- Build metadata MUST be ignored per semver.org §10 ---
-// Two versions that differ only in build metadata MUST compare equal.
-eq(compareVersions("1.0.0+sha.1234", "1.0.0+sha.5678"), 0, "build metadata stripped (release)");
-eq(compareVersions("1.0.0-beta+a", "1.0.0-beta+b"), 0, "build metadata stripped (prerelease) — would fail without explicit '+' handling because 'beta+a' vs 'beta+b' compares lex");
-eq(compareVersions("1.0.1+x", "1.0.0+y"), 1, "patch bump still wins despite metadata noise on both sides");
+// Stable (3 seg) vs beta (4 seg) at the same x.y.z.
+// Per the convention: missing 4th = 0, so 0.9.0 === 0.9.0.0 < 0.9.0.1.
+// The beta comes AFTER the matching stable (and the next stable patch
+// 0.9.1 is higher again).
+eq(compareVersions("0.9.0", "0.9.0.1"), -1, "stable < first beta of same x.y.z (4th=0 vs 4th=1)");
+eq(compareVersions("0.9.0.1", "0.9.0"), 1, "beta > matching stable (antisymmetric)");
+eq(compareVersions("0.9.0.5", "0.9.0.1"), 1, "later beta > earlier beta");
+eq(compareVersions("0.9.1", "0.9.0.99"), 1, "next stable patch beats all betas of prior patch");
 
-// --- Leading "v" — GitHub release tags use it; if it leaks into version.json,
-//     parseInt('v1') is NaN and NaN comparisons return random results.
-eq(compareVersions("v1.0.0", "v0.9.0"), 1, "leading 'v' on both sides — without strip this returns 1 by accident (NaN<NaN is false)");
-eq(compareVersions("v0.9.0", "v1.0.0"), -1, "antisymmetric of above — without strip BOTH directions return 1 (proves NaN issue)");
-eq(compareVersions("v1.0.0", "0.9.0"), 1, "mixed: tag vs clean");
+// Missing segments treated as 0.
+eq(compareVersions("0.9.0", "0.9.0.0"), 0, "missing 4th == 0");
+eq(compareVersions("1", "1.0.0"), 0, "1 == 1.0.0");
+eq(compareVersions("1.2", "1.2.0.0"), 0, "1.2 == 1.2.0.0");
 
-// --- Antisymmetry property: cmp(a,b) === -cmp(b,a) for all (a,b) ---
+// Defensive — malformed inputs shouldn't crash; sort as lowest.
+eq(compareVersions("", "0.9.0"), -1, "empty < anything");
+eq(compareVersions(null, "0.9.0"), -1, "null < anything");
+eq(compareVersions(undefined, undefined), 0, "undefined == undefined");
+eq(compareVersions(" 0.9.0 ", "0.9.0"), 0, "whitespace tolerated");
+eq(compareVersions("abc", "0.9.0"), -1, "non-numeric segments coerce to 0 → less");
+eq(compareVersions("1.x.0", "1.0.0"), 0, "non-numeric mid-segment coerced to 0");
+
+// Antisymmetry: cmp(a,b) === -cmp(b,a) for all (a,b).
 function antisym(a, b, label) {
 	var ab = compareVersions(a, b);
 	var ba = compareVersions(b, a);
 	if (ab + ba !== 0) {
-		console.log("FAIL antisymmetric: " + label + "  cmp(a,b)=" + ab + ", cmp(b,a)=" + ba);
+		console.log("FAIL antisymmetric: " + label + "  cmp(a,b)=" + ab + " cmp(b,a)=" + ba);
 		process.exitCode = 1;
 	} else {
 		console.log("OK   antisymmetric: " + label);
 	}
 }
-antisym("1.0.0-rc.1", "1.0.0", "prerelease vs release");
-antisym("0.10.0-beta.1.2", "0.10.0-beta.1", "extra prerelease id");
-antisym("v1.0.0", "0.9.0", "tag-prefix mixed forms (regression for the NaN trap)");
-antisym("1.0.0+a", "1.0.0+b", "build-metadata-only difference");
+antisym("0.9.0", "0.9.0.1", "stable vs beta");
+antisym("0.10.0", "0.9.99.99", "minor bump vs deep beta");
+antisym("", "0.9.0", "empty vs version");
 
-// --- Sorted chain: every neighbour must compare strictly less. Catches
-//     transitivity bugs and operator-confusion mistakes (returning bool not number).
-var chain = ["0.9.0", "0.10.0-alpha.1", "0.10.0-beta.1", "0.10.0-rc.1", "0.10.0", "0.10.1"];
-for (var i = 0; i < chain.length - 1; i++) {
-	eq(compareVersions(chain[i], chain[i + 1]), -1, "chain: " + chain[i] + " < " + chain[i + 1]);
-}
+// Sort integration — exercises numeric precedence across stable + beta + patch boundaries.
+var shuffled = ["0.10.0", "0.9.0", "0.10.0.5", "0.9.0.1", "0.9.1", "0.10.0.1"];
+var expected = ["0.9.0", "0.9.0.1", "0.9.1", "0.10.0", "0.10.0.1", "0.10.0.5"];
+eqJson(shuffled.slice().sort(compareVersions), expected, "Array.sort produces full ordering across stable + beta + patch");
 
-// --- Return type contract (some callers do `> 0` / `< 0`, breaks if returns boolean) ---
-eq(typeof compareVersions("1.0.0", "0.9.0"), "number", "returns a number type, not boolean");
+// Return-type contract — callers do `> 0` / `< 0`, breaks if returns boolean.
+eq(typeof compareVersions("1.0.0", "0.9.0"), "number", "returns number, not boolean");
 
-// --- Short forms that callers may actually feed in ---
-eq(compareVersions("1.2", "1.2.0"), 0, "missing patch treated as 0 — defends caller laziness");
+// === parseVersion ======================================================
 
-// ===========================================================================
-// Adversarial battery — try to break the library with realistic crap
-// ===========================================================================
+eq(parseVersion("0.9.0").isBeta, false, "3 segments → not beta");
+eq(parseVersion("0.9.0.1").isBeta, true, "4 segments → beta");
+eq(parseVersion("0.9.0.0").isBeta, true, "4 segments with 4th=0 still counts as beta (rare)");
+eq(parseVersion("1.0").isBeta, false, "2 segments → not beta");
+eq(parseVersion("1").isBeta, false, "1 segment → not beta");
+eq(parseVersion("0.9.0.0.0").isBeta, false, "5 segments → not beta (only 4 is the convention)");
+eq(parseVersion("").isBeta, false, "empty → not beta");
+eq(parseVersion(null).isBeta, false, "null → not beta");
+eq(parseVersion(undefined).isBeta, false, "undefined → not beta");
 
-// Empty / nullish — version.json field could be missing, blank, or set to null
-eq(compareVersions("", ""), 0, "empty == empty");
-eq(compareVersions("", "1.0.0"), -1, "empty must be the LOWEST version (NaN-trap would return 1)");
-eq(compareVersions("1.0.0", ""), 1, "antisymmetric of above");
-eq(compareVersions(null, "1.0.0"), -1, "null is NOT the literal string 'null' — must compare as lowest");
-eq(compareVersions("1.0.0", undefined), 1, "undefined treated as lowest");
-eq(compareVersions(null, undefined), 0, "null == undefined (both sentinel-low)");
-
-// Whitespace contamination — JSON could pick up stray spaces or newlines
-eq(compareVersions("  1.0.0", "1.0.0"), 0, "leading whitespace tolerated");
-eq(compareVersions("1.0.0\n", "1.0.0"), 0, "trailing newline tolerated");
-eq(compareVersions("\t v1.0.0 ", "1.0.0"), 0, "the real trap: leading whitespace defeats /^v/i strip → parseInt('\\tv1')=NaN → wrong answer");
-
-// Sort integration — broken comparator (booleans, NaN, intransitive) corrupts Array.sort.
-// If any of the above failures slip in, the sort produces garbage in some permutation.
-var shuffled = ["0.10.0", "0.9.0", "0.10.0-rc.1", "0.10.0-alpha.1", "0.10.1", "0.11.0-beta", "0.10.0-beta.1"];
-var expected = ["0.9.0", "0.10.0-alpha.1", "0.10.0-beta.1", "0.10.0-rc.1", "0.10.0", "0.10.1", "0.11.0-beta"];
-eq(JSON.stringify(shuffled.slice().sort(compareVersions)), JSON.stringify(expected),
-   "Array.sort with comparator produces a fully-ordered chain across release/prerelease boundaries");
-
-// Reflexivity over adversarial inputs — cmp(x,x) MUST be 0, even for malformed values
-["", "  ", "0", "0.0", "v1.0.0", "1.0.0+sha", "1.0.0-rc.1+x", "1.0.0-", "1.2.3.4.5"].forEach(function (x) {
-	eq(compareVersions(x, x), 0, "reflexive: " + JSON.stringify(x));
-});
-
-// Transitivity probe — pick a triple that crosses both numeric and prerelease paths
-eq(compareVersions("0.9.0", "0.10.0-rc.1"), -1, "transitivity lhs");
-eq(compareVersions("0.10.0-rc.1", "0.10.0"), -1, "transitivity mid");
-eq(compareVersions("0.9.0", "0.10.0"), -1, "transitivity skip-middle (catches if any path returns 0 by accident)");
-
-// parseInt quirks — these are inputs that SHOULDN'T change precedence
-eq(compareVersions("1e5.0.0", "1.0.0"), 0, "parseInt('1e5')=1, NOT 100000 — versions parse equal (documented quirk; if this regresses we silently mis-rank)");
-eq(compareVersions("01.02.03", "1.2.3"), 0, "leading zeros in main version stripped by parseInt");
-
-// Float precision boundary — parseInt loses precision past 2^53 (Number.MAX_SAFE_INTEGER)
-// UNFIXABLE without BigInt; this test documents the ceiling so future regressions are visible
-eq(compareVersions("9007199254740993.0.0", "9007199254740992.0.0"), 0, "PRECISION LIMIT: minor numbers past 2^53 collapse to equal — acceptable for realistic version numbers (max safe ~9 quadrillion)");
+eqJson(parseVersion("0.9.0.5").segments, [0, 9, 0, 5], "segments parsed as numbers");
+eqJson(parseVersion("0.9.0").segments, [0, 9, 0], "3 segments");
+eqJson(parseVersion("").segments, [], "empty has no segments");
+eqJson(parseVersion(null).segments, [], "null has no segments");
+eqJson(parseVersion(" 0.9.0 ").segments, [0, 9, 0], "whitespace trimmed");
 
 console.log("done");
