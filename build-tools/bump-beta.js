@@ -11,10 +11,21 @@
 // maintainer manually appends a 4th segment (e.g. 0.9.0 → 0.9.0.1); to cut
 // a stable release after a beta cycle, strip the 4th segment and bump the
 // 3rd by hand (e.g. 0.9.0.5 → 0.9.1).
+//
+// CI sign workflows MUST NOT bump — the maintainer commits the exact
+// version they want signed, and CI signs that version. Otherwise the
+// signed .xpi / GitHub Release tag drift one ahead of the repo state on
+// every CI run. We detect CI via the universal `CI=true` env var that
+// GitHub Actions (and most CI providers) set automatically.
 
 const fs = require("fs");
 const path = require("path");
 require("../addon/libs/compare-versions.js");
+
+if (process.env.CI === "true") {
+	console.log("bump-beta: CI environment detected, skipping (CI signs the version that's committed)");
+	process.exit(0);
+}
 
 const pkgPath = path.join(__dirname, "..", "package.json");
 const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
