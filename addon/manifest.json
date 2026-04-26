@@ -28,6 +28,7 @@
     "scripts": [
       "libs/path.js",
       "libs/validate.js",
+      "libs/compare-versions.js",
       "background_scripts/background.js"
     ],
     "service_worker": "background_scripts/background.js"
@@ -68,5 +69,8 @@
     "storage",
     "downloads",
     "scripting"
+  ],
+  "host_permissions": [
+    "https://pmario.github.io/*"
   ]
 }
