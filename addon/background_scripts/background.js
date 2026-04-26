@@ -31,7 +31,7 @@ const BACKUP_DIR = "twBackups";
 // is the parallel signal for AMO-installed users; both feed the same
 // storage.local.updateAvailable shape so the popup chip handles both uniformly.
 const VERSION_URL = "https://pmario.github.io/file-backups/version.json";
-const WHATSNEW_BASE_URL = "https://pmario.github.io/file-backups/whatsnew";
+const WHATSNEW_BASE_URL = "https://pmario.github.io/file-backups/news";
 const UPDATE_CHECK_THROTTLE_MS = 12 * 60 * 60 * 1000; // 12h between automatic checks
 
 // Build the What's New URL for an installed version: "0.10.0-beta.1" → "<base>/0-10.html".

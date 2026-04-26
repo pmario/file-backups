@@ -72,7 +72,7 @@ For every release, beta or stable:
    not auto-managed:
      - `released_at` — the date you actually push to the channel branch.
      - `url` — the per-minor What's New page,
-       `https://pmario.github.io/file-backups/whatsnew/<major>-<minor>.html`.
+       `https://pmario.github.io/file-backups/news/<major>-<minor>.html`.
        The popup chip's [View] button opens this; same URL goes into the
        GitHub Release.
 
@@ -83,7 +83,7 @@ For every release, beta or stable:
 
 5. **Author / update the What's New page.** When a new minor version is cut
    (e.g. 0.9.x → 0.10.x), create or update the page that `version.json.url`
-   points at: `docs/whatsnew/<major>-<minor>.html`. Patch releases within
+   points at: `docs/news/<major>-<minor>.html`. Patch releases within
    the same minor land on the existing page.
 
 6. **Test locally:**
@@ -152,7 +152,7 @@ release workflow can succeed end-to-end.
 - **`docs/news/latest.md` must exist before pushing to `release`** — the
   workflow reads it directly into the GitHub Release body and fails if
   missing.
-- **`docs/whatsnew/<major>-<minor>.html` must exist when bumping a minor.**
+- **`docs/news/<major>-<minor>.html` must exist when bumping a minor.**
   The popup chip's [View] button hits whatever URL `version.json.url`
   carries; a 404 there is the most user-visible breakage of forgetting
   this step.

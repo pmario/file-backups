@@ -24,7 +24,7 @@ var baseline = null;
 
 const manifest = browser.runtime.getManifest();
 
-const WHATSNEW_BASE = "https://pmario.github.io/file-backups/whatsnew";
+const WHATSNEW_BASE = "https://pmario.github.io/file-backups/news";
 
 // Build the per-minor What's New URL for the installed version. Same shape as
 // background.js's whatsNewUrlForVersion. Used by the [What's New] footer link
