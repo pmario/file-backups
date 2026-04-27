@@ -1,4 +1,5 @@
 node_modules
 /addon/.web-extension-id
+/addon/.amo-upload-uuid
 /addon/web-ext-artifacts/
 /web-ext-artifacts/

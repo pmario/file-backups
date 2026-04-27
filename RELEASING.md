@@ -125,6 +125,41 @@ For every release, beta or stable:
 - Deploys the contents of `docs/` to GitHub Pages. This is what publishes
   the updated `version.json` and any new What's New page.
 
+## Local signing (optional, for testing)
+
+The CI workflows are the canonical sign path — push a branch, GitHub
+Actions runs `web-ext sign`, the result is attached to a GitHub Release.
+But it's sometimes useful to sign locally for ad-hoc testing.
+
+[build-tools/sign.ps1](build-tools/sign.ps1) is the one-command local sign:
+
+1. Runs `npm run stage` (bump-beta + copy-version + index-tiddlers) so the
+   manifest version and tiddler index are fresh.
+2. Reads the AMO API credentials from Windows SecretStore (so they never
+   appear in argv or shell history).
+3. Runs `web-ext sign --source-dir addon --channel <channel>`.
+4. Reports the path of the produced `.xpi`.
+
+```powershell
+# One-time SecretStore setup (see the script's .NOTES section for full steps).
+
+# Per-build:
+.\build-tools\sign.ps1 -Channel unlisted   # beta — auto-signed, no review
+.\build-tools\sign.ps1 -Channel listed     # stable — goes to AMO review
+```
+
+**Important caveats:**
+
+- AMO **rejects duplicate versions** across all uploads. A successful
+  local sign consumes the version slot for that channel — CI then has
+  to use a different version, or it'll fail with `409 Conflict`.
+- The local sign mutates `addon/manifest.json`'s version via
+  `npm run stage` (bump-beta increments locally). Commit or revert that
+  change deliberately; don't surprise yourself with an uncommitted bump.
+- AMO listed channel signing on a local terminal returns once the
+  upload succeeds. The reviewed `.xpi` becomes available later via your
+  AMO developer dashboard.
+
 ## Required GitHub configuration
 
 One-time setup:
