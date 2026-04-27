@@ -1,4 +1,4 @@
-[Home](https://pmario.github.io/file-backups)
+[← Home](https://pmario.github.io/file-backups)
 
 TLDR; This info is important for you, IF your PC is always on, your browser is never restarted, your TW tabs are always open _and_ you use file-backups plugin V0.3.5 or earlier.
 

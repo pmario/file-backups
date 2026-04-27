@@ -2,6 +2,8 @@
 title: Installing a beta build of File Backups
 ---
 
+[← Home](https://pmario.github.io/file-backups)
+
 # Installing a beta `.xpi`
 
 Beta builds of File Backups are published on the
@@ -40,7 +42,3 @@ backup state carry over.
 To go back, reinstall from the
 [Firefox Add-ons listing](https://addons.mozilla.org/en-US/firefox/addon/file-backups/) —
 that overwrites the beta with the latest stable build.
-
----
-
-[← Home](https://pmario.github.io/file-backups)

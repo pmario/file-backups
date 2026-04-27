@@ -2,6 +2,8 @@
 title: File Backups uninstalled
 ---
 
+[← Home](https://pmario.github.io/file-backups)
+
 # File Backups was uninstalled
 
 Thanks for trying the extension!
@@ -27,5 +29,3 @@ the Save As button reappears and saving works again.
 ## Feedback or bugs
 
 [github.com/pmario/file-backups/issues](https://github.com/pmario/file-backups/issues)
-
-[← Home](https://pmario.github.io/file-backups)
