@@ -17,13 +17,13 @@
   Then:
     npm run stage           (bumps the LAST version segment — 3-seg stable
                              0.9.0 → 0.9.1, 4-seg beta 0.9.0.1 → 0.9.0.2;
-                             syncs manifest + version.json; regenerates
+                             syncs manifest + docs/version.json; regenerates
                              tiddlers/index.json)
     web-ext lint            (run directly via node_modules\.bin\web-ext.cmd,
                              NOT via `npm run lint` — the npm script would
                              trigger prelint=stage and bump a second time)
     git commit              (commits package.json, addon/manifest.json,
-                             version.json, addon/tiddlers/index.json with
+                             docs/version.json, addon/tiddlers/index.json with
                              default message "release: <version> (beta)" or
                              your override)
     git push <Remote> master              (publish the bump on master)
@@ -202,7 +202,7 @@ try {
 
         Write-Host ""
         Write-Host "Dry run — would execute (in order):" -ForegroundColor Green
-        Write-Host "  1. npm run stage    (bump $currentVersion → $bumpedVersion, sync manifest + version.json, regenerate index.json)"
+        Write-Host "  1. npm run stage    (bump $currentVersion → $bumpedVersion, sync manifest + docs/version.json, regenerate index.json)"
         Write-Host "  2. web-ext lint     (run directly, not via 'npm run lint' — that would re-trigger stage)"
         Write-Host "  3. git commit       message: ""release: $bumpedVersion (beta)""  (overridable at the prompt)"
         Write-Host "  4. git push $Remote master"
@@ -235,7 +235,7 @@ try {
         Write-Host ""
         Write-Host "Lint failed. Version files were bumped during stage." -ForegroundColor Red
         Write-Host "If you want to abort and revert the bump, run:" -ForegroundColor Yellow
-        Write-Host "  git checkout -- package.json addon/manifest.json version.json addon/tiddlers/index.json"
+        Write-Host "  git checkout -- package.json addon/manifest.json docs/version.json addon/tiddlers/index.json"
         throw "web-ext lint failed (exit $lintExit)"
     }
 
@@ -252,7 +252,7 @@ try {
 
     # ---- Commit version files ----
     Step "git add + commit"
-    & git add package.json addon/manifest.json version.json addon/tiddlers/index.json
+    & git add package.json addon/manifest.json docs/version.json addon/tiddlers/index.json
     & git commit -m $msg
     if ($LASTEXITCODE -ne 0) { throw "git commit failed (or nothing to commit?)" }
 

@@ -47,7 +47,7 @@ if (-not (Test-Path $webExt)) {
 }
 
 # Stage first: bump-beta advances the local counter (so this sign gets a
-# unique AMO version), copy-version syncs into manifest.json + version.json,
+# unique AMO version), copy-version syncs into manifest.json + docs/version.json,
 # index-tiddlers regenerates addon/tiddlers/index.json against the current
 # .tid files. web-ext sign reads the manifest as-is, so without staging
 # you'd ship a stale version + stale tiddler index.

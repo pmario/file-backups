@@ -6,22 +6,35 @@ name: Sign Unlisted
 #     published on the AMO listing page)
 #   - attach the signed .xpi to a GitHub pre-release tagged with the
 #     manifest version, release notes auto-generated from commits.
+#   - deploy docs/ + version.json to GitHub Pages so the popup chip's
+#     [View] button can land on the per-minor What's New page during
+#     a beta cycle, and the active update-check (file-backups-fs1) can
+#     fetch the published version.json.
 #
-# Bump the version in package.json (and sync to addon/manifest.json with
-# `npm run sync-version`) on master BEFORE fast-forwarding to `unlisted`.
-# AMO rejects duplicate versions, so a second push without a version bump
-# will fail loudly.
+# Run `npm run create-unlisted` locally instead of pushing manually —
+# the script handles the version bump (4th-segment counter), syncs
+# manifest.json + version.json, lints, commits, and pushes
+# master:unlisted in one go.
+#
+# AMO rejects duplicate versions, so each push needs a unique version.
+# The local create-unlisted script enforces that; manual pushes need
+# to bump first via `npm run stage`.
 
 on:
   push:
     branches: [unlisted]
 
 permissions:
-  contents: write  # create the GitHub Release + tag
+  contents: write   # create the GitHub Release + tag
+  pages: write      # deploy Pages
+  id-token: write   # OIDC token for deploy-pages
 
 jobs:
   sign:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,3 +71,18 @@ jobs:
           prerelease: true
           generate_release_notes: true
           files: addon/web-ext-artifacts/*.xpi
+
+      # docs/version.json is the source of truth (lives under docs/ so
+      # the Pages deploy publishes it as
+      # https://pmario.github.io/file-backups/version.json directly).
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

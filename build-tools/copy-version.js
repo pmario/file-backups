@@ -29,8 +29,11 @@ if (manifest.version === pkg.version) {
 	fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 }
 
-// 2. Sync to version.json (preserves released_at + url; updates version + beta only)
-const versionJsonPath = path.join(root, "version.json");
+// 2. Sync to docs/version.json (preserves released_at + url; updates version + beta only).
+// Lives under docs/ so the GitHub Pages deploy publishes it as
+// https://pmario.github.io/file-backups/version.json directly — no extra
+// copy step in the sign workflows.
+const versionJsonPath = path.join(root, "docs", "version.json");
 let existing = {};
 try {
 	existing = JSON.parse(fs.readFileSync(versionJsonPath, "utf8"));

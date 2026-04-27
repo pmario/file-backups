@@ -23,7 +23,7 @@ const REPO_ROOT = path.join(__dirname, "..");
 const ROOT = path.join(REPO_ROOT, "addon", "tiddlers");
 const PLUGIN_DIR = path.join(ROOT, "plugin");
 const TEST_DIR = path.join(PLUGIN_DIR, "test");
-const VERSION_JSON = path.join(REPO_ROOT, "version.json");
+const VERSION_JSON = path.join(REPO_ROOT, "docs", "version.json");
 const OUTPUT = path.join(ROOT, "index.json");
 
 let isBetaBuild = false;

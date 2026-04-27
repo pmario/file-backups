@@ -76,6 +76,9 @@ jobs:
           body_path: docs/news/latest.md
           prerelease: false
 
+      # docs/version.json is the source of truth (lives under docs/ so
+      # the Pages deploy publishes it as
+      # https://pmario.github.io/file-backups/version.json directly).
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
