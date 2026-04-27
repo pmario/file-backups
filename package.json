@@ -11,7 +11,9 @@
 		"prebuild": "npm run stage",
 		"build": "cd addon && web-ext build --overwrite-dest",
 		"prerun": "npm run stage",
-		"run": "cd addon && web-ext run"
+		"run": "cd addon && web-ext run",
+		"create-unlisted": "pwsh -File build-tools/create-unlisted.ps1",
+		"create-unlisted:dry": "pwsh -File build-tools/create-unlisted.ps1 -DryRun"
 	},
 	"license": "CC-BY-NC-SA",
 	"devDependencies": {
