@@ -78,10 +78,20 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload docs/ as Pages artifact
+      # Jekyll-build the .md sources (front-matter pages under docs/news/
+      # etc.) into HTML; pass version.json through verbatim. Without this
+      # step, upload-pages-artifact would ship the raw .md files and the
+      # popup chip's [View] would 404 on `news/<major>-<minor>.html`.
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Upload built site as Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: ./_site
 
       - name: Deploy to GitHub Pages
         id: deployment
