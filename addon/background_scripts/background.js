@@ -295,9 +295,7 @@ browser.storage.onChanged.addListener((changes, areaName) => {
 // (management.onUninstalled fires for OTHER extensions only) — setUninstallURL
 // is the one signal we get, and a static page is enough to point users at the
 // $:/temp/plugins/file-backups/* clean-up step.
-// browser.runtime.setUninstallURL("https://pmario.github.io/file-backups/uninstalled.html").
-// TODO use uninstalled page instead of /issues (which is for testing)
-browser.runtime.setUninstallURL("https://github.com/pmario/file-backups/issues").
+browser.runtime.setUninstallURL("https://pmario.github.io/file-backups/uninstalled.html").
 catch(function () {});
 
 // should be straight forward and simple.

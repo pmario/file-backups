@@ -86,6 +86,6 @@ With the very first save, the plugin detects a new wiki, an "out of order" backu
 
 ## License
 
-Copyright Mario Pietsch 2017-2020
+Copyright (c) 2017-2026 Mario Pietsch
 
-CC-BY-NC-SA ... [https://creativecommons.org/licenses/by-nc-sa/4.0](https://creativecommons.org/licenses/by-nc-sa/4.0)
+Licensed under the BSD 3-Clause License. See [LICENSE](LICENSE).

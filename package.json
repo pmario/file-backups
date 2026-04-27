@@ -15,7 +15,7 @@
 		"create-unlisted": "pwsh -File build-tools/create-unlisted.ps1",
 		"create-unlisted:dry": "pwsh -File build-tools/create-unlisted.ps1 -DryRun"
 	},
-	"license": "CC-BY-NC-SA",
+	"license": "BSD-3-Clause",
 	"devDependencies": {
 		"web-ext": "^10.1.0"
 	}
