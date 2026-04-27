@@ -6,19 +6,18 @@ name: Sign Unlisted
 #     published on the AMO listing page)
 #   - attach the signed .xpi to a GitHub pre-release tagged with the
 #     manifest version, release notes auto-generated from commits.
-#   - deploy docs/ + version.json to GitHub Pages so the popup chip's
-#     [View] button can land on the per-minor What's New page during
-#     a beta cycle, and the active update-check (file-backups-fs1) can
-#     fetch the published version.json.
+#
+# Pages publication of docs/ (the per-minor What's New pages and
+# version.json the active update-check fetches) is handled separately
+# by GitHub's "Deploy from a branch" mode: Settings → Pages → Source
+# = Deploy from a branch / master / docs. Each master push auto-rebuilds
+# Pages — no workflow steps needed here.
 #
 # Run `npm run create-unlisted` locally instead of pushing manually —
 # the script handles the version bump (4th-segment counter), syncs
-# manifest.json + version.json, lints, commits, and pushes
-# master:unlisted in one go.
-#
-# AMO rejects duplicate versions, so each push needs a unique version.
-# The local create-unlisted script enforces that; manual pushes need
-# to bump first via `npm run stage`.
+# manifest.json + docs/version.json, lints, commits, and pushes
+# master then master:unlisted in one go (so the master push triggers
+# the Pages rebuild and the unlisted push triggers this workflow).
 
 on:
   push:
@@ -26,15 +25,10 @@ on:
 
 permissions:
   contents: write   # create the GitHub Release + tag
-  pages: write      # deploy Pages
-  id-token: write   # OIDC token for deploy-pages
 
 jobs:
   sign:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,28 +65,3 @@ jobs:
           prerelease: true
           generate_release_notes: true
           files: addon/web-ext-artifacts/*.xpi
-
-      # docs/version.json is the source of truth (lives under docs/ so
-      # the Pages deploy publishes it as
-      # https://pmario.github.io/file-backups/version.json directly).
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      # Jekyll-build the .md sources (front-matter pages under docs/news/
-      # etc.) into HTML; pass version.json through verbatim. Without this
-      # step, upload-pages-artifact would ship the raw .md files and the
-      # popup chip's [View] would 404 on `news/<major>-<minor>.html`.
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./docs
-          destination: ./_site
-
-      - name: Upload built site as Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

@@ -3,3 +3,4 @@ node_modules
 /addon/.amo-upload-uuid
 /addon/web-ext-artifacts/
 /web-ext-artifacts/
+/commit-msg.md

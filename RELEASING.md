@@ -2,10 +2,14 @@
 
 Two channels, two branches, two workflows.
 
-| Channel | Branch     | Output                                       |
-| ------- | ---------- | -------------------------------------------- |
-| Beta    | `unlisted` | AMO unlisted `.xpi` + GH Pre-release + Pages |
-| Stable  | `release`  | AMO listed (review) + GH Release + Pages     |
+| Channel | Branch     | Output                          |
+| ------- | ---------- | ------------------------------- |
+| Beta    | `unlisted` | AMO unlisted `.xpi` + GH Pre-release |
+| Stable  | `release`  | AMO listed (review) + GH Release     |
+
+Pages publication is independent: GitHub Pages is configured as
+"Deploy from a branch" → master / docs, so each master push
+auto-rebuilds the site. No workflow steps involved.
 
 ## Version format
 
@@ -66,7 +70,7 @@ version slot on AMO — bump locally before retry.
 - **Settings → Secrets → Actions:** add `AMO_JWT_ISSUER` and
   `AMO_JWT_SECRET` from
   [AMO API Keys](https://addons.mozilla.org/en-US/developers/addon/api/key/).
-- **Settings → Pages → Source:** GitHub Actions.
+- **Settings → Pages → Source:** Deploy from a branch → `master` / `/docs`.
 
 Tracked as bd-8f6 until done.
 

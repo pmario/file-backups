@@ -8,12 +8,14 @@ name: Sign Release
 #     notes taken from docs/news/latest.md (which you author locally
 #     before promoting to release). No .xpi attached - users install
 #     from AMO.
-#   - deploy docs/ to GitHub Pages
+#
+# Pages publication of docs/ is handled separately by GitHub's "Deploy
+# from a branch" mode: Settings → Pages → Source = Deploy from a branch
+# / master / docs. Each master push auto-rebuilds Pages — no workflow
+# steps needed here.
 #
 # Requires:
 #   - AMO_JWT_ISSUER and AMO_JWT_SECRET configured as repository secrets
-#   - Repository settings > Pages > Build and deployment source set to
-#     "GitHub Actions" (one-time setup)
 #   - docs/news/latest.md updated with release notes BEFORE pushing
 #
 # Bump the version in package.json (and sync to addon/manifest.json) on
@@ -32,15 +34,10 @@ on:
 
 permissions:
   contents: write  # create the GitHub Release + tag
-  pages: write     # deploy Pages
-  id-token: write  # OIDC token for deploy-pages
 
 jobs:
   sign:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -75,28 +72,3 @@ jobs:
           name: v${{ steps.version.outputs.version }}
           body_path: docs/news/latest.md
           prerelease: false
-
-      # docs/version.json is the source of truth (lives under docs/ so
-      # the Pages deploy publishes it as
-      # https://pmario.github.io/file-backups/version.json directly).
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      # Jekyll-build the .md sources (front-matter pages under docs/news/
-      # etc.) into HTML; pass version.json through verbatim. Without this
-      # step, upload-pages-artifact would ship the raw .md files and the
-      # popup chip's [View] would 404 on `news/<major>-<minor>.html`.
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./docs
-          destination: ./_site
-
-      - name: Upload built site as Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
