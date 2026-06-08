@@ -17,6 +17,7 @@ title: $:/temp/plugins/file-backups/milestone/actions
 <$action-setfield $tiddler="$:/temp/plugins/file-backups/milestone/just-saved" text=<<ts>>/>
 <$action-setfield $tiddler="$:/temp/plugins/file-backups/next-milestone-label" text=<<label>>/>
 <$action-setfield $tiddler="$:/temp/plugins/file-backups/next-milestone-ts" text=<<ts>>/>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/next-milestone-description" text=<<desc>>/>
 <$action-sendmessage $message="tm-save-wiki"/>
 <$action-deletetiddler $tiddler="$:/temp/plugins/file-backups/milestone/label"/>
 <$action-deletetiddler $tiddler="$:/temp/plugins/file-backups/milestone/description"/>

@@ -384,35 +384,23 @@ function handleMessages(message, sender, sendResponse) {
 		})();
 	}
 
-	// Dev test affordance (beta builds only). The CP test buttons inject a
-	// pending reminder of the given kind so its real surfaces (in-page banner,
-	// popup chip, badge) can be exercised without waiting for a save to breach a
-	// threshold. The value shown is the current global default for that kind, or
-	// a sample if that default is off. kind "clear" removes all pending reminders.
-	if (message.msg === "testInjectReminder") {
+	// Snooze a reminder for this wiki (phase 3). Writes the per-wiki
+	// snoozedUntil[kind] = now + interval/2, where the interval is the global
+	// milestone reminder period if set, else 7 days. The next save's evaluation
+	// skips that kind while now < snoozedUntil[kind]. path identifies the wiki
+	// (the content script captured it during its last save).
+	if (message.msg === "snoozeReminder") {
 		return (async () => {
-			const cur = await browser.storage.local.get({
-				awarenessReminders: null,
-				defaultRemindMilestoneAfterDays: 0,
-				defaultFileCountLimit: 0,
-				defaultSizeLimitMB: 0
-			});
-			const reminders = cur.awarenessReminders || {milestone: null, count: null, size: null};
-			if (message.kind === "clear") {
-				await browser.storage.local.set({awarenessReminders: {milestone: null, count: null, size: null}});
-				return null;
-			}
-			const SAMPLE = {milestone: 14, count: 30, size: 100};
-			const GLOBAL = {
-				milestone: cur.defaultRemindMilestoneAfterDays,
-				count: cur.defaultFileCountLimit,
-				size: cur.defaultSizeLimitMB
-			};
-			if (SAMPLE.hasOwnProperty(message.kind)) {
-				const g = GLOBAL[message.kind];
-				reminders[message.kind] = (typeof g === "number" && g > 0) ? g : SAMPLE[message.kind];
-				await browser.storage.local.set({awarenessReminders: reminders});
-			}
+			const wikiPath = message.path;
+			const kind = message.kind;
+			if (!wikiPath || !(kind === "milestone" || kind === "count" || kind === "size")) return null;
+			const got = await browser.storage.local.get([wikiPath, "defaultRemindMilestoneAfterDays"]);
+			const stash = unwrapStash(got[wikiPath]);
+			const days = (typeof got.defaultRemindMilestoneAfterDays === "number" && got.defaultRemindMilestoneAfterDays > 0) ? got.defaultRemindMilestoneAfterDays : 7;
+			const until = Date.now() + Math.floor(days * 86400000 / 2);
+			const snoozedUntil = Object.assign({milestone: null, count: null, size: null}, stash.snoozedUntil || {});
+			snoozedUntil[kind] = until;
+			await browser.storage.local.set({[wikiPath]: Object.assign({}, stash, {snoozedUntil})});
 			return null;
 		})();
 	}
@@ -613,18 +601,19 @@ async function createMilestoneFile(message) {
 		ts: Date.now(),
 		size: blob.size,
 		downloadId: itemId,
-		filename: nameX
+		filename: nameX,
+		label: message.milestoneLabel || "",
+		description: message.milestoneDescription || ""
 	});
-	await browser.storage.local.set({[message.path]: withMilestone});
-
-	// A fresh milestone resolves the "no milestone in N days" reminder, however
-	// it was triggered (toolbar, CP, or the reminder banner's Save milestone).
-	let rem = await browser.storage.local.get({awarenessReminders: null});
-	if (rem.awarenessReminders && rem.awarenessReminders.milestone != null) {
-		let r = rem.awarenessReminders;
-		r.milestone = null;
-		await browser.storage.local.set({awarenessReminders: r});
+	// Saving a milestone resolves the stale reminder (lastMilestoneAt just moved,
+	// so the next eval won't re-fire it) and lifts any snooze on it, so a future
+	// stale condition can surface again.
+	if (withMilestone.snoozedUntil && withMilestone.snoozedUntil.milestone != null) {
+		withMilestone = Object.assign({}, withMilestone, {
+			snoozedUntil: Object.assign({}, withMilestone.snoozedUntil, {milestone: null})
+		});
 	}
+	await browser.storage.local.set({[message.path]: withMilestone});
 }
 
 async function downloadWiki(message) {
@@ -667,6 +656,23 @@ async function downloadWiki(message) {
 		if (message.milestone) {
 			await createMilestoneFile(message);
 		}
+
+		// Backup-awareness reminders for this wiki (phase 3). Evaluated against
+		// the freshly-updated per-wiki stash, using the per-wiki overrides the
+		// bridge attached to the save (message.overrides) merged with the global
+		// defaults. Returned in the response; the content script renders the banner.
+		let after = await browser.storage.local.get([
+			message.path,
+			"defaultRemindMilestoneAfterDays",
+			"defaultFileCountLimit",
+			"defaultSizeLimitMB"
+		]);
+		let globals = {
+			defaultRemindMilestoneAfterDays: after.defaultRemindMilestoneAfterDays || 0,
+			defaultFileCountLimit: after.defaultFileCountLimit || 0,
+			defaultSizeLimitMB: after.defaultSizeLimitMB || 0
+		};
+		response.reminders = evaluateReminders(unwrapStash(after[message.path]), message.overrides || {}, globals, Date.now());
 	}
 
 	response.relPath = message.subdir;

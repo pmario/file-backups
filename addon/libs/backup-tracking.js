@@ -46,10 +46,23 @@
 		return Object.assign({}, stash, {rotation: rotation});
 	}
 
+	// Milestone records carry label + description on top of the common fields so
+	// a summary can be reconstructed without the wiki's $:/milestones tiddler.
+	function pickMilestone(e) {
+		return {
+			ts: e && e.ts,
+			size: e && e.size,
+			downloadId: e && e.downloadId,
+			filename: e && e.filename,
+			label: e && e.label,
+			description: e && e.description
+		};
+	}
+
 	function recordMilestone(stash, meta) {
 		var priorList = (stash && Array.isArray(stash.milestones)) ? stash.milestones : [];
-		var milestones = priorList.map(pickEntry);
-		milestones.push(pickEntry(meta));
+		var milestones = priorList.map(pickMilestone);
+		milestones.push(pickMilestone(meta));
 		var prevLast = (stash && typeof stash.lastMilestoneAt === "number") ? stash.lastMilestoneAt : 0;
 		var nextLast = (typeof meta.ts === "number" && meta.ts > prevLast) ? meta.ts : prevLast;
 		return Object.assign({}, stash, {
@@ -85,7 +98,59 @@
 		return (typeof g === "number" && isFinite(g) && g >= 0) ? g : 0;
 	}
 
+	// Reminder evaluation (phase 3). Pure over the per-wiki stash: counts and
+	// sizes come from the phase-1 rotation + milestones records. Returns
+	// {milestone, count, size} where each entry is the effective LIMIT the
+	// reminder message quotes when that reminder fires and is not snoozed, else
+	// null. A kind is null whenever its effective limit is 0 (opt-in off), so
+	// all-limits-0 yields all-null (silent).
+	function reminderFileCount(stash) {
+		var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? Object.keys(stash.rotation).length : 0;
+		var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.length : 0;
+		return rot + ms;
+	}
+
+	function reminderTotalSize(stash) {
+		var total = 0;
+		if (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) {
+			for (var k in stash.rotation) {
+				if (Object.prototype.hasOwnProperty.call(stash.rotation, k)) {
+					var r = stash.rotation[k];
+					if (r && typeof r.size === "number" && isFinite(r.size)) total += r.size;
+				}
+			}
+		}
+		if (stash && Array.isArray(stash.milestones)) {
+			stash.milestones.forEach(function (m) {
+				if (m && typeof m.size === "number" && isFinite(m.size)) total += m.size;
+			});
+		}
+		return total;
+	}
+
+	function evaluateReminders(stash, overrides, globals, now) {
+		var snz = (stash && stash.snoozedUntil) || {};
+		var out = {milestone: null, count: null, size: null};
+
+		var remind = getEffectiveLimit(overrides, globals, "remindAfterDays");
+		if (remind > 0 && (now - ((stash && stash.lastMilestoneAt) || 0)) > remind * 86400000 && now > (snz.milestone || 0)) {
+			out.milestone = remind;
+		}
+		var countLimit = getEffectiveLimit(overrides, globals, "fileCountLimit");
+		if (countLimit > 0 && reminderFileCount(stash) > countLimit && now > (snz.count || 0)) {
+			out.count = countLimit;
+		}
+		var sizeLimit = getEffectiveLimit(overrides, globals, "sizeLimitMB");
+		if (sizeLimit > 0 && reminderTotalSize(stash) > sizeLimit * 1024 * 1024 && now > (snz.size || 0)) {
+			out.size = sizeLimit;
+		}
+		return out;
+	}
+
 	root.recordRotationSlot = recordRotationSlot;
 	root.recordMilestone = recordMilestone;
 	root.getEffectiveLimit = getEffectiveLimit;
+	root.reminderFileCount = reminderFileCount;
+	root.reminderTotalSize = reminderTotalSize;
+	root.evaluateReminders = evaluateReminders;
 })(typeof globalThis !== "undefined" ? globalThis : this);

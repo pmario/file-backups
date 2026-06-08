@@ -52,7 +52,7 @@ li.fb-flash {
 	font-size: 0.85em;
 }
 
-ul.fb-fade-bottom {
+.fb-fade-bottom {
 	-webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 	        mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 }

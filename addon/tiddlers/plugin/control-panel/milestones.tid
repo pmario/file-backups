@@ -6,8 +6,20 @@ Current time: <<now "YYYY-0MM-0DD 0hh:0mm:0ss">>
 
 {{$:/temp/plugins/file-backups/milestone/form}}
 
-!! [[Milestones Data|$:/milestones]]
+---
 
-Last 5 Milestones
+!! Rotating backups
 
-{{$:/temp/plugins/file-backups/milestone/recent-list}}
+<div class="fb-fade-bottom">
+<$transclude $tiddler="$:/temp/plugins/file-backups/summary/rotation/preview" $mode="block"/>
+</div>
+
+<$link to="$:/temp/plugins/file-backups/summary/rotation">Show all rotating backups »</$link>
+
+!! Milestones
+
+<div class="fb-fade-bottom">
+<$transclude $tiddler="$:/temp/plugins/file-backups/summary/milestones/preview" $mode="block"/>
+</div>
+
+<$link to="$:/temp/plugins/file-backups/summary/milestones">Show all milestones »</$link>

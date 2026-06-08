@@ -107,6 +107,12 @@ let outF = recordMilestone({},
 ok(!("evil" in outF.milestones[0]),
 	"milestone: extra meta keys are stripped");
 
+// Milestone records carry label + description (for the summary).
+let mLD = recordMilestone({},
+	{ts: 5, size: 5, downloadId: 5, filename: "f", label: "v1.0", description: "first release"});
+ok(mLD.milestones[0].label === "v1.0" && mLD.milestones[0].description === "first release",
+	"milestone: label + description stored on the record");
+
 // ---- getEffectiveLimit (phase 2) ----
 
 const G = {
@@ -155,5 +161,62 @@ ok(getEffectiveLimit({}, null, "sizeLimitMB") === 0,
 // Unknown kind never throws; returns 0 (off).
 ok(getEffectiveLimit({bogus: 5}, G, "bogus") === 0,
 	"effective: unknown kind returns 0");
+
+// ---- evaluateReminders + helpers (phase 3) ----
+
+const DAY = 86400000;
+const NOW = 1700000000000;
+
+// All limits 0 (opt-in off) -> all null regardless of state.
+eq(evaluateReminders(
+	{rotation: {A: {size: 9e9}, B: {size: 9e9}}, milestones: [{size: 9e9}], lastMilestoneAt: 0},
+	{}, {defaultRemindMilestoneAfterDays: 0, defaultFileCountLimit: 0, defaultSizeLimitMB: 0}, NOW
+), {milestone: null, count: null, size: null}, "evaluate: all limits 0 -> silent");
+
+// milestone-stale: fires past the window, quiet within it.
+ok(evaluateReminders({lastMilestoneAt: NOW - 20 * DAY}, {}, {defaultRemindMilestoneAfterDays: 14}, NOW).milestone === 14,
+	"evaluate: milestone stale fires past the window");
+ok(evaluateReminders({lastMilestoneAt: NOW - 5 * DAY}, {}, {defaultRemindMilestoneAfterDays: 14}, NOW).milestone === null,
+	"evaluate: milestone not stale within the window");
+
+// file-count: fires over limit, quiet at/under.
+ok(evaluateReminders({rotation: {A: {}, B: {}, C: {}}}, {}, {defaultFileCountLimit: 2}, NOW).count === 2,
+	"evaluate: file-count fires when over limit");
+ok(evaluateReminders({rotation: {A: {}, B: {}, C: {}}}, {}, {defaultFileCountLimit: 5}, NOW).count === null,
+	"evaluate: file-count quiet at/under limit");
+
+// total-size: fires when summed bytes exceed limit*MB.
+ok(evaluateReminders({rotation: {A: {size: 2 * 1024 * 1024}}}, {}, {defaultSizeLimitMB: 1}, NOW).size === 1,
+	"evaluate: size fires when over limit");
+ok(evaluateReminders({rotation: {A: {size: 512 * 1024}}}, {}, {defaultSizeLimitMB: 1}, NOW).size === null,
+	"evaluate: size quiet under limit");
+
+// per-wiki override wins: a higher override suppresses a global that would fire;
+// override 0 turns the reminder off for this wiki even when the global is on.
+ok(evaluateReminders({rotation: {A: {}, B: {}, C: {}}}, {fileCountLimit: 10}, {defaultFileCountLimit: 2}, NOW).count === null,
+	"evaluate: per-wiki override (10) suppresses global (2)");
+ok(evaluateReminders({rotation: {A: {}, B: {}, C: {}}}, {fileCountLimit: 0}, {defaultFileCountLimit: 2}, NOW).count === null,
+	"evaluate: per-wiki override 0 turns the reminder off");
+
+// snooze: future snooze suppresses, expired snooze lets it fire.
+ok(evaluateReminders({lastMilestoneAt: 0, snoozedUntil: {milestone: NOW + DAY}}, {}, {defaultRemindMilestoneAfterDays: 14}, NOW).milestone === null,
+	"evaluate: future snooze suppresses the reminder");
+ok(evaluateReminders({lastMilestoneAt: 0, snoozedUntil: {milestone: NOW - DAY}}, {}, {defaultRemindMilestoneAfterDays: 14}, NOW).milestone === 14,
+	"evaluate: expired snooze lets the reminder fire");
+
+// Adversarial: hostile stash shapes never throw; counts/sizes degrade to 0.
+let evG;
+try { evG = evaluateReminders(null, {}, {defaultFileCountLimit: 1, defaultSizeLimitMB: 1}, NOW); } catch (e) { evG = "threw:" + e.message; }
+ok(typeof evG === "object" && evG.count === null && evG.size === null,
+	"evaluate: null stash does not throw and yields no reminders");
+
+ok(reminderFileCount({rotation: {A: {}, B: {}, C: {}}, milestones: [{}, {}]}) === 5,
+	"reminderFileCount: rotation slots + milestones");
+ok(reminderFileCount({rotation: "garbage", milestones: "nope"}) === 0,
+	"reminderFileCount: hostile shapes -> 0");
+ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50}}, milestones: [{size: 25}]}) === 175,
+	"reminderTotalSize: sums rotation + milestone sizes");
+ok(reminderTotalSize({rotation: {A: {size: "big"}, B: {}}, milestones: [{size: NaN}]}) === 0,
+	"reminderTotalSize: non-numeric sizes ignored");
 
 console.log("done");

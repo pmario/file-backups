@@ -110,6 +110,7 @@
 			attachReminderTestListener();
 			attachReminderActionListener();
 			attachGlobalPrefsListener();
+			attachSummaryListener();
 			var index = await fetch(BASE_URL + INDEX_FILE).then(function (r) { return r.json(); });
 			await Promise.all([
 				installTiddlersFromAssets(index.real || []),
@@ -199,6 +200,31 @@
 			}
 			$tw.wiki.deleteTiddler(TITLE);
 		});
+	}
+
+	// Backup summary tiddler. The content script (which can read storage.local)
+	// builds an APPROXIMATE overview of this wiki's tracked rotation + milestone
+	// files and sends it as a wikitext STRING; we write it to a temp tiddler the
+	// CP links. detail is a primitive string, so no cross-compartment access. We
+	// request it once on install; the content script also re-sends after a save.
+	function attachSummaryListener() {
+		var box = document.getElementById("tiddlyfox-message-box");
+		box.addEventListener("file-backups-summary", function (e) {
+			// detail is a JSON STRING (primitive crosses the compartment boundary);
+			// JSON.parse here yields an object owned by this page context.
+			var data = {};
+			try { data = JSON.parse((e && e.detail) || "{}") || {}; } catch (parseErr) { data = {}; }
+			var write = function (title, text) {
+				$tw.wiki.addTiddler(new $tw.Tiddler({title: title, text: text || ""}));
+			};
+			// Full = all entries (linked from the CP); preview = latest 5 (shown,
+			// faded, in the CP).
+			write("$:/temp/plugins/file-backups/summary/rotation", data.rotationFull);
+			write("$:/temp/plugins/file-backups/summary/rotation/preview", data.rotationPreview);
+			write("$:/temp/plugins/file-backups/summary/milestones", data.milestonesFull);
+			write("$:/temp/plugins/file-backups/summary/milestones/preview", data.milestonesPreview);
+		});
+		box.dispatchEvent(new CustomEvent("file-backups-request-summary"));
 	}
 
 	// The per-wiki awareness overrides (CP > FileBackups) show the global
@@ -345,14 +371,24 @@
 			// place by the time TW's tiddlyfox saver fires this event.
 			var labelT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-milestone-label");
 			var tsT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-milestone-ts");
+			var descT = $tw.wiki.getTiddler("$:/temp/plugins/file-backups/next-milestone-description");
 			var milestoneArmed = !!(tsT && tsT.fields.text);
 			box.setAttribute("data-file-backups-milestone", milestoneArmed ? "yes" : "no");
 			if (milestoneArmed) {
 				box.setAttribute("data-file-backups-milestone-label", (labelT && labelT.fields.text) || "");
 				box.setAttribute("data-file-backups-milestone-ts", tsT.fields.text);
+				box.setAttribute("data-file-backups-milestone-description", (descT && descT.fields.text) || "");
 				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-milestone-label");
 				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-milestone-ts");
+				$tw.wiki.deleteTiddler("$:/temp/plugins/file-backups/next-milestone-description");
 			}
+
+			// Backup-awareness per-wiki overrides (phase 3): attach the current
+			// $:/config/file-backups/* limits so the background can resolve the
+			// effective limit for this wiki on save. Empty string = inherit global.
+			box.setAttribute("data-fb-remind", $tw.wiki.getTiddlerText("$:/config/file-backups/remindAfterDays", ""));
+			box.setAttribute("data-fb-count", $tw.wiki.getTiddlerText("$:/config/file-backups/fileCountLimit", ""));
+			box.setAttribute("data-fb-size", $tw.wiki.getTiddlerText("$:/config/file-backups/sizeLimitMB", ""));
 		}, true);
 	}
 })();
