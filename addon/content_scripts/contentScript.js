@@ -173,8 +173,31 @@ function snoozeReminder(kind) {
 	fbReminders[kind] = null;
 	renderReminderBanners();
 	if (fbWikiPath) {
-		browser.runtime.sendMessage({msg: "snoozeReminder", kind: kind, path: fbWikiPath}).catch(function () {});
+		browser.runtime.sendMessage({msg: "snoozeReminder", kind: kind, path: fbWikiPath}).then(function (resp) {
+			if (resp && resp.until) renderSnoozeNotice(kind, resp.until);
+		}).catch(function () {});
 	}
+}
+
+// Confirm a snooze and, crucially, tell the user HOW LONG it is snoozed — the
+// background returns the until-timestamp it wrote. Dismissible.
+function renderSnoozeNotice(kind, until) {
+	var existing = document.getElementById("fb-snooze-notice");
+	if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+	var box = document.createElement("div");
+	box.id = "fb-snooze-notice";
+	box.style = "position:fixed; left:0; right:0; top:1em; max-width:60%; margin-left:auto; margin-right:auto; padding:8px 12px; background:#dbeafe; border:1px solid #93c5fd; color:#0c0c0d; z-index:10000; font-size:initial;";
+	var label = ({milestone: "milestone", count: "file-count", size: "size"})[kind] || kind;
+	var days = Math.max(0, Math.round((until - Date.now()) / 86400000 * 10) / 10);
+	var span = document.createElement("span");
+	span.textContent = "The " + label + " reminder is snoozed until " + fbFormatTs(until) + " (about " + days + " day" + (days === 1 ? "" : "s") + ").";
+	box.appendChild(span);
+	var ok = document.createElement("button");
+	ok.textContent = "OK";
+	ok.style = "margin-left:10px;";
+	ok.addEventListener("click", function () { if (box.parentNode) box.parentNode.removeChild(box); });
+	box.appendChild(ok);
+	document.body.appendChild(box);
 }
 
 // Backup summary (this wiki). Built from the tracked rotation + milestone data in
@@ -278,6 +301,17 @@ function fbMilestoneTable(rows) {
 	return out.join("\n");
 }
 
+// Estimated total size of a tracked list (rotation slots or milestones). Shown
+// as a summary line in each section. "Estimated" because only AddOn-recorded
+// backups are summed — the folder may hold more.
+function fbRowsTotalBytes(rows) {
+	return rows.reduce(function (s, e) { return s + ((e && typeof e.size === "number" && isFinite(e.size)) ? e.size : 0); }, 0);
+}
+
+function fbTotalSizeLine(rows) {
+	return "''Estimated total size:'' " + fbFormatBytes(fbRowsTotalBytes(rows));
+}
+
 // Full rotation tiddler: intro (folder + shared filename + first tracked save),
 // the WHOLE table (newest first), and the generated-at note.
 function buildRotationFull(stash, now, ctx) {
@@ -291,6 +325,8 @@ function buildRotationFull(stash, now, ctx) {
 	out.push(fbOpenBackupsButton());
 	out.push("");
 	if (rows.length) {
+		out.push(fbTotalSizeLine(rows));
+		out.push("");
 		var first = rows.reduce(function (m, e) { return (typeof e.ts === "number" && (m === null || e.ts < m)) ? e.ts : m; }, null);
 		out.push("Tower-of-Hanoi rotation in `" + fbDirName(rows[0].filename) + "`. The slots below all share the same wiki-file name (only the ''(A)'' / ''(B)'' / … suffix differs). First tracked save: " + fbFormatTs(first) + ".");
 		out.push("");
@@ -306,7 +342,8 @@ function buildRotationFull(stash, now, ctx) {
 function buildRotationPreview(stash, ctx) {
 	if (ctx) return fbBackupContextNotice(ctx);
 	var rows = fbRotationRows(stash);
-	return rows.length ? fbRotationTable(rows.slice(0, 5)) : "//No rotating backups tracked yet.//";
+	if (!rows.length) return "//No rotating backups tracked yet.//";
+	return fbTotalSizeLine(rows) + "\n\n" + fbRotationTable(rows.slice(0, 5));
 }
 
 // Shared content for the two backup surfaces — the startup banner (DOM) and the
@@ -351,6 +388,8 @@ function buildMilestonesFull(stash, now, ctx) {
 	out.push(fbOpenBackupsButton());
 	out.push("");
 	if (rows.length) {
+		out.push(fbTotalSizeLine(rows));
+		out.push("");
 		out.push("Milestone snapshots in `" + fbDirName(rows[0] && rows[0].filename) + "`.");
 		out.push("");
 		out.push(fbMilestoneTable(rows));
@@ -365,7 +404,8 @@ function buildMilestonesFull(stash, now, ctx) {
 function buildMilestonesPreview(stash, ctx) {
 	if (ctx) return fbBackupContextNotice(ctx);
 	var rows = fbMilestoneRows(stash);
-	return rows.length ? fbMilestoneTable(rows.slice(0, 5)) : "//No milestones tracked yet.//";
+	if (!rows.length) return "//No milestones tracked yet.//";
+	return fbTotalSizeLine(rows) + "\n\n" + fbMilestoneTable(rows.slice(0, 5));
 }
 
 // Find this wiki's tracked data and relay the rendered summary to the bridge as a

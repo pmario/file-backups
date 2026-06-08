@@ -401,7 +401,7 @@ function handleMessages(message, sender, sendResponse) {
 			const snoozedUntil = Object.assign({milestone: null, count: null, size: null}, stash.snoozedUntil || {});
 			snoozedUntil[kind] = until;
 			await browser.storage.local.set({[wikiPath]: Object.assign({}, stash, {snoozedUntil})});
-			return null;
+			return {until: until};
 		})();
 	}
 
