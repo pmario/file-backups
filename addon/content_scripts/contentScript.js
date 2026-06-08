@@ -302,13 +302,31 @@ function buildRotationPreview(stash) {
 // Label + Description prominent), and the generated-at note.
 // Notice shown at the top of the milestones summary when the open file is itself
 // a milestone snapshot: states it plainly and links back to the main wiki.
-function fbMilestoneContextNotice(ctx) {
+// Shared content for the two milestone-snapshot surfaces — the startup banner
+// (DOM) and the summary notice (wikitext) — so the wording + fields live in ONE
+// place and stay in sync. Values are raw; each surface escapes per its format
+// (wikitext fbCell vs DOM textContent) and applies its own emphasis/layout.
+function fbMilestoneNoticeParts(ctx) {
 	var m = (ctx && ctx.milestone) || {};
-	var label = m.label ? " “" + m.label + "”" : "";
-	var link = (ctx && ctx.mainWikiUrl)
-		? "<a class=\"tc-tiddlylink-external\" href=\"" + ctx.mainWikiUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\">Open the main wiki</a>"
+	return {
+		lead: "You are viewing a milestone snapshot",
+		rest: " saved " + fbFormatTs(m.ts) + ". It is a read-only point-in-time copy.",
+		label: m.label || "none",
+		description: m.description || "none",
+		mainWikiUrl: (ctx && ctx.mainWikiUrl) || null,
+		linkText: "Open the main wiki",
+		linkSuffix: " to keep working."
+	};
+}
+
+function fbMilestoneContextNotice(ctx) {
+	var p = fbMilestoneNoticeParts(ctx);
+	var link = p.mainWikiUrl
+		? "<a class=\"tc-tiddlylink-external\" href=\"" + p.mainWikiUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + p.linkText + "</a>"
 		: "the main wiki";
-	return "@@background:#fef9c3;padding:0.4em 0.7em;\n''You are viewing a milestone snapshot''" + label + " saved " + fbFormatTs(m.ts) + ". It is a read-only point-in-time copy. " + link + " to keep working.\n@@";
+	var line1 = "''" + p.lead + "''" + p.rest + " " + link + p.linkSuffix;
+	var line2 = "''Label:'' " + fbCell(p.label) + " &nbsp;·&nbsp; ''Description:'' " + fbCell(p.description);
+	return "@@background:#fef9c3;padding:0.4em 0.7em;\n" + line1 + "<br>\n" + line2 + "\n@@";
 }
 
 function buildMilestonesFull(stash, now, ctx) {
@@ -401,26 +419,43 @@ function renderMilestoneBanner(ctx) {
 	var existing = document.getElementById("fb-milestone-banner");
 	if (existing) existing.parentNode.removeChild(existing);
 	if (!ctx) return;
-	var m = ctx.milestone || {};
+	var p = fbMilestoneNoticeParts(ctx);
 	var box = document.createElement("div");
 	box.id = "fb-milestone-banner";
 	box.style = "position:fixed; left:0; right:0; top:1em; max-width:60%; margin-left:auto; margin-right:auto; padding:10px 14px; background:#fef9c3; border:1px solid #eab308; color:#0c0c0d; z-index:10000; font-size:initial; box-shadow:0 1px 4px rgba(0,0,0,0.15);";
 
-	var label = m.label ? " “" + m.label + "”" : "";
-	var text = document.createElement("span");
-	text.textContent = "This is a milestone backup" + label + " (saved " + fbFormatTs(m.ts) + "). It is a read-only snapshot — edit the main wiki, not this file. ";
-	box.appendChild(text);
-
-	if (ctx.mainWikiUrl) {
+	// Line 1: emphasised lead + note + link (same wording as the summary notice).
+	var line1 = document.createElement("div");
+	var lead = document.createElement("strong");
+	lead.textContent = p.lead;
+	line1.appendChild(lead);
+	line1.appendChild(document.createTextNode(p.rest + " "));
+	if (p.mainWikiUrl) {
 		var link = document.createElement("a");
-		link.href = ctx.mainWikiUrl;
-		link.textContent = "Open the main wiki";
-		link.style = "font-weight:600; margin-right:10px;";
-		box.appendChild(link);
+		link.href = p.mainWikiUrl;
+		link.textContent = p.linkText;
+		link.style = "font-weight:600;";
+		line1.appendChild(link);
+		line1.appendChild(document.createTextNode(p.linkSuffix));
 	}
+	box.appendChild(line1);
+
+	// Line 2: Label + Description.
+	var line2 = document.createElement("div");
+	line2.style = "margin-top:0.3em;";
+	var lb = document.createElement("strong");
+	lb.textContent = "Label: ";
+	line2.appendChild(lb);
+	line2.appendChild(document.createTextNode(p.label + "  ·  "));
+	var db = document.createElement("strong");
+	db.textContent = "Description: ";
+	line2.appendChild(db);
+	line2.appendChild(document.createTextNode(p.description));
+	box.appendChild(line2);
 
 	var dismiss = document.createElement("button");
 	dismiss.textContent = "Dismiss";
+	dismiss.style = "margin-top:0.5em;";
 	dismiss.addEventListener("click", function () { if (box.parentNode) box.parentNode.removeChild(box); });
 	box.appendChild(dismiss);
 
