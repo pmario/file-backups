@@ -283,6 +283,21 @@
 		return {tracked: tracked, missing: missing, discovered: discovered.length};
 	}
 
+	// Recover the milestone label embedded in a backup filename. createMilestoneFile
+	// names a milestone "<wiki>(<ts>)-<label><ext>" where <label> is the sanitized
+	// [a-z0-9-] tail (sanitizeMilestoneLabel) and is omitted entirely when blank. A
+	// folder-sync-discovered milestone carries no tracked label (it was never
+	// download-recorded), so the summary parses it back out of the filename for
+	// display. The pattern is end-anchored on ")-<label><ext>" so a wiki name that
+	// itself contains "()" doesn't mislead it, and it tolerates a Windows duplicate
+	// suffix ("- Copy" / "- Copy (2)") inserted before the extension. Returns "" for
+	// an unlabelled milestone or any non-milestone name. The description is NOT in
+	// the filename, so it cannot be recovered this way.
+	function milestoneLabelFromName(name) {
+		var m = String(name == null ? "" : name).match(/\)-([a-z0-9-]+)(?: - Copy(?: \(\d+\))?)?\.html?$/i);
+		return (m && m[1]) ? m[1] : "";
+	}
+
 	root.recordRotationSlot = recordRotationSlot;
 	root.recordMilestone = recordMilestone;
 	root.getEffectiveLimit = getEffectiveLimit;
@@ -292,4 +307,5 @@
 	root.findBackupByFile = findBackupByFile;
 	root.parseIndexFormat = parseIndexFormat;
 	root.syncScannedFiles = syncScannedFiles;
+	root.milestoneLabelFromName = milestoneLabelFromName;
 })(typeof globalThis !== "undefined" ? globalThis : this);

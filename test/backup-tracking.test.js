@@ -305,4 +305,27 @@ ok(scanStash.discovered[0].filename === "backups/notes.html/extra(2026-06-08).ht
 	"syncScannedFiles: discovered entry carries the caller-provided filename (for linking)");
 ok(syncScannedFiles(null, []).discovered === 0, "syncScannedFiles: null stash -> zero counts (no throw)");
 
+// ---- milestoneLabelFromName ----
+// createMilestoneFile names a milestone "<wiki>(<ts>)-<label><ext>" with <label>
+// sanitized to [a-z0-9-] (or omitted when blank). Folder-sync-discovered milestone
+// copies have no tracked label, so the summary recovers it from the filename. To
+// reproduce by hand: read the text after the timestamp ")-" up to the extension,
+// ignoring any Windows "- Copy"/"- Copy (2)" duplicate suffix.
+ok(milestoneLabelFromName("test-addon(2026-06-08-19-37-45)-asdfa-asdf-sad.html") === "asdfa-asdf-sad",
+	"label: parsed from a labelled milestone filename");
+ok(milestoneLabelFromName("test-addon(2026-06-08-19-37-45)-asdfa-asdf-sad - Copy.html") === "asdfa-asdf-sad",
+	"label: Windows '- Copy' suffix ignored");
+ok(milestoneLabelFromName("test-addon(2026-06-08-19-37-45)-asdfa-asdf-sad - Copy (2).html") === "asdfa-asdf-sad",
+	"label: Windows '- Copy (2)' suffix ignored");
+ok(milestoneLabelFromName("notes(2026-06-08-19-37-45)-x.htm") === "x",
+	"label: single-char label, .htm extension");
+ok(milestoneLabelFromName("archive (2020)(2026-06-08-19-37-45)-mylabel.html") === "mylabel",
+	"label: end-anchored, so a wiki name containing '()' does not mislead it");
+ok(milestoneLabelFromName("test-addon(2026-06-08-19-37-45).html") === "",
+	"label: unlabelled milestone -> empty");
+ok(milestoneLabelFromName("notes(A).html") === "" && milestoneLabelFromName("notes(2018-03-09T16-23-47-792Z).html") === "",
+	"label: rotation filenames -> empty (no label segment)");
+ok(milestoneLabelFromName(null) === "" && milestoneLabelFromName("") === "",
+	"label: null/empty -> empty (no throw)");
+
 console.log("done");

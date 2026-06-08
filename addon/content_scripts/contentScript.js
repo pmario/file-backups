@@ -349,11 +349,20 @@ function fbNameTimestamp(name) {
 }
 
 // Folder-sync-discovered files (stash.discovered, source "scan") for one kind,
-// as display rows. They carry only name + size.
+// as display rows. They carry only name + size; for milestones we recover the
+// Label from the filename (createMilestoneFile encodes it there) so discovered
+// milestone rows aren't blank. Description isn't in the filename, so it stays
+// empty.
 function fbDiscoveredRows(stash, kind) {
 	var disc = (stash && Array.isArray(stash.discovered)) ? stash.discovered : [];
 	return disc.filter(function (d) { return d && d.name && fbDiscoveredKind(d.name) === kind; })
-		.map(function (d) { return {name: d.name, size: d.size, ts: d.ts, filename: d.filename, source: "scan"}; });
+		.map(function (d) {
+			var row = {name: d.name, size: d.size, ts: d.ts, filename: d.filename, source: "scan"};
+			if (kind === "milestone" && typeof milestoneLabelFromName === "function") {
+				row.label = milestoneLabelFromName(d.name);
+			}
+			return row;
+		});
 }
 
 // Source label for a row: download-tracked vs found by the folder sync.
