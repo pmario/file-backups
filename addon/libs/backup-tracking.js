@@ -104,9 +104,21 @@
 	// reminder message quotes when that reminder fires and is not snoozed, else
 	// null. A kind is null whenever its effective limit is 0 (opt-in off), so
 	// all-limits-0 yields all-null (silent).
+	// Count + size ignore entries flagged missing (the startup reconcile sets
+	// entry.missing = true when downloads.search reports the file is gone): a
+	// deleted backup no longer occupies the folder, so it must not count toward
+	// the file-count or total-size limits.
 	function reminderFileCount(stash) {
-		var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? Object.keys(stash.rotation).length : 0;
-		var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.length : 0;
+		var rot = 0;
+		if (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) {
+			for (var k in stash.rotation) {
+				if (Object.prototype.hasOwnProperty.call(stash.rotation, k) && stash.rotation[k] && !stash.rotation[k].missing) rot++;
+			}
+		}
+		var ms = 0;
+		if (stash && Array.isArray(stash.milestones)) {
+			stash.milestones.forEach(function (m) { if (m && !m.missing) ms++; });
+		}
 		return rot + ms;
 	}
 
@@ -116,13 +128,13 @@
 			for (var k in stash.rotation) {
 				if (Object.prototype.hasOwnProperty.call(stash.rotation, k)) {
 					var r = stash.rotation[k];
-					if (r && typeof r.size === "number" && isFinite(r.size)) total += r.size;
+					if (r && !r.missing && typeof r.size === "number" && isFinite(r.size)) total += r.size;
 				}
 			}
 		}
 		if (stash && Array.isArray(stash.milestones)) {
 			stash.milestones.forEach(function (m) {
-				if (m && typeof m.size === "number" && isFinite(m.size)) total += m.size;
+				if (m && !m.missing && typeof m.size === "number" && isFinite(m.size)) total += m.size;
 			});
 		}
 		return total;

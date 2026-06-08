@@ -266,7 +266,7 @@ function fbRotationRows(stash) {
 	var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? stash.rotation : {};
 	return Object.keys(rot).map(function (k) {
 		var r = rot[k] || {};
-		return {slot: k, ts: r.ts, size: r.size, filename: r.filename};
+		return {slot: k, ts: r.ts, size: r.size, filename: r.filename, missing: r.missing};
 	}).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
 }
 
@@ -282,7 +282,8 @@ function fbSavedLink(ts, filename) {
 function fbRotationTable(rows) {
 	var out = ["|!Slot|!Saved|!Size|"];
 	rows.forEach(function (e) {
-		out.push("|" + fbCell(e.slot) + "|" + fbSavedLink(e.ts, e.filename) + "|" + fbFormatBytes(e.size) + "|");
+		var size = fbFormatBytes(e.size) + (e.missing ? " //(missing)//" : "");
+		out.push("|" + fbCell(e.slot) + "|" + fbSavedLink(e.ts, e.filename) + "|" + size + "|");
 	});
 	return out.join("\n");
 }
@@ -296,7 +297,8 @@ function fbMilestoneTable(rows) {
 	var out = ["|!Saved|!Label|!Description|!Size|"];
 	rows.forEach(function (m) {
 		m = m || {};
-		out.push("|" + fbSavedLink(m.ts, m.filename) + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + fbFormatBytes(m.size) + "|");
+		var size = fbFormatBytes(m.size) + (m.missing ? " //(missing)//" : "");
+		out.push("|" + fbSavedLink(m.ts, m.filename) + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + size + "|");
 	});
 	return out.join("\n");
 }
@@ -305,11 +307,14 @@ function fbMilestoneTable(rows) {
 // as a summary line in each section. "Estimated" because only AddOn-recorded
 // backups are summed — the folder may hold more.
 function fbRowsTotalBytes(rows) {
-	return rows.reduce(function (s, e) { return s + ((e && typeof e.size === "number" && isFinite(e.size)) ? e.size : 0); }, 0);
+	return rows.reduce(function (s, e) { return (e && !e.missing && typeof e.size === "number" && isFinite(e.size)) ? s + e.size : s; }, 0);
 }
 
 function fbTotalSizeLine(rows) {
-	return "''Estimated total size:'' " + fbFormatBytes(fbRowsTotalBytes(rows));
+	var missing = rows.filter(function (e) { return e && e.missing; }).length;
+	var line = "''Estimated total size:'' " + fbFormatBytes(fbRowsTotalBytes(rows));
+	if (missing) line += " //(" + missing + " missing, not counted)//";
+	return line;
 }
 
 // Full rotation tiddler: intro (folder + shared filename + first tracked save),

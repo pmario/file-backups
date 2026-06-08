@@ -218,6 +218,10 @@ ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50}}, milestones: [{s
 	"reminderTotalSize: sums rotation + milestone sizes");
 ok(reminderTotalSize({rotation: {A: {size: "big"}, B: {}}, milestones: [{size: NaN}]}) === 0,
 	"reminderTotalSize: non-numeric sizes ignored");
+ok(reminderFileCount({rotation: {A: {}, B: {missing: true}}, milestones: [{}, {missing: true}]}) === 2,
+	"reminderFileCount: missing entries are not counted");
+ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50, missing: true}}, milestones: [{size: 25, missing: true}]}) === 100,
+	"reminderTotalSize: missing entries are not summed");
 
 // ---- findBackupByFile ----
 // Pure string matching — it never touches the filesystem — so all inputs are

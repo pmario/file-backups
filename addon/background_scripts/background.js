@@ -160,6 +160,11 @@ async function activateOpenTwTabs() {
 browser.runtime.onInstalled.addListener(activateOpenTwTabs);
 browser.runtime.onStartup.addListener(activateOpenTwTabs);
 
+// Check tracked backups against the filesystem at startup (browser start + addon
+// install/reload), marking entries whose file is gone (or found again).
+browser.runtime.onInstalled.addListener(reconcileBackups);
+browser.runtime.onStartup.addListener(reconcileBackups);
+
 // Two independent signals can raise the toolbar badge:
 //   - backupdir invalid  → "!"   (downloads.download would reject; saves fail)
 //   - update available   → "↻"   (AMO onUpdateAvailable, OR active check)
@@ -182,6 +187,44 @@ async function refreshBadge() {
 		await browser.action.setBadgeText({text});
 		await browser.action.setBadgeBackgroundColor({color: "#6600ff"});
 	} catch (err) {}
+}
+
+// Reconcile tracked backups against the filesystem. We can't list the directory,
+// but every backup we wrote has a downloadId, and downloads.search({id}) reports
+// `exists` (false once the user deletes or moves the file). We mirror that into
+// each entry's `missing` flag, BOTH ways: a file that reappears clears the flag.
+// Entries with no downloadId — or whose download record was purged from history —
+// are left untouched. This edits only our storage; it never touches user files.
+async function reconcileBackups() {
+	let all;
+	try { all = await browser.storage.local.get(null); } catch (e) { return; }
+	for (const key in all) {
+		const raw = all[key];
+		if (!raw || typeof raw !== "object") continue;
+		const stash = unwrapStash(raw);
+		if (!stash.rotation && !stash.milestones) continue;
+		let changed = false;
+		const mark = async (entry) => {
+			if (!entry || entry.downloadId == null) return;
+			let exists;
+			try {
+				const items = await browser.downloads.search({id: entry.downloadId});
+				if (!items || !items.length) return; // record purged -> leave as-is
+				exists = !!items[0].exists;
+			} catch (e) { return; }
+			const missing = !exists;
+			if (!!entry.missing !== missing) { entry.missing = missing; changed = true; }
+		};
+		if (stash.rotation && typeof stash.rotation === "object") {
+			for (const slot in stash.rotation) await mark(stash.rotation[slot]);
+		}
+		if (Array.isArray(stash.milestones)) {
+			for (const m of stash.milestones) await mark(m);
+		}
+		if (changed) {
+			try { await browser.storage.local.set({[key]: stash}); } catch (e) {}
+		}
+	}
 }
 
 // Fetch version.json and decide whether to flag an update.
