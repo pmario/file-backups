@@ -36,7 +36,7 @@ Clear defaults (off)
 
 !! Reminder injection
 
-''Beta-build only.'' Inject a pending reminder so it appears where the AddOn really surfaces it: an in-page banner at the top of this wiki (popup chip + toolbar badge follow in stage 2). The value shown is the current global default for that kind, or a sample if it is off, so set sample defaults above to see real numbers. ''Clear'' removes them.
+''Beta-build only.'' Inject a pending reminder so it appears where the AddOn really surfaces it: an in-page banner at the top of this wiki (popup chip + toolbar badge follow in stage 2). The value shown is the current global default for that kind, or a sample if it is off, so set sample defaults above to see real numbers. ''Clear'' removes them and resets this wiki's snoozes.
 
 <$button><$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-reminder" text="milestone"/>Milestone reminder</$button>
 &nbsp;

@@ -22,13 +22,13 @@
 		},
 		count: function (v) {
 			return {
-				text: "This wiki's backup folder now holds more than " + v + " files. Review them and remove any you no longer need.",
+				text: "This wiki's backup folder now holds more than " + v + " files. Review them and remove any you no longer need. Or change the limit at Control Panel → Settings → File Backups.",
 				action: "Show backups"
 			};
 		},
 		size: function (v) {
 			return {
-				text: "This wiki's backups now use more than " + v + " MB of disk space. Review them and remove any you no longer need.",
+				text: "This wiki's backups now use more than " + v + " MB of disk space. Review them and remove any you no longer need. Or change the limit at Control Panel → Settings → File Backups.",
 				action: "Show backups"
 			};
 		}

@@ -405,6 +405,20 @@ function handleMessages(message, sender, sendResponse) {
 		})();
 	}
 
+	// Clear all per-wiki snoozes for one wiki. The beta CP "Clear reminders"
+	// button uses this so a reminder that was snoozed (often by an earlier test
+	// Snooze) can fire again on the next save. path identifies the wiki.
+	if (message.msg === "clearSnoozes") {
+		return (async () => {
+			const wikiPath = message.path;
+			if (!wikiPath) return null;
+			const got = await browser.storage.local.get(wikiPath);
+			const stash = unwrapStash(got[wikiPath]);
+			await browser.storage.local.set({[wikiPath]: Object.assign({}, stash, {snoozedUntil: {milestone: null, count: null, size: null}})});
+			return null;
+		})();
+	}
+
 	// "Show backups" reminder action: open the backup folder in the OS file
 	// manager via the newest tracked download (rotation slots + milestones from
 	// the phase-1 tracking schema). Falls back to the default Downloads folder if

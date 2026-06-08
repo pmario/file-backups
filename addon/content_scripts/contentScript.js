@@ -720,6 +720,18 @@ function injectMessageBox(doc) {
 		if (kind === "clear") {
 			fbReminders = {milestone: null, count: null, size: null};
 			renderReminderBanners();
+			// Also clear any persisted per-wiki snooze so a snoozed reminder can fire
+			// again on the next save (e.g. when a prior test Snooze stuck). Find this
+			// wiki's storage key the same way the summary does.
+			browser.storage.local.get(null).then(function (all) {
+				var key = null;
+				if (fbWikiPath && all[fbWikiPath]) key = fbWikiPath;
+				else {
+					var t = fbWikiPathNorm();
+					for (var k in all) { if (fbNorm(k) === t) { key = k; break; } }
+				}
+				if (key) browser.runtime.sendMessage({msg: "clearSnoozes", path: key}).catch(function () {});
+			}).catch(function () {});
 			return;
 		}
 		if (kind !== "milestone" && kind !== "count" && kind !== "size") return;
