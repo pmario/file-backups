@@ -21,4 +21,8 @@ This settings area was installed by FileBackups browser AddOn.
 
 </$let>
 
+---
+
+{{$:/ControlPanel/Settings/FileBackups/Awareness}}
+
 <$transclude tiddler="$:/ControlPanel/Settings/FileBackups/TestUpdate" mode="block"/>

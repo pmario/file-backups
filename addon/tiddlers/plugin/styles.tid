@@ -14,6 +14,17 @@ input.fb-label-width {
 	width: 25em;
 }
 
+input.fb-num {
+	width: 8em;
+}
+
+.fb-hint {
+	display: block;
+	margin-top: 0.2em;
+	font-size: 0.85em;
+	color: <<colour muted-foreground>>;
+}
+
 .fb-cp-row {
 	display: grid;
 	grid-template-columns: max-content 1fr;

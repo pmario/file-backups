@@ -365,6 +365,90 @@ function handleMessages(message, sender, sendResponse) {
 			return null;
 		})();
 	}
+
+	// Dev test affordance (beta builds only). The CP test buttons let pmario
+	// exercise the backup-awareness global defaults without opening the AddOn
+	// options page. Writes sample (or zeroed) limits to storage.local;
+	// storage.onChanged in the content script relays them to the bridge so the
+	// per-wiki "Global default" display (and, in phase 3, the reminder triggers)
+	// update live.
+	if (message.msg === "testInjectAwareness") {
+		return (async () => {
+			const on = message.kind === "sample";
+			await browser.storage.local.set({
+				defaultRemindMilestoneAfterDays: on ? 14 : 0,
+				defaultFileCountLimit: on ? 30 : 0,
+				defaultSizeLimitMB: on ? 100 : 0
+			});
+			return null;
+		})();
+	}
+
+	// Dev test affordance (beta builds only). The CP test buttons inject a
+	// pending reminder of the given kind so its real surfaces (in-page banner,
+	// popup chip, badge) can be exercised without waiting for a save to breach a
+	// threshold. The value shown is the current global default for that kind, or
+	// a sample if that default is off. kind "clear" removes all pending reminders.
+	if (message.msg === "testInjectReminder") {
+		return (async () => {
+			const cur = await browser.storage.local.get({
+				awarenessReminders: null,
+				defaultRemindMilestoneAfterDays: 0,
+				defaultFileCountLimit: 0,
+				defaultSizeLimitMB: 0
+			});
+			const reminders = cur.awarenessReminders || {milestone: null, count: null, size: null};
+			if (message.kind === "clear") {
+				await browser.storage.local.set({awarenessReminders: {milestone: null, count: null, size: null}});
+				return null;
+			}
+			const SAMPLE = {milestone: 14, count: 30, size: 100};
+			const GLOBAL = {
+				milestone: cur.defaultRemindMilestoneAfterDays,
+				count: cur.defaultFileCountLimit,
+				size: cur.defaultSizeLimitMB
+			};
+			if (SAMPLE.hasOwnProperty(message.kind)) {
+				const g = GLOBAL[message.kind];
+				reminders[message.kind] = (typeof g === "number" && g > 0) ? g : SAMPLE[message.kind];
+				await browser.storage.local.set({awarenessReminders: reminders});
+			}
+			return null;
+		})();
+	}
+
+	// "Show backups" reminder action: open the backup folder in the OS file
+	// manager via the newest tracked download (rotation slots + milestones from
+	// the phase-1 tracking schema). Falls back to the default Downloads folder if
+	// nothing is tracked yet. The extension only shows the folder; it never
+	// deletes anything. The full in-extension "Show backups" list is phase 4.
+	if (message.msg === "openBackupFolder") {
+		return (async () => {
+			const all = await browser.storage.local.get(null);
+			let latestId = null, latestTs = -1;
+			const consider = (rec) => {
+				if (rec && typeof rec.ts === "number" && rec.ts > latestTs && rec.downloadId != null) {
+					latestTs = rec.ts;
+					latestId = rec.downloadId;
+				}
+			};
+			for (const key in all) {
+				const stash = all[key];
+				if (!stash || typeof stash !== "object") continue;
+				const rot = stash.rotation || {};
+				for (const slot in rot) consider(rot[slot]);
+				const ms = Array.isArray(stash.milestones) ? stash.milestones : [];
+				for (const m of ms) consider(m);
+			}
+			try {
+				if (latestId != null) await browser.downloads.show(latestId);
+				else await browser.downloads.showDefaultFolder();
+			} catch (err) {
+				try { await browser.downloads.showDefaultFolder(); } catch (e) {}
+			}
+			return null;
+		})();
+	}
 }
 
 // Check, if there is an other tab, with the same URL open already?
@@ -532,6 +616,15 @@ async function createMilestoneFile(message) {
 		filename: nameX
 	});
 	await browser.storage.local.set({[message.path]: withMilestone});
+
+	// A fresh milestone resolves the "no milestone in N days" reminder, however
+	// it was triggered (toolbar, CP, or the reminder banner's Save milestone).
+	let rem = await browser.storage.local.get({awarenessReminders: null});
+	if (rem.awarenessReminders && rem.awarenessReminders.milestone != null) {
+		let r = rem.awarenessReminders;
+		r.milestone = null;
+		await browser.storage.local.set({awarenessReminders: r});
+	}
 }
 
 async function downloadWiki(message) {

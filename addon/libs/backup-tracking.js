@@ -58,6 +58,34 @@
 		});
 	}
 
+	// Resolve the effective limit for one wiki + one kind (phase 2).
+	//
+	// kind is a per-wiki field name: "remindAfterDays", "fileCountLimit",
+	// or "sizeLimitMB". Each maps to a global default key on the storage.local
+	// root. Resolution rule (per file-backups-fje):
+	//   - per-wiki override is a number  -> it WINS, including 0. A user can
+	//     switch a reminder OFF for one wiki even when the global is on.
+	//   - per-wiki override is null/absent/non-number -> inherit the global.
+	//   - global default is a number     -> use it; else fall back to 0 (off).
+	// The function never throws on hostile shapes and always returns a number.
+	var GLOBAL_KEY = {
+		remindAfterDays: "defaultRemindMilestoneAfterDays",
+		fileCountLimit: "defaultFileCountLimit",
+		sizeLimitMB: "defaultSizeLimitMB"
+	};
+
+	function getEffectiveLimit(stash, globals, kind) {
+		var gKey = GLOBAL_KEY[kind];
+		if (!gKey) return 0; // unknown kind: treat as off, never throw
+		var override = stash && stash[kind];
+		if (typeof override === "number" && isFinite(override) && override >= 0) {
+			return override;
+		}
+		var g = globals && globals[gKey];
+		return (typeof g === "number" && isFinite(g) && g >= 0) ? g : 0;
+	}
+
 	root.recordRotationSlot = recordRotationSlot;
 	root.recordMilestone = recordMilestone;
+	root.getEffectiveLimit = getEffectiveLimit;
 })(typeof globalThis !== "undefined" ? globalThis : this);

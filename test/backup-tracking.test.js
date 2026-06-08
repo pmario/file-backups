@@ -107,4 +107,53 @@ let outF = recordMilestone({},
 ok(!("evil" in outF.milestones[0]),
 	"milestone: extra meta keys are stripped");
 
+// ---- getEffectiveLimit (phase 2) ----
+
+const G = {
+	defaultRemindMilestoneAfterDays: 7,
+	defaultFileCountLimit: 30,
+	defaultSizeLimitMB: 100
+};
+
+// null / absent override inherits the global default.
+ok(getEffectiveLimit({remindAfterDays: null}, G, "remindAfterDays") === 7,
+	"effective: null override inherits global");
+ok(getEffectiveLimit({}, G, "fileCountLimit") === 30,
+	"effective: absent override inherits global");
+ok(getEffectiveLimit(undefined, G, "sizeLimitMB") === 100,
+	"effective: undefined stash inherits global");
+
+// A numeric override wins over the global.
+ok(getEffectiveLimit({sizeLimitMB: 250}, G, "sizeLimitMB") === 250,
+	"effective: numeric override wins");
+
+// Override 0 is "explicitly off for this wiki" and MUST win over a non-zero
+// global. This is the whole point of per-wiki overrides: opt one wiki out.
+ok(getEffectiveLimit({remindAfterDays: 0}, G, "remindAfterDays") === 0,
+	"effective: override 0 wins over non-zero global (per-wiki opt-out)");
+
+// Global 0 (feature off globally) returns 0 when no override.
+ok(getEffectiveLimit({}, {defaultFileCountLimit: 0}, "fileCountLimit") === 0,
+	"effective: global 0 with no override returns 0");
+
+// Adversarial: hostile override shapes fall through to the global, never throw.
+ok(getEffectiveLimit({sizeLimitMB: "300"}, G, "sizeLimitMB") === 100,
+	"effective: string override ignored, inherits global");
+ok(getEffectiveLimit({sizeLimitMB: NaN}, G, "sizeLimitMB") === 100,
+	"effective: NaN override ignored, inherits global");
+ok(getEffectiveLimit({sizeLimitMB: -5}, G, "sizeLimitMB") === 100,
+	"effective: negative override ignored, inherits global");
+ok(getEffectiveLimit({sizeLimitMB: Infinity}, G, "sizeLimitMB") === 100,
+	"effective: Infinity override ignored, inherits global");
+
+// Adversarial: hostile global shapes fall through to 0, never throw.
+ok(getEffectiveLimit({}, {defaultSizeLimitMB: "lots"}, "sizeLimitMB") === 0,
+	"effective: non-number global falls back to 0");
+ok(getEffectiveLimit({}, null, "sizeLimitMB") === 0,
+	"effective: null globals falls back to 0");
+
+// Unknown kind never throws; returns 0 (off).
+ok(getEffectiveLimit({bogus: 5}, G, "bogus") === 0,
+	"effective: unknown kind returns 0");
+
 console.log("done");

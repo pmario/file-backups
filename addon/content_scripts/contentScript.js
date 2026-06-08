@@ -73,6 +73,83 @@ function main() {
 	if (isTiddlyWiki5File(document) || isTiddlyWikiClassicFile(document)) {
 		injectMessageBox(document);
 		checkUrlConflict();
+		renderReminderBanners();
+		browser.storage.onChanged.addListener(function (changes, area) {
+			if (area === "local" && changes.awarenessReminders) {
+				renderReminderBanners();
+			}
+		});
+	}
+}
+
+// Backup-awareness reminders (phase 3). The background writes pending reminders
+// to storage.local.awarenessReminders ({milestone|count|size: value|null}); we
+// render them as a dismissible banner at the top of the wiki page — the same
+// "inform, never act for you" surface as backendMessage. Snooze clears the
+// reminder from storage. The primary action (Save milestone / Show backups) is
+// wired to the real flows in a later phase; for now it dismisses.
+function renderReminderBanners() {
+	browser.storage.local.get({awarenessReminders: null}).then(function (s) {
+		var existing = document.getElementById("fb-reminder-banner");
+		if (existing) existing.parentNode.removeChild(existing);
+		var reminders = s.awarenessReminders || {};
+		var allKinds = (typeof FB_REMINDER_KINDS !== "undefined") ? FB_REMINDER_KINDS : ["milestone", "count", "size"];
+		var kinds = allKinds.filter(function (k) { return typeof reminders[k] === "number"; });
+		if (!kinds.length) return;
+
+		var banner = document.createElement("div");
+		banner.id = "fb-reminder-banner";
+		banner.style = "position:fixed; left:0; right:0; top:1em; max-width:60%; margin-left:auto; margin-right:auto; z-index:10000; background:#dbeafe; color:#0c0c0d; border:2px solid #93c5fd; padding:8px 12px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:14px;";
+
+		kinds.forEach(function (kind) {
+			var msg = (typeof reminderMessage === "function") ? reminderMessage(kind, reminders[kind]) : {text: kind, action: ""};
+			var row = document.createElement("div");
+			row.style = "display:flex; align-items:center; gap:10px; margin:3px 0;";
+
+			var span = document.createElement("span");
+			span.textContent = msg.text;
+			span.style = "flex:1;";
+			row.appendChild(span);
+
+			if (msg.action) {
+				var primary = document.createElement("button");
+				primary.textContent = msg.action;
+				primary.addEventListener("click", function () { onReminderAction(kind); });
+				row.appendChild(primary);
+			}
+
+			var snooze = document.createElement("button");
+			snooze.textContent = "Snooze";
+			snooze.addEventListener("click", function () { clearReminder(kind); });
+			row.appendChild(snooze);
+
+			banner.appendChild(row);
+		});
+
+		document.body.appendChild(banner);
+	}).catch(function () {});
+}
+
+function clearReminder(kind) {
+	browser.storage.local.get({awarenessReminders: null}).then(function (s) {
+		var r = s.awarenessReminders || {milestone: null, count: null, size: null};
+		r[kind] = null;
+		return browser.storage.local.set({awarenessReminders: r});
+	}).catch(function () {});
+}
+
+// Primary action for a reminder. A milestone reminder opens the milestone
+// dialog (via the page-context bridge) so the user can enter a Label and
+// Description; the reminder clears when a milestone is actually saved (handled
+// in the background), NOT on click, since the user may cancel the dialog.
+// Count/size reminders open the backup folder so the user can review and clean
+// up; those stay until snoozed or until a later save no longer breaches the limit.
+function onReminderAction(kind) {
+	if (kind === "milestone") {
+		var box = document.getElementById("tiddlyfox-message-box");
+		if (box) box.dispatchEvent(new CustomEvent("file-backups-open-milestone"));
+	} else {
+		browser.runtime.sendMessage({msg: "openBackupFolder"}).catch(function () {});
 	}
 }
 
@@ -262,6 +339,56 @@ function injectMessageBox(doc) {
 		browser.runtime.sendMessage({msg: "testInjectUpdate", kind: kind})
 			.catch(function () {});
 	}, false);
+
+	// Dev test affordance (beta builds only): forward the awareness-defaults
+	// test injection to the background, which writes sample/zeroed global limits
+	// to storage.local. Reading e.detail here is safe (page -> content script:
+	// content scripts get Xray access to page objects).
+	messageBox.addEventListener("file-backups-test-inject-awareness", function (e) {
+		var kind = e && e.detail && e.detail.kind;
+		if (kind !== "sample" && kind !== "off") return;
+		browser.runtime.sendMessage({msg: "testInjectAwareness", kind: kind})
+			.catch(function () {});
+	}, false);
+
+	// Dev test affordance (beta builds only): forward the reminder injection to
+	// the background, which writes a pending reminder to storage.local. The
+	// storage.onChanged listener (set up in main) then renders the banner.
+	messageBox.addEventListener("file-backups-test-inject-reminder", function (e) {
+		var kind = e && e.detail && e.detail.kind;
+		if (kind !== "milestone" && kind !== "count" && kind !== "size" && kind !== "clear") return;
+		browser.runtime.sendMessage({msg: "testInjectReminder", kind: kind})
+			.catch(function () {});
+	}, false);
+
+	// Relay the global backup-awareness defaults into the wiki so the CP can
+	// show what an empty per-wiki override field inherits. The page-context
+	// bridge can't read storage.local; this content script can. We answer the
+	// bridge's one-shot request on startup and re-push whenever the options
+	// change, so the displayed defaults stay live without a reload.
+	function sendGlobalPrefs() {
+		browser.storage.local.get({
+			defaultRemindMilestoneAfterDays: 0,
+			defaultFileCountLimit: 0,
+			defaultSizeLimitMB: 0
+		}).then(function (prefs) {
+			// Pass a JSON STRING, not the object. The page-context bridge lives in
+			// a separate Firefox compartment and is denied access to the properties
+			// of an object created here in the content script ("Permission denied to
+			// access property ..."). A primitive string crosses the boundary cleanly;
+			// the bridge JSON.parses it.
+			messageBox.dispatchEvent(new CustomEvent("file-backups-global-prefs", {detail: JSON.stringify(prefs)}));
+		}).catch(function () {});
+	}
+	messageBox.addEventListener("file-backups-request-global-prefs", sendGlobalPrefs, false);
+	browser.storage.onChanged.addListener(function (changes, area) {
+		if (area !== "local") return;
+		if (changes.defaultRemindMilestoneAfterDays ||
+			changes.defaultFileCountLimit ||
+			changes.defaultSizeLimitMB) {
+			sendGlobalPrefs();
+		}
+	});
 
 	// Inject the TW5 page-context bridge now that the messagebox and our save
 	// listener are in place. The bridge attaches a capture-phase listener on

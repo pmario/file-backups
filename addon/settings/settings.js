@@ -15,12 +15,23 @@ function showSavedMessage() {
 	}, 750);
 }
 
+// Read a numeric input as a non-negative integer. Empty / NaN / negative
+// all coerce to 0 (the "off" value) so the dirty-check never sees NaN
+// (NaN !== NaN would mark the form permanently dirty).
+function readNum(id) {
+	var n = document.getElementById(id).valueAsNumber;
+	return (typeof n === "number" && isFinite(n) && n >= 0) ? n : 0;
+}
+
 function readForm() {
 	return {
 		backupdir: document.getElementById('backupdir').value,
 		backupEnabled: document.getElementById("backup").checked,
 		numberOfBackups: document.getElementById('amount').valueAsNumber,
-		showBetaUpdates: document.getElementById("showBetaUpdates").checked
+		showBetaUpdates: document.getElementById("showBetaUpdates").checked,
+		defaultRemindMilestoneAfterDays: readNum('defaultRemindMilestoneAfterDays'),
+		defaultFileCountLimit: readNum('defaultFileCountLimit'),
+		defaultSizeLimitMB: readNum('defaultSizeLimitMB')
 	};
 }
 
@@ -75,7 +86,10 @@ async function restore_options() {
 		backupdir: "twBackups",
 		backupEnabled: true,
 		numberOfBackups: 9,
-		showBetaUpdates: false
+		showBetaUpdates: false,
+		defaultRemindMilestoneAfterDays: 0,
+		defaultFileCountLimit: 0,
+		defaultSizeLimitMB: 0
 	});
 
 	if (items) {
@@ -83,6 +97,9 @@ async function restore_options() {
 		document.getElementById('amount').value = items.numberOfBackups;
 		document.getElementById("backup").checked = items.backupEnabled;
 		document.getElementById("showBetaUpdates").checked = items.showBetaUpdates;
+		document.getElementById('defaultRemindMilestoneAfterDays').value = items.defaultRemindMilestoneAfterDays;
+		document.getElementById('defaultFileCountLimit').value = items.defaultFileCountLimit;
+		document.getElementById('defaultSizeLimitMB').value = items.defaultSizeLimitMB;
 	}
 	baseline = readForm();
 	refreshBackupdirValidity();
@@ -93,4 +110,7 @@ document.getElementById('backupdir').addEventListener('input', refreshBackupdirV
 document.getElementById('backup').addEventListener('change', refreshSaveDirty);
 document.getElementById('amount').addEventListener('input', refreshSaveDirty);
 document.getElementById('showBetaUpdates').addEventListener('change', refreshSaveDirty);
+document.getElementById('defaultRemindMilestoneAfterDays').addEventListener('input', refreshSaveDirty);
+document.getElementById('defaultFileCountLimit').addEventListener('input', refreshSaveDirty);
+document.getElementById('defaultSizeLimitMB').addEventListener('input', refreshSaveDirty);
 document.getElementById('save').addEventListener('click', save_options);

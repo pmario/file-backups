@@ -1,0 +1,20 @@
+title: $:/ControlPanel/Settings/FileBackups/Awareness
+
+\procedure fb-global-default(key, unit)
+<$let g={{{ [<key>get[text]] ~[[0]] }}} ><span class="fb-hint">Global default: <%if [<g>match[0]] %>off<%else%><<g>> <<unit>><%endif%></span></$let>
+\end
+
+!! Backup awareness (this wiki)
+
+These reminders are ''off by default'' (opt-in). A reminder runs only when its value is above 0.
+
+Each field below applies to ''this wiki only''. Leave it ''empty'' to use the global default shown beside it (set in the browser AddOn options). Enter a ''number'' to override the default for this wiki. Entering ''0'' turns that reminder off for this wiki, even when the global default is on.
+
+<div style="display:grid; grid-template-columns:max-content 1fr; gap:0.4em 0.8em; align-items:start; margin:0.6em 0;">
+<div>Remind me if I haven't saved a milestone in this many days:</div>
+<div><$edit-text tiddler="$:/config/file-backups/remindAfterDays" tag="input" type="number" class="fb-num" placeholder="global default" default=""/><<fb-global-default "$:/temp/plugins/file-backups/global/remindAfterDays" "days">></div>
+<div>Remind me when the backup folder holds more than this many files:</div>
+<div><$edit-text tiddler="$:/config/file-backups/fileCountLimit" tag="input" type="number" class="fb-num" placeholder="global default" default=""/><<fb-global-default "$:/temp/plugins/file-backups/global/fileCountLimit" "files">></div>
+<div>Remind me when backups use more than this much disk space (MB):</div>
+<div><$edit-text tiddler="$:/config/file-backups/sizeLimitMB" tag="input" type="number" class="fb-num" placeholder="global default" default=""/><<fb-global-default "$:/temp/plugins/file-backups/global/sizeLimitMB" "MB">></div>
+</div>

@@ -32,6 +32,17 @@
 			background-color: #f6f8fa;
 		}
 
+		.section-header {
+			text-align: left;
+		}
+
+		.section-hint {
+			font-weight: normal;
+			font-size: 13px;
+			color: #444;
+			text-align: left;
+		}
+
 		table tr:nth-child(2n) {
 			background-color: #f6f8fa;
 		}
@@ -110,6 +121,24 @@
 			<tr>
 				<td align="right"><label for="showBetaUpdates">Check for Beta Updates:</label></td>
 				<td align="left"><input type="checkbox" id="showBetaUpdates"></td>
+			</tr>
+			<tr>
+				<th colspan="2" class="section-header">Backup awareness</th>
+			</tr>
+			<tr>
+				<td colspan="2" class="section-hint">These reminders are <strong>off by default</strong>. Enter a value to turn one on; 0 means off. They set the default for every wiki and can be overridden per wiki in the TiddlyWiki Control Panel.</td>
+			</tr>
+			<tr>
+				<td align="right"><label for="defaultRemindMilestoneAfterDays">Remind me if I haven't saved a milestone in this many days:</label></td>
+				<td align="left"><input type="number" id="defaultRemindMilestoneAfterDays" min="0" step="1"></td>
+			</tr>
+			<tr>
+				<td align="right"><label for="defaultFileCountLimit">Remind me when the backup folder holds more than this many files:</label></td>
+				<td align="left"><input type="number" id="defaultFileCountLimit" min="0" step="1"></td>
+			</tr>
+			<tr>
+				<td align="right"><label for="defaultSizeLimitMB">Remind me when backups use more than this much disk space (MB):</label></td>
+				<td align="left"><input type="number" id="defaultSizeLimitMB" min="0" step="1"></td>
 			</tr>
 			<tr>
 				<td align="right"><button id="save">Save</button></td>

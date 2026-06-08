@@ -106,6 +106,10 @@
 			attachSaveListener();
 			attachMilestoneFlashCleanup();
 			attachTestInjectListener();
+			attachAwarenessTestListener();
+			attachReminderTestListener();
+			attachReminderActionListener();
+			attachGlobalPrefsListener();
 			var index = await fetch(BASE_URL + INDEX_FILE).then(function (r) { return r.json(); });
 			await Promise.all([
 				installTiddlersFromAssets(index.real || []),
@@ -135,6 +139,100 @@
 			}
 			$tw.wiki.deleteTiddler(TEST_TITLE);
 		});
+	}
+
+	// Dev test affordance (beta builds only). The CP test buttons write "sample"
+	// or "off" to a temp tiddler; we observe the change and fire a CustomEvent so
+	// the content script can ask the background to write the awareness global
+	// defaults into storage.local. Mirrors attachTestInjectListener.
+	function attachAwarenessTestListener() {
+		var TITLE = "$:/temp/plugins/file-backups/test/inject-awareness";
+		$tw.wiki.addEventListener("change", function (changes) {
+			if (!changes[TITLE]) return;
+			var t = $tw.wiki.getTiddler(TITLE);
+			if (!t) return; // deletion event from our own cleanup below
+			var kind = t.fields.text;
+			if (kind !== "sample" && kind !== "off") return;
+			var box = document.getElementById("tiddlyfox-message-box");
+			if (box) {
+				box.dispatchEvent(new CustomEvent("file-backups-test-inject-awareness", {detail: {kind: kind}}));
+			}
+			$tw.wiki.deleteTiddler(TITLE);
+		});
+	}
+
+	// The in-page reminder banner's "Save milestone" button (content script)
+	// dispatches this event on the messagebox. We open the existing milestone
+	// dialog (the same tm-modal the toolbar Save Milestone button uses) so the
+	// user can enter a Label and Description before saving. No detail is read off
+	// the event, so no cross-compartment access is involved.
+	function attachReminderActionListener() {
+		var box = document.getElementById("tiddlyfox-message-box");
+		box.addEventListener("file-backups-open-milestone", function () {
+			try {
+				$tw.rootWidget.dispatchEvent({
+					type: "tm-modal",
+					param: "$:/temp/plugins/file-backups/milestone/modal"
+				});
+			} catch (err) {
+				console.log("[fb-bridge] open milestone modal failed:", err);
+			}
+		});
+	}
+
+	// Dev test affordance (beta builds only). The CP test buttons write a
+	// reminder kind ("milestone" / "count" / "size" / "clear") to a temp tiddler;
+	// we observe the change and fire a CustomEvent so the content script can ask
+	// the background to inject a pending reminder into storage.local, which then
+	// surfaces in the real reminder UI (banner / popup chip / badge).
+	function attachReminderTestListener() {
+		var TITLE = "$:/temp/plugins/file-backups/test/inject-reminder";
+		$tw.wiki.addEventListener("change", function (changes) {
+			if (!changes[TITLE]) return;
+			var t = $tw.wiki.getTiddler(TITLE);
+			if (!t) return; // deletion event from our own cleanup below
+			var kind = t.fields.text;
+			if (kind !== "milestone" && kind !== "count" && kind !== "size" && kind !== "clear") return;
+			var box = document.getElementById("tiddlyfox-message-box");
+			if (box) {
+				box.dispatchEvent(new CustomEvent("file-backups-test-inject-reminder", {detail: {kind: kind}}));
+			}
+			$tw.wiki.deleteTiddler(TITLE);
+		});
+	}
+
+	// The per-wiki awareness overrides (CP > FileBackups) show the global
+	// default beside each field so the user knows what an empty field inherits.
+	// The page context can't read storage.local, so the content script pushes
+	// the three global prefs to us as a CustomEvent; we mirror them into temp
+	// tiddlers ($:/temp/.../global/*) the CP transcludes. We dispatch a request
+	// once on install (content-script listener is already bound by then) and
+	// the content script also re-pushes on storage.onChanged, so the displayed
+	// defaults stay live without an F5.
+	function attachGlobalPrefsListener() {
+		var box = document.getElementById("tiddlyfox-message-box");
+		var GLOBAL_KEYS = {
+			defaultRemindMilestoneAfterDays: "remindAfterDays",
+			defaultFileCountLimit: "fileCountLimit",
+			defaultSizeLimitMB: "sizeLimitMB"
+		};
+		box.addEventListener("file-backups-global-prefs", function (e) {
+			// detail is a JSON STRING, not an object. The content script lives in a
+			// different Firefox compartment; reading the properties of an object it
+			// created throws "Permission denied to access property ...". Parsing a
+			// primitive string sidesteps the cross-compartment security boundary.
+			var prefs = {};
+			try { prefs = JSON.parse((e && e.detail) || "{}") || {}; } catch (parseErr) { prefs = {}; }
+			Object.keys(GLOBAL_KEYS).forEach(function (storageKey) {
+				var v = prefs[storageKey];
+				var num = (typeof v === "number" && isFinite(v) && v >= 0) ? v : 0;
+				$tw.wiki.addTiddler(new $tw.Tiddler({
+					title: "$:/temp/plugins/file-backups/global/" + GLOBAL_KEYS[storageKey],
+					text: "" + num
+				}));
+			});
+		});
+		box.dispatchEvent(new CustomEvent("file-backups-request-global-prefs"));
 	}
 
 	// When the milestone flash animation finishes (after its 3 keyframe

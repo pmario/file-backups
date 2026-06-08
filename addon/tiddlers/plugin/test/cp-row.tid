@@ -15,3 +15,33 @@ Test stable update
 <$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-update" text="beta"/>
 Test beta update
 </$button>
+
+---
+
+!! Backup awareness settings
+
+''Beta-build only.'' Inject sample global defaults (14 days, 30 files, 100 MB) into `storage.local`, then clear them, so the per-wiki ''Backup awareness'' fields above show their live "Global default" values without opening the AddOn options page.
+
+<$button>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-awareness" text="sample"/>
+Set sample defaults
+</$button>
+&nbsp;
+<$button>
+<$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-awareness" text="off"/>
+Clear defaults (off)
+</$button>
+
+---
+
+!! Reminder injection
+
+''Beta-build only.'' Inject a pending reminder so it appears where the AddOn really surfaces it: an in-page banner at the top of this wiki (popup chip + toolbar badge follow in stage 2). The value shown is the current global default for that kind, or a sample if it is off, so set sample defaults above to see real numbers. ''Clear'' removes them.
+
+<$button><$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-reminder" text="milestone"/>Milestone reminder</$button>
+&nbsp;
+<$button><$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-reminder" text="count"/>File-count reminder</$button>
+&nbsp;
+<$button><$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-reminder" text="size"/>Size reminder</$button>
+&nbsp;
+<$button><$action-setfield $tiddler="$:/temp/plugins/file-backups/test/inject-reminder" text="clear"/>Clear reminders</$button>
