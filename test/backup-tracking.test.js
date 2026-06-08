@@ -219,7 +219,7 @@ ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50}}, milestones: [{s
 ok(reminderTotalSize({rotation: {A: {size: "big"}, B: {}}, milestones: [{size: NaN}]}) === 0,
 	"reminderTotalSize: non-numeric sizes ignored");
 
-// ---- findMilestoneByFile ----
+// ---- findBackupByFile ----
 // Pure string matching — it never touches the filesystem — so all inputs are
 // SYNTHETIC and PORTABLE: no real or absolute file paths are hardcoded. The
 // "open" (absolute) path is built by prefixing an arbitrary download root onto
@@ -229,27 +229,33 @@ ok(reminderTotalSize({rotation: {A: {size: "big"}, B: {}}, milestones: [{size: N
 // separators because background.js builds them with path.join on Windows.
 function tnorm(s) { return String(s).toLowerCase().replace(/^file:\/+/, "").replace(/\\/g, "/").replace(/^\/+/, ""); }
 
-let relA = "backups\\notes.html\\notes(SNAP-A).html";
-let relB = "backups\\notes.html\\notes(SNAP-B).html";
+let relMile = "backups\\notes.html\\notes(SNAP-A).html";
+let relRot = "backups\\notes.html\\notes(A).html";
 let mStashes = {
-	"WIKI_MAIN_1": {milestones: [{ts: 111, filename: relA, label: "v1"}, {ts: 222, filename: relB}]},
+	"WIKI_MAIN_1": {
+		milestones: [{ts: 111, filename: relMile, label: "v1"}],
+		rotation: {A: {ts: 50, filename: relRot}}
+	},
 	"WIKI_MAIN_2": {milestones: [{ts: 1, filename: "backups\\other.html\\other(SNAP).html"}]}
 };
 
 // Open path = arbitrary root + the stored relative filename (separators unified).
-let openA = tnorm("any/download/root/" + relA.replace(/\\/g, "/"));
-let mFound = findMilestoneByFile(mStashes, openA, tnorm);
-ok(mFound && mFound.mainWikiPath === "WIKI_MAIN_1", "findMilestone: an open milestone file resolves to its main wiki");
-ok(mFound && mFound.milestone && mFound.milestone.label === "v1", "findMilestone: returns the matched milestone entry");
+let mFound = findBackupByFile(mStashes, tnorm("any/download/root/" + relMile.replace(/\\/g, "/")), tnorm);
+ok(mFound && mFound.kind === "milestone" && mFound.mainWikiPath === "WIKI_MAIN_1", "findBackup: an open milestone file -> {milestone, main wiki}");
+ok(mFound && mFound.entry && mFound.entry.label === "v1", "findBackup: returns the matched milestone entry");
 
-ok(findMilestoneByFile(mStashes, tnorm("any/root/notes.html"), tnorm) === null,
-	"findMilestone: the main wiki file itself is not a milestone");
-ok(findMilestoneByFile(mStashes, tnorm("any/root/unknown.html"), tnorm) === null,
-	"findMilestone: an untracked file yields null");
-ok(findMilestoneByFile({K: {milestones: [{ts: 1, filename: "notes.html"}]}}, tnorm("root/x-notes.html"), tnorm) === null,
-	"findMilestone: a non-boundary path suffix does not false-match");
-ok(findMilestoneByFile(null, "x", tnorm) === null, "findMilestone: null stashes -> null");
-ok(findMilestoneByFile({K: {milestones: "nope"}}, "x", tnorm) === null, "findMilestone: non-array milestones -> null (no throw)");
-ok(findMilestoneByFile(mStashes, "", tnorm) === null, "findMilestone: empty current path -> null");
+let rFound = findBackupByFile(mStashes, tnorm("any/download/root/" + relRot.replace(/\\/g, "/")), tnorm);
+ok(rFound && rFound.kind === "rotation" && rFound.mainWikiPath === "WIKI_MAIN_1", "findBackup: an open rotation file -> {rotation, main wiki}");
+ok(rFound && rFound.entry && rFound.entry.slot === "A", "findBackup: rotation entry carries its slot letter");
+
+ok(findBackupByFile(mStashes, tnorm("any/root/notes.html"), tnorm) === null,
+	"findBackup: the main wiki file itself is not a backup");
+ok(findBackupByFile(mStashes, tnorm("any/root/unknown.html"), tnorm) === null,
+	"findBackup: an untracked file yields null");
+ok(findBackupByFile({K: {milestones: [{ts: 1, filename: "notes.html"}]}}, tnorm("root/x-notes.html"), tnorm) === null,
+	"findBackup: a non-boundary path suffix does not false-match");
+ok(findBackupByFile(null, "x", tnorm) === null, "findBackup: null stashes -> null");
+ok(findBackupByFile({K: {milestones: "nope", rotation: "nope"}}, "x", tnorm) === null, "findBackup: hostile shapes -> null (no throw)");
+ok(findBackupByFile(mStashes, "", tnorm) === null, "findBackup: empty current path -> null");
 
 console.log("done");

@@ -147,28 +147,35 @@
 		return out;
 	}
 
-	// Recognise an open file as a tracked milestone snapshot (phase 3). The AddOn
-	// records every milestone's stored filename, so given the file currently open
-	// we can both recognise that it IS a milestone and recover its MAIN wiki — the
-	// stash key. allStashes is the raw storage.local map (key = main-wiki path);
-	// currentNorm is the open file's normalised path; norm() normalises a stored
-	// filename the same way (slashes/case/decode). Stored filenames are relative
-	// to the download root, the open path is absolute, so a match is: the open
-	// path equals, or ends with "/" + the normalised filename. Returns
-	// {mainWikiPath, milestone} for the first match, else null.
-	function findMilestoneByFile(allStashes, currentNorm, norm) {
+	// Recognise an open file as a tracked backup — a milestone snapshot OR a
+	// Tower-of-Hanoi rotation slot (phase 3). The AddOn records every backup's
+	// stored filename, so given the file currently open we can both recognise it
+	// and recover its MAIN wiki — the stash key. allStashes is the raw
+	// storage.local map (key = main-wiki path); currentNorm is the open file's
+	// normalised path; norm() normalises a stored filename the same way
+	// (slashes/case/decode). Stored filenames are relative to the download root,
+	// the open path is absolute, so a match is: the open path equals, or ends with
+	// "/" + the normalised filename. Returns {mainWikiPath, kind, entry} for the
+	// first match (kind is "milestone" or "rotation"; rotation entries also carry
+	// their slot letter), else null.
+	function findBackupByFile(allStashes, currentNorm, norm) {
 		if (!allStashes || typeof allStashes !== "object" || !currentNorm || typeof norm !== "function") return null;
+		var matches = function (filename) {
+			if (!filename) return false;
+			var fn = norm(filename);
+			return !!fn && (currentNorm === fn || currentNorm.slice(-(fn.length + 1)) === "/" + fn);
+		};
 		for (var key in allStashes) {
 			if (!Object.prototype.hasOwnProperty.call(allStashes, key)) continue;
 			var stash = allStashes[key];
 			var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones : [];
 			for (var i = 0; i < ms.length; i++) {
-				var m = ms[i];
-				if (!m || !m.filename) continue;
-				var fn = norm(m.filename);
-				if (!fn) continue;
-				if (currentNorm === fn || currentNorm.slice(-(fn.length + 1)) === "/" + fn) {
-					return {mainWikiPath: key, milestone: m};
+				if (ms[i] && matches(ms[i].filename)) return {mainWikiPath: key, kind: "milestone", entry: ms[i]};
+			}
+			var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? stash.rotation : {};
+			for (var slot in rot) {
+				if (Object.prototype.hasOwnProperty.call(rot, slot) && rot[slot] && matches(rot[slot].filename)) {
+					return {mainWikiPath: key, kind: "rotation", entry: Object.assign({slot: slot}, rot[slot])};
 				}
 			}
 		}
@@ -181,5 +188,5 @@
 	root.reminderFileCount = reminderFileCount;
 	root.reminderTotalSize = reminderTotalSize;
 	root.evaluateReminders = evaluateReminders;
-	root.findMilestoneByFile = findMilestoneByFile;
+	root.findBackupByFile = findBackupByFile;
 })(typeof globalThis !== "undefined" ? globalThis : this);
