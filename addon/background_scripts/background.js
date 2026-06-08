@@ -447,7 +447,8 @@ async function createBackup(message) {
 			var pathX = path.parse(message.path);
 			var nameX = path.join(message.subdir, backupdir, pathX.base, pathX.name + "(" + nextChar + ")" + pathX.ext);
 
-			var element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
+			var blob = new Blob([message.txt], {type: "text/html"});
+			var element = URL.createObjectURL(blob);
 
 			try {
 				itemId = await browser.downloads.download({
@@ -466,8 +467,15 @@ async function createBackup(message) {
 			// Store the config elements per tab.
 			counter = counter + 1;
 
+			let withCounter = Object.assign({}, stash, {counter: counter});
+			let withRotation = recordRotationSlot(withCounter, nextChar, {
+				ts: Date.now(),
+				size: blob.size,
+				downloadId: itemId,
+				filename: nameX
+			});
 			await browser.storage.local.set({
-				[message.path]: Object.assign({}, stash, {counter: counter})
+				[message.path]: withRotation
 			})
 		} // if backupEnabled
 	} // if items
@@ -496,7 +504,8 @@ async function createMilestoneFile(message) {
 	let stem = pathX.name + "(" + ts + ")" + (label ? "-" + label : "");
 	let nameX = path.join(message.subdir, backupdir, pathX.base, stem + pathX.ext);
 
-	let element = URL.createObjectURL(new Blob([message.txt], {type: "text/html"}));
+	let blob = new Blob([message.txt], {type: "text/html"});
+	let element = URL.createObjectURL(blob);
 	let itemId;
 	try {
 		itemId = await browser.downloads.download({
@@ -507,12 +516,22 @@ async function createMilestoneFile(message) {
 		});
 	} catch (err) {
 		URL.revokeObjectURL(element);
-		// Don't rethrow — main wiki save already succeeded; the milestone
+		// Don't rethrow. Main wiki save already succeeded; the milestone
 		// is the optional extra. Failure is logged for diagnostics only.
 		console.log("createMilestoneFile error:", err);
 		return;
 	}
 	blobs[itemId] = element;
+
+	let fresh = await browser.storage.local.get(message.path);
+	let stash = unwrapStash(fresh[message.path]);
+	let withMilestone = recordMilestone(stash, {
+		ts: Date.now(),
+		size: blob.size,
+		downloadId: itemId,
+		filename: nameX
+	});
+	await browser.storage.local.set({[message.path]: withMilestone});
 }
 
 async function downloadWiki(message) {
