@@ -147,10 +147,39 @@
 		return out;
 	}
 
+	// Recognise an open file as a tracked milestone snapshot (phase 3). The AddOn
+	// records every milestone's stored filename, so given the file currently open
+	// we can both recognise that it IS a milestone and recover its MAIN wiki — the
+	// stash key. allStashes is the raw storage.local map (key = main-wiki path);
+	// currentNorm is the open file's normalised path; norm() normalises a stored
+	// filename the same way (slashes/case/decode). Stored filenames are relative
+	// to the download root, the open path is absolute, so a match is: the open
+	// path equals, or ends with "/" + the normalised filename. Returns
+	// {mainWikiPath, milestone} for the first match, else null.
+	function findMilestoneByFile(allStashes, currentNorm, norm) {
+		if (!allStashes || typeof allStashes !== "object" || !currentNorm || typeof norm !== "function") return null;
+		for (var key in allStashes) {
+			if (!Object.prototype.hasOwnProperty.call(allStashes, key)) continue;
+			var stash = allStashes[key];
+			var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones : [];
+			for (var i = 0; i < ms.length; i++) {
+				var m = ms[i];
+				if (!m || !m.filename) continue;
+				var fn = norm(m.filename);
+				if (!fn) continue;
+				if (currentNorm === fn || currentNorm.slice(-(fn.length + 1)) === "/" + fn) {
+					return {mainWikiPath: key, milestone: m};
+				}
+			}
+		}
+		return null;
+	}
+
 	root.recordRotationSlot = recordRotationSlot;
 	root.recordMilestone = recordMilestone;
 	root.getEffectiveLimit = getEffectiveLimit;
 	root.reminderFileCount = reminderFileCount;
 	root.reminderTotalSize = reminderTotalSize;
 	root.evaluateReminders = evaluateReminders;
+	root.findMilestoneByFile = findMilestoneByFile;
 })(typeof globalThis !== "undefined" ? globalThis : this);

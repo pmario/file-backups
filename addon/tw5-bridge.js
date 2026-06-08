@@ -109,6 +109,7 @@
 			attachAwarenessTestListener();
 			attachReminderTestListener();
 			attachReminderActionListener();
+			attachShowBackupsListener();
 			attachGlobalPrefsListener();
 			attachSummaryListener();
 			var index = await fetch(BASE_URL + INDEX_FILE).then(function (r) { return r.json(); });
@@ -178,6 +179,19 @@
 			} catch (err) {
 				console.log("[fb-bridge] open milestone modal failed:", err);
 			}
+		});
+	}
+
+	// The rotation summary tiddler's "Open backups folder" button is a real TW
+	// <$button> sending tm-file-backups-show-backups; the message bubbles to the
+	// root widget. We relay it to the content script as a DOM event on the
+	// messagebox so it can ask the background to open the OS file manager
+	// (downloads.show) — something page context cannot do directly.
+	function attachShowBackupsListener() {
+		var box = document.getElementById("tiddlyfox-message-box");
+		$tw.rootWidget.addEventListener("tm-file-backups-show-backups", function () {
+			if (box) box.dispatchEvent(new CustomEvent("file-backups-show-backups"));
+			return false;
 		});
 	}
 

@@ -56,3 +56,16 @@ li.fb-flash {
 	-webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 	        mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 }
+
+button.fb-open-backups {
+	cursor: pointer;
+	padding: 0.3em 0.9em;
+	border: 1px solid #93c5fd;
+	border-radius: 3px;
+	background: #dbeafe;
+	color: #0c0c0d;
+}
+
+button.fb-open-backups:hover {
+	background: #bfdbfe;
+}

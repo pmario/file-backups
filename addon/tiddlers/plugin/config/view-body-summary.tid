@@ -1,0 +1,5 @@
+title: $:/config/ViewTemplateBodyFilters/file-backups-summary
+tags: $:/tags/ViewTemplateBodyFilter
+list-before: $:/config/ViewTemplateBodyFilters/system
+
+[prefix[$:/temp/plugins/file-backups/summary/]then[$:/core/ui/ViewTemplate/body/default]]

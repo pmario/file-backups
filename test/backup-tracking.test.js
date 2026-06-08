@@ -219,4 +219,37 @@ ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50}}, milestones: [{s
 ok(reminderTotalSize({rotation: {A: {size: "big"}, B: {}}, milestones: [{size: NaN}]}) === 0,
 	"reminderTotalSize: non-numeric sizes ignored");
 
+// ---- findMilestoneByFile ----
+// Pure string matching — it never touches the filesystem — so all inputs are
+// SYNTHETIC and PORTABLE: no real or absolute file paths are hardcoded. The
+// "open" (absolute) path is built by prefixing an arbitrary download root onto
+// the stored (relative) filename, which is exactly the relationship the matcher
+// relies on. tnorm mirrors contentScript's fbNorm (lowercase, strip file://,
+// unify slashes, drop leading slash); stored filenames use OS (backslash)
+// separators because background.js builds them with path.join on Windows.
+function tnorm(s) { return String(s).toLowerCase().replace(/^file:\/+/, "").replace(/\\/g, "/").replace(/^\/+/, ""); }
+
+let relA = "backups\\notes.html\\notes(SNAP-A).html";
+let relB = "backups\\notes.html\\notes(SNAP-B).html";
+let mStashes = {
+	"WIKI_MAIN_1": {milestones: [{ts: 111, filename: relA, label: "v1"}, {ts: 222, filename: relB}]},
+	"WIKI_MAIN_2": {milestones: [{ts: 1, filename: "backups\\other.html\\other(SNAP).html"}]}
+};
+
+// Open path = arbitrary root + the stored relative filename (separators unified).
+let openA = tnorm("any/download/root/" + relA.replace(/\\/g, "/"));
+let mFound = findMilestoneByFile(mStashes, openA, tnorm);
+ok(mFound && mFound.mainWikiPath === "WIKI_MAIN_1", "findMilestone: an open milestone file resolves to its main wiki");
+ok(mFound && mFound.milestone && mFound.milestone.label === "v1", "findMilestone: returns the matched milestone entry");
+
+ok(findMilestoneByFile(mStashes, tnorm("any/root/notes.html"), tnorm) === null,
+	"findMilestone: the main wiki file itself is not a milestone");
+ok(findMilestoneByFile(mStashes, tnorm("any/root/unknown.html"), tnorm) === null,
+	"findMilestone: an untracked file yields null");
+ok(findMilestoneByFile({K: {milestones: [{ts: 1, filename: "notes.html"}]}}, tnorm("root/x-notes.html"), tnorm) === null,
+	"findMilestone: a non-boundary path suffix does not false-match");
+ok(findMilestoneByFile(null, "x", tnorm) === null, "findMilestone: null stashes -> null");
+ok(findMilestoneByFile({K: {milestones: "nope"}}, "x", tnorm) === null, "findMilestone: non-array milestones -> null (no throw)");
+ok(findMilestoneByFile(mStashes, "", tnorm) === null, "findMilestone: empty current path -> null");
+
 console.log("done");

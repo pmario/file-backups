@@ -12,11 +12,26 @@ const PLUGIN_NAME = "file-backups"
 // wiki to write snoozedUntil for.
 var fbReminders = {milestone: null, count: null, size: null};
 var fbWikiPath = null;
+// Set at startup when the open file is itself a tracked milestone snapshot:
+// {mainWikiPath, mainWikiUrl, milestone}. Drives the milestone banner + a notice
+// in the summary, both linking back to the main wiki.
+var fbMilestoneContext = null;
 
 // This wiki's location WITHOUT the #fragment — TiddlyWiki rewrites the fragment
 // as you navigate, so it must not be part of any key comparison.
 function fbWikiUrl() {
 	return (document.URL || "").split("#")[0];
+}
+
+// Build a clickable file:// URL from a stored wiki path (a storage.local key, an
+// OS path with backslashes on Windows). Used to link from a milestone snapshot
+// back to its main wiki. encodeURI keeps the drive-letter ':' and '/' separators
+// while escaping spaces etc.
+function fbPathToUrl(p) {
+	if (!p) return null;
+	var s = String(p).replace(/\\/g, "/");
+	if (/^file:/i.test(s)) return s;
+	return "file:///" + encodeURI(s.replace(/^\/+/, ""));
 }
 
 // Normalise a path / URL-path for comparison: decode %xx, unify slashes, drop a
@@ -212,6 +227,16 @@ function fbGeneratedNote(now) {
 	return "<<<\n''Generated at wiki startup'' (" + fbFormatTs(now) + "), refreshed after each save. It lists only backups this AddOn has recorded, so your backup folder may contain more.\n<<<";
 }
 
+// "Open backups folder" — a real TW <$button> that sends a widget message. The
+// page-context bridge listens for it on $tw.rootWidget and relays it to the
+// content script (the only context that can open the OS file manager, via the
+// background openBackupFolder handler). A plain file:// link would just list the
+// folder inside Firefox rather than opening the system file manager. Shared by
+// both summary tiddlers so the markup can't drift.
+function fbOpenBackupsButton() {
+	return "<$button class=\"fb-open-backups\"><$action-sendmessage $message=\"tm-file-backups-show-backups\"/>Open backups folder</$button>";
+}
+
 // Rotation entries (newest first) and their table — shared by the full tiddler
 // and the latest-5 CP preview.
 function fbRotationRows(stash) {
@@ -253,6 +278,8 @@ function fbMilestoneTable(rows) {
 function buildRotationFull(stash, now) {
 	var rows = fbRotationRows(stash);
 	var out = ["!! Rotating backups", ""];
+	out.push(fbOpenBackupsButton());
+	out.push("");
 	if (rows.length) {
 		var first = rows.reduce(function (m, e) { return (typeof e.ts === "number" && (m === null || e.ts < m)) ? e.ts : m; }, null);
 		out.push("Tower-of-Hanoi rotation in `" + fbDirName(rows[0].filename) + "`. The slots below all share the same wiki-file name (only the ''(A)'' / ''(B)'' / … suffix differs). First tracked save: " + fbFormatTs(first) + ".");
@@ -273,9 +300,28 @@ function buildRotationPreview(stash) {
 
 // Full milestones tiddler: filename folder once, the WHOLE table (newest first,
 // Label + Description prominent), and the generated-at note.
-function buildMilestonesFull(stash, now) {
+// Notice shown at the top of the milestones summary when the open file is itself
+// a milestone snapshot: states it plainly and links back to the main wiki.
+function fbMilestoneContextNotice(ctx) {
+	var m = (ctx && ctx.milestone) || {};
+	var label = m.label ? " “" + m.label + "”" : "";
+	var link = (ctx && ctx.mainWikiUrl)
+		? "<a class=\"tc-tiddlylink-external\" href=\"" + ctx.mainWikiUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\">Open the main wiki</a>"
+		: "the main wiki";
+	return "@@background:#fef9c3;padding:0.4em 0.7em;\n''You are viewing a milestone snapshot''" + label + " saved " + fbFormatTs(m.ts) + ". It is a read-only point-in-time copy. " + link + " to keep working.\n@@";
+}
+
+function buildMilestonesFull(stash, now, ctx) {
 	var rows = fbMilestoneRows(stash);
 	var out = ["!! Milestones", ""];
+	if (ctx) {
+		// On a milestone snapshot there is no own backup list — only point the
+		// user back to the main wiki.
+		out.push(fbMilestoneContextNotice(ctx));
+		return out.join("\n");
+	}
+	out.push(fbOpenBackupsButton());
+	out.push("");
 	if (rows.length) {
 		out.push("Milestone snapshots in `" + fbDirName(rows[0] && rows[0].filename) + "`.");
 		out.push("");
@@ -288,7 +334,8 @@ function buildMilestonesFull(stash, now) {
 	return out.join("\n");
 }
 
-function buildMilestonesPreview(stash) {
+function buildMilestonesPreview(stash, ctx) {
+	if (ctx) return fbMilestoneContextNotice(ctx);
 	var rows = fbMilestoneRows(stash);
 	return rows.length ? fbMilestoneTable(rows.slice(0, 5)) : "//No milestones tracked yet.//";
 }
@@ -310,15 +357,74 @@ function sendSummary() {
 				if (fbNorm(key) === target) { stash = all[key]; break; }
 			}
 		}
+		// If this file is itself a milestone snapshot there's no stash under its
+		// own key; show the main wiki's tracked data instead, and pass the context
+		// so the milestones tiddler carries the "this is a milestone of X" notice.
+		var msCtx = fbMilestoneContext;
+		if (!stash && msCtx && all[msCtx.mainWikiPath]) {
+			stash = all[msCtx.mainWikiPath];
+		}
 		var now = Date.now();
 		var payload = JSON.stringify({
 			rotationFull: buildRotationFull(stash, now),
 			rotationPreview: buildRotationPreview(stash),
-			milestonesFull: buildMilestonesFull(stash, now),
-			milestonesPreview: buildMilestonesPreview(stash)
+			milestonesFull: buildMilestonesFull(stash, now, msCtx),
+			milestonesPreview: buildMilestonesPreview(stash, msCtx)
 		});
 		box.dispatchEvent(new CustomEvent("file-backups-summary", {detail: payload}));
 	}).catch(function () {});
+}
+
+// At startup, recognise when the open file is itself a tracked milestone
+// snapshot. The AddOn records every milestone's filename, so we match this file's
+// path against them across all wikis (findMilestoneByFile, from backup-tracking).
+// On a hit we show the banner and re-send the summary so its milestones tiddler
+// carries the same notice — both linking back to the main wiki.
+function detectMilestoneContext() {
+	browser.storage.local.get(null).then(function (all) {
+		var hit = (typeof findMilestoneByFile === "function") ? findMilestoneByFile(all, fbWikiPathNorm(), fbNorm) : null;
+		if (!hit) return;
+		fbMilestoneContext = {
+			mainWikiPath: hit.mainWikiPath,
+			mainWikiUrl: fbPathToUrl(hit.mainWikiPath),
+			milestone: hit.milestone
+		};
+		renderMilestoneBanner(fbMilestoneContext);
+		sendSummary();
+	}).catch(function () {});
+}
+
+// Startup "message box" (an in-page banner, not a modal) shown when the open file
+// is a milestone snapshot. States it plainly and links back to the main wiki via
+// a real anchor (native navigation, no click handler); dismissible.
+function renderMilestoneBanner(ctx) {
+	var existing = document.getElementById("fb-milestone-banner");
+	if (existing) existing.parentNode.removeChild(existing);
+	if (!ctx) return;
+	var m = ctx.milestone || {};
+	var box = document.createElement("div");
+	box.id = "fb-milestone-banner";
+	box.style = "position:fixed; left:0; right:0; top:1em; max-width:60%; margin-left:auto; margin-right:auto; padding:10px 14px; background:#fef9c3; border:1px solid #eab308; color:#0c0c0d; z-index:10000; font-size:initial; box-shadow:0 1px 4px rgba(0,0,0,0.15);";
+
+	var label = m.label ? " “" + m.label + "”" : "";
+	var text = document.createElement("span");
+	text.textContent = "This is a milestone backup" + label + " (saved " + fbFormatTs(m.ts) + "). It is a read-only snapshot — edit the main wiki, not this file. ";
+	box.appendChild(text);
+
+	if (ctx.mainWikiUrl) {
+		var link = document.createElement("a");
+		link.href = ctx.mainWikiUrl;
+		link.textContent = "Open the main wiki";
+		link.style = "font-weight:600; margin-right:10px;";
+		box.appendChild(link);
+	}
+
+	var dismiss = document.createElement("button");
+	dismiss.textContent = "Dismiss";
+	dismiss.addEventListener("click", function () { if (box.parentNode) box.parentNode.removeChild(box); });
+	box.appendChild(dismiss);
+
+	document.body.appendChild(box);
 }
 
 // Primary action for a reminder. A milestone reminder opens the milestone
@@ -608,12 +714,26 @@ function injectMessageBox(doc) {
 	// tracked data and send it back for injection (also refreshed after a save).
 	messageBox.addEventListener("file-backups-request-summary", sendSummary, false);
 
+	// The rotation summary tiddler's "Open backups folder" button is a TW
+	// <$button> sending the widget message tm-file-backups-show-backups. The
+	// page-context bridge catches it on $tw.rootWidget and dispatches this DOM
+	// event on the messagebox; we forward it to the background openBackupFolder
+	// handler — only the extension context can open the OS file manager
+	// (downloads.show) — the same action the reminder banner's "Show backups" uses.
+	messageBox.addEventListener("file-backups-show-backups", function () {
+		browser.runtime.sendMessage({msg: "openBackupFolder"}).catch(function () {});
+	}, false);
+
 	// Inject the TW5 page-context bridge now that the messagebox and our save
 	// listener are in place. The bridge attaches a capture-phase listener on
 	// the same element so it runs before the one above.
 	if (isTiddlyWiki5File(doc)) {
 		injectPageScript(doc, 'tw5-bridge.js');
 	}
+
+	// Recognise (at startup) whether this open file is a tracked milestone
+	// snapshot and, if so, greet the user with a banner linking to the main wiki.
+	detectMilestoneContext();
 }
 
 function saveFile(filePath, content, subdir, backupdir, saveas, milestone, milestoneLabel, milestoneTs, milestoneDescription, overrides, cb) {
