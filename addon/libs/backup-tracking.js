@@ -104,10 +104,11 @@
 	// reminder message quotes when that reminder fires and is not snoozed, else
 	// null. A kind is null whenever its effective limit is 0 (opt-in off), so
 	// all-limits-0 yields all-null (silent).
-	// Count + size ignore entries flagged missing (the startup reconcile sets
-	// entry.missing = true when downloads.search reports the file is gone): a
-	// deleted backup no longer occupies the folder, so it must not count toward
-	// the file-count or total-size limits.
+	// Count + size reflect what's actually in the folder: tracked entries flagged
+	// missing (the reconcile / folder-sync sets entry.missing when the file is
+	// gone) are EXCLUDED, and folder-sync-discovered files (stash.discovered —
+	// present in the folder but never download-tracked) are INCLUDED. Both keep
+	// the reminders aligned with the summary's accounting.
 	function reminderFileCount(stash) {
 		var rot = 0;
 		if (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) {
@@ -119,7 +120,8 @@
 		if (stash && Array.isArray(stash.milestones)) {
 			stash.milestones.forEach(function (m) { if (m && !m.missing) ms++; });
 		}
-		return rot + ms;
+		var disc = (stash && Array.isArray(stash.discovered)) ? stash.discovered.length : 0;
+		return rot + ms + disc;
 	}
 
 	function reminderTotalSize(stash) {
@@ -135,6 +137,11 @@
 		if (stash && Array.isArray(stash.milestones)) {
 			stash.milestones.forEach(function (m) {
 				if (m && !m.missing && typeof m.size === "number" && isFinite(m.size)) total += m.size;
+			});
+		}
+		if (stash && Array.isArray(stash.discovered)) {
+			stash.discovered.forEach(function (d) {
+				if (d && typeof d.size === "number" && isFinite(d.size)) total += d.size;
 			});
 		}
 		return total;
@@ -190,6 +197,14 @@
 					return {mainWikiPath: key, kind: "rotation", entry: Object.assign({slot: slot}, rot[slot])};
 				}
 			}
+			// Folder-sync-discovered files (present in the folder, never download-
+			// tracked) — checked last so a download-tracked match always wins.
+			var disc = (stash && Array.isArray(stash.discovered)) ? stash.discovered : [];
+			for (var j = 0; j < disc.length; j++) {
+				if (disc[j] && matches(disc[j].filename || disc[j].name)) {
+					return {mainWikiPath: key, kind: "scan", entry: disc[j]};
+				}
+			}
 		}
 		return null;
 	}
@@ -209,7 +224,15 @@
 			var name;
 			try { name = decodeURIComponent(parts[0]); } catch (e) { name = parts[0]; }
 			var size = parseInt(parts[1], 10);
-			out.push({name: name, size: isFinite(size) ? size : 0});
+			// 3rd column is the last-modified date (URL-encoded RFC date); use it as
+			// the entry's ts so discovered rows format + sort like tracked ones.
+			var ts = 0;
+			if (parts.length >= 3) {
+				var dstr; try { dstr = decodeURIComponent(parts[2]); } catch (e) { dstr = parts[2]; }
+				var d = Date.parse(dstr);
+				if (isFinite(d)) ts = d;
+			}
+			out.push({name: name, size: isFinite(size) ? size : 0, ts: ts});
 		});
 		return out;
 	}
@@ -248,7 +271,13 @@
 		var discovered = [];
 		(Array.isArray(files) ? files : []).forEach(function (f) {
 			if (!f || !f.name || matched[String(f.name).toLowerCase()]) return;
-			discovered.push({name: f.name, size: (typeof f.size === "number" && isFinite(f.size)) ? f.size : 0, source: "scan"});
+			discovered.push({
+				name: f.name,
+				size: (typeof f.size === "number" && isFinite(f.size)) ? f.size : 0,
+				ts: (typeof f.ts === "number" && isFinite(f.ts)) ? f.ts : 0, // file mtime from the listing
+				filename: f.filename || null, // relative path (for a link), set by the caller
+				source: "scan"
+			});
 		});
 		stash.discovered = discovered;
 		return {tracked: tracked, missing: missing, discovered: discovered.length};

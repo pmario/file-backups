@@ -12,6 +12,10 @@ const PLUGIN_NAME = "file-backups"
 // wiki to write snoozedUntil for.
 var fbReminders = {milestone: null, count: null, size: null};
 var fbWikiPath = null;
+// The per-wiki milestone-remind override captured on the last save (or null to
+// inherit the global). Sent with Snooze so the background sizes the snooze window
+// to this wiki's EFFECTIVE interval, not just the global default.
+var fbRemindOverride = null;
 // Set at startup when the open file is itself a tracked backup (milestone or
 // rotation slot): {mainWikiPath, mainWikiUrl, kind, entry}. Drives the backup
 // banner + a notice in the summary, both linking back to the main wiki.
@@ -127,6 +131,17 @@ function fbWikiUrlFromBackupDir(dirUrl) {
 	return wikiDir + wikiBase;
 }
 
+// The backup folder's path relative to the wiki directory: its last two URL
+// segments (<backupdir>/<wikiBase>/), decoded. Prefixed onto each listed file
+// name to form the relative filename fbFileUrl needs to build a link.
+function fbDirRelPrefix(dirUrl) {
+	var u = String(dirUrl || "").replace(/\/+$/, "");
+	var parts = u.split("/");
+	if (parts.length < 2) return "";
+	function dec(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+	return dec(parts[parts.length - 2]) + "/" + dec(parts[parts.length - 1]) + "/";
+}
+
 // On a backup folder's directory-listing page (matched via file:///*/), read the
 // listing SAME-ORIGIN (a page fetching its own URL — the only file:// read
 // Firefox allows us) and sync it into the owning wiki's tracking. Stays silent
@@ -143,6 +158,10 @@ function dirSync() {
 		if (!key) return; // not a tracked wiki's backup folder
 		fetch(dirUrl).then(function (r) { return r.text(); }).then(function (text) {
 			var files = (typeof parseIndexFormat === "function") ? parseIndexFormat(text) : [];
+			// Tag each file with its path relative to the wiki dir so discovered
+			// rows can build a clickable link back to the file.
+			var relPrefix = fbDirRelPrefix(dirUrl);
+			files.forEach(function (f) { if (f && f.name) f.filename = relPrefix + f.name; });
 			var stash = all[key] || {};
 			var result = syncScannedFiles(stash, files);
 			browser.storage.local.set({[key]: stash}).then(function () {
@@ -220,7 +239,7 @@ function snoozeReminder(kind) {
 	fbReminders[kind] = null;
 	renderReminderBanners();
 	if (fbWikiPath) {
-		browser.runtime.sendMessage({msg: "snoozeReminder", kind: kind, path: fbWikiPath}).then(function (resp) {
+		browser.runtime.sendMessage({msg: "snoozeReminder", kind: kind, path: fbWikiPath, remindOverride: fbRemindOverride}).then(function (resp) {
 			if (resp && resp.until) renderSnoozeNotice(kind, resp.until);
 		}).catch(function () {});
 	}
@@ -307,21 +326,26 @@ function fbOpenBackupsButton() {
 	return "<$button class=\"fb-open-backups\"><$action-sendmessage $message=\"tm-file-backups-show-backups\"/>Open backups folder</$button>";
 }
 
-// Which list a folder-sync-discovered file belongs to, by filename shape:
-// rotation slots end with "(X)" (a single letter) or the first-slot date form
-// "(…T…Z)"; everything else is treated as a milestone.
+// The AddOn names backups "<wiki>(<slot-or-ts>)[-label].html", so the FIRST
+// "(…)" holds the slot/timestamp. Match the first, not the last — a duplicated
+// file like "…-Copy (2).html" has a trailing "(2)" that must be ignored.
+function fbNameKey(name) {
+	var m = String(name || "").match(/\(([^()]*)\)/);
+	return (m && m[1]) ? m[1] : null;
+}
+
+// Which list a folder-sync-discovered file belongs to: rotation slots are "(X)"
+// (a single letter) or the first-slot date form "(…T…Z)"; else a milestone.
 function fbDiscoveredKind(name) {
-	var m = String(name || "").match(/\(([^()]*)\)(?:-[^()]*)?\.html?$/i);
-	if (!m) return "milestone";
-	var inner = m[1];
+	var inner = fbNameKey(name);
+	if (!inner) return "milestone";
 	return (/^[A-Za-z]$/.test(inner) || /T.*Z$/.test(inner)) ? "rotation" : "milestone";
 }
 
-// The timestamp embedded in a backup filename ("(…)") — the only "date" we have
-// for a folder-sync-discovered file (it carries no tracked ts).
+// The slot/timestamp embedded in a backup filename — the only "date" we have for
+// a folder-sync-discovered file (it carries no tracked ts).
 function fbNameTimestamp(name) {
-	var m = String(name || "").match(/\(([^()]*)\)(?:-[^()]*)?\.html?$/i);
-	return (m && m[1]) ? m[1] : "?";
+	return fbNameKey(name) || "?";
 }
 
 // Folder-sync-discovered files (stash.discovered, source "scan") for one kind,
@@ -329,7 +353,7 @@ function fbNameTimestamp(name) {
 function fbDiscoveredRows(stash, kind) {
 	var disc = (stash && Array.isArray(stash.discovered)) ? stash.discovered : [];
 	return disc.filter(function (d) { return d && d.name && fbDiscoveredKind(d.name) === kind; })
-		.map(function (d) { return {name: d.name, size: d.size, source: "scan"}; });
+		.map(function (d) { return {name: d.name, size: d.size, ts: d.ts, filename: d.filename, source: "scan"}; });
 }
 
 // Source label for a row: download-tracked vs found by the folder sync.
@@ -348,21 +372,22 @@ function fbRotationRows(stash) {
 	return rows.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
 }
 
-// The "Saved" cell: a link to the backup .html if its URL can be built, else the
-// plain date. Clicking opens that snapshot. Shared by the rotation + milestone
-// tables.
-function fbSavedLink(ts, filename) {
-	var date = fbFormatTs(ts);
+// Wrap the "Saved" display text in a link to the backup .html when its URL can
+// be built (wiki dir + the last 3 segments of the relative filename); else plain
+// text. Used by tracked rows (text = date) and discovered rows (text = the
+// slot/timestamp parsed from the filename) — both carry a filename now, so both
+// link.
+function fbFileLink(text, filename) {
 	var url = fbFileUrl(filename);
-	return url ? "<a class=\"tc-tiddlylink-external\" href=\"" + url + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + date + "</a>" : date;
+	return url ? "<a class=\"tc-tiddlylink-external\" href=\"" + url + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + text + "</a>" : text;
 }
 
 function fbRotationTable(rows) {
 	var out = ["|!Slot|!Saved|!Size|!Source|"];
 	rows.forEach(function (e) {
 		var size = fbFormatBytes(e.size) + (e.missing ? " //(missing)//" : "");
-		var saved = e.filename ? fbSavedLink(e.ts, e.filename) : fbCell(fbNameTimestamp(e.name));
-		out.push("|" + fbCell(e.slot || "?") + "|" + saved + "|" + size + "|" + fbSource(e) + "|");
+		var savedText = (typeof e.ts === "number" && e.ts > 0) ? fbFormatTs(e.ts) : fbNameTimestamp(e.name);
+		out.push("|" + fbCell(e.slot || "?") + "|" + fbFileLink(fbCell(savedText), e.filename) + "|" + size + "|" + fbSource(e) + "|");
 	});
 	return out.join("\n");
 }
@@ -380,8 +405,8 @@ function fbMilestoneTable(rows) {
 	rows.forEach(function (m) {
 		m = m || {};
 		var size = fbFormatBytes(m.size) + (m.missing ? " //(missing)//" : "");
-		var saved = m.filename ? fbSavedLink(m.ts, m.filename) : fbCell(fbNameTimestamp(m.name));
-		out.push("|" + saved + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + size + "|" + fbSource(m) + "|");
+		var savedText = (typeof m.ts === "number" && m.ts > 0) ? fbFormatTs(m.ts) : fbNameTimestamp(m.name);
+		out.push("|" + fbFileLink(fbCell(savedText), m.filename) + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + size + "|" + fbSource(m) + "|");
 	});
 	return out.join("\n");
 }
@@ -442,11 +467,19 @@ function buildRotationPreview(stash, ctx) {
 function fbBackupNoticeParts(ctx) {
 	var kind = (ctx && ctx.kind) || "milestone";
 	var e = (ctx && ctx.entry) || {};
-	var fields = (kind === "rotation")
-		? [{name: "Slot", value: e.slot || "?"}]
-		: [{name: "Label", value: e.label || "none"}, {name: "Description", value: e.description || "none"}];
+	var lead, fields;
+	if (kind === "scan") {
+		lead = "You are viewing a folder-synced backup";
+		fields = [{name: "File", value: e.name || "?"}];
+	} else if (kind === "rotation") {
+		lead = "You are viewing a rotating backup";
+		fields = [{name: "Slot", value: e.slot || "?"}];
+	} else {
+		lead = "You are viewing a milestone snapshot";
+		fields = [{name: "Label", value: e.label || "none"}, {name: "Description", value: e.description || "none"}];
+	}
 	return {
-		lead: (kind === "rotation") ? "You are viewing a rotating backup" : "You are viewing a milestone snapshot",
+		lead: lead,
 		rest: " saved " + fbFormatTs(e.ts) + ". It is a read-only point-in-time copy.",
 		fields: fields,
 		mainWikiUrl: (ctx && ctx.mainWikiUrl) || null,
@@ -782,8 +815,11 @@ function injectMessageBox(doc) {
 		if (ovrSize) overrides.sizeLimitMB = Number(ovrSize);
 
 		// Remember which wiki this is so a later Snooze can target it, and so the
-		// summary can use the exact storage key (phase 3).
+		// summary can use the exact storage key (phase 3). Also remember the per-wiki
+		// milestone-remind override so Snooze can size its window to the effective
+		// interval (null = inherit the global default).
 		fbWikiPath = path;
+		fbRemindOverride = (typeof overrides.remindAfterDays === "number") ? overrides.remindAfterDays : null;
 
 		// Save the file
 		saveFile(path, content, subdir, backupdir, saveas, milestone, milestoneLabel, milestoneTs, milestoneDescription, overrides, cb);

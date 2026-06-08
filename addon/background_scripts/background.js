@@ -439,7 +439,11 @@ function handleMessages(message, sender, sendResponse) {
 			if (!wikiPath || !(kind === "milestone" || kind === "count" || kind === "size")) return null;
 			const got = await browser.storage.local.get([wikiPath, "defaultRemindMilestoneAfterDays"]);
 			const stash = unwrapStash(got[wikiPath]);
-			const days = (typeof got.defaultRemindMilestoneAfterDays === "number" && got.defaultRemindMilestoneAfterDays > 0) ? got.defaultRemindMilestoneAfterDays : 7;
+			// Snooze window = half this wiki's EFFECTIVE milestone-remind interval
+			// (the per-wiki override the content script sent wins over the global
+			// default), or 7 days when none is set.
+			const effDays = getEffectiveLimit({remindAfterDays: message.remindOverride}, {defaultRemindMilestoneAfterDays: got.defaultRemindMilestoneAfterDays}, "remindAfterDays");
+			const days = effDays > 0 ? effDays : 7;
 			const until = Date.now() + Math.floor(days * 86400000 / 2);
 			const snoozedUntil = Object.assign({milestone: null, count: null, size: null}, stash.snoozedUntil || {});
 			snoozedUntil[kind] = until;

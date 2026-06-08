@@ -222,6 +222,10 @@ ok(reminderFileCount({rotation: {A: {}, B: {missing: true}}, milestones: [{}, {m
 	"reminderFileCount: missing entries are not counted");
 ok(reminderTotalSize({rotation: {A: {size: 100}, B: {size: 50, missing: true}}, milestones: [{size: 25, missing: true}]}) === 100,
 	"reminderTotalSize: missing entries are not summed");
+ok(reminderFileCount({rotation: {A: {}}, milestones: [{}], discovered: [{name: "x"}, {name: "y"}]}) === 4,
+	"reminderFileCount: folder-sync-discovered files are counted");
+ok(reminderTotalSize({rotation: {A: {size: 100}}, milestones: [{size: 25}], discovered: [{size: 50}, {size: 5}]}) === 180,
+	"reminderTotalSize: folder-sync-discovered files are summed");
 
 // ---- findBackupByFile ----
 // Pure string matching — it never touches the filesystem — so all inputs are
@@ -262,11 +266,17 @@ ok(findBackupByFile(null, "x", tnorm) === null, "findBackup: null stashes -> nul
 ok(findBackupByFile({K: {milestones: "nope", rotation: "nope"}}, "x", tnorm) === null, "findBackup: hostile shapes -> null (no throw)");
 ok(findBackupByFile(mStashes, "", tnorm) === null, "findBackup: empty current path -> null");
 
+// A folder-synced (discovered) file is recognised too, with kind "scan".
+let dStashes = {WIKI_D: {discovered: [{name: "extra(2026).html", filename: "backups/notes.html/extra(2026).html", size: 1}]}};
+let dFound = findBackupByFile(dStashes, tnorm("any/root/backups/notes.html/extra(2026).html"), tnorm);
+ok(dFound && dFound.kind === "scan" && dFound.mainWikiPath === "WIKI_D", "findBackup: an open folder-synced file -> {scan, main wiki}");
+
 // ---- parseIndexFormat ----
-let idx = "300: /x/\n200: filename content-length last-modified file-type\n201: notes(A).html 100 1717869413 FILE\n201: notes%282026%29.html 250 1717869000 FILE\n201: sub 0 1 DIRECTORY\n";
+let idx = "300: /x/\n200: filename content-length last-modified file-type\n201: notes(A).html 100 Mon,%2008%20Jun%202026%2015:34:45%20GMT FILE\n201: notes%282026%29.html 250 1717869000 FILE\n201: sub 0 1 DIRECTORY\n";
 let pf = parseIndexFormat(idx);
 ok(pf.length === 2, "parseIndexFormat: only FILE entries (directory skipped)");
 ok(pf[0].name === "notes(A).html" && pf[0].size === 100, "parseIndexFormat: name + size of first file");
+ok(pf[0].ts > 0, "parseIndexFormat: last-modified date parsed into ts");
 ok(pf[1].name === "notes(2026).html" && pf[1].size === 250, "parseIndexFormat: URL-decoded name");
 ok(parseIndexFormat("").length === 0 && parseIndexFormat(null).length === 0, "parseIndexFormat: empty/null -> []");
 
@@ -281,7 +291,7 @@ let scanStash = {
 let scanFiles = [
 	{name: "notes(A).html", size: 100},     // matches rotation A
 	{name: "notes(2026).html", size: 250},  // matches the milestone
-	{name: "extra-old(C).html", size: 500}  // not tracked -> discovered ; B's file absent -> missing
+	{name: "extra(2026-06-08).html", size: 500, filename: "backups/notes.html/extra(2026-06-08).html"}  // not tracked -> discovered ; B's file absent -> missing
 ];
 let sres = syncScannedFiles(scanStash, scanFiles);
 ok(sres.tracked === 2 && sres.missing === 1 && sres.discovered === 1,
@@ -289,8 +299,10 @@ ok(sres.tracked === 2 && sres.missing === 1 && sres.discovered === 1,
 ok(scanStash.rotation.A.missing === false && scanStash.rotation.B.missing === true,
 	"syncScannedFiles: present/missing flags set on rotation");
 ok(scanStash.milestones[0].missing === false, "syncScannedFiles: present flag set on milestone");
-ok(scanStash.discovered.length === 1 && scanStash.discovered[0].name === "extra-old(C).html" && scanStash.discovered[0].source === "scan",
+ok(scanStash.discovered.length === 1 && scanStash.discovered[0].name === "extra(2026-06-08).html" && scanStash.discovered[0].source === "scan",
 	"syncScannedFiles: unmatched folder file recorded as discovered, marked source:scan");
+ok(scanStash.discovered[0].filename === "backups/notes.html/extra(2026-06-08).html",
+	"syncScannedFiles: discovered entry carries the caller-provided filename (for linking)");
 ok(syncScannedFiles(null, []).discovered === 0, "syncScannedFiles: null stash -> zero counts (no throw)");
 
 console.log("done");
