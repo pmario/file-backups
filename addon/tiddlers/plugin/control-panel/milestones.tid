@@ -23,3 +23,11 @@ Current time: <<now "YYYY-0MM-0DD 0hh:0mm:0ss">>
 </div>
 
 <$link to="$:/temp/plugins/file-backups/summary/milestones">Show all milestones »</$link>
+
+!! Folder sync
+
+Open this wiki's backup folder to sync it with the AddOn's records. Present files are confirmed, deleted ones are marked ''missing'', and any files not yet tracked are added. (Firefox only lets the AddOn read the folder from a page that opens it, so it syncs when the folder tab loads.)
+
+<$list filter="[[$:/temp/plugins/file-backups/backup-folder-url]has[text]]">
+<a href={{$:/temp/plugins/file-backups/backup-folder-url}} target="_blank" rel="noopener noreferrer">Open &amp; sync this wiki's backup folder »</a>
+</$list>

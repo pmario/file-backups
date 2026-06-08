@@ -262,4 +262,35 @@ ok(findBackupByFile(null, "x", tnorm) === null, "findBackup: null stashes -> nul
 ok(findBackupByFile({K: {milestones: "nope", rotation: "nope"}}, "x", tnorm) === null, "findBackup: hostile shapes -> null (no throw)");
 ok(findBackupByFile(mStashes, "", tnorm) === null, "findBackup: empty current path -> null");
 
+// ---- parseIndexFormat ----
+let idx = "300: /x/\n200: filename content-length last-modified file-type\n201: notes(A).html 100 1717869413 FILE\n201: notes%282026%29.html 250 1717869000 FILE\n201: sub 0 1 DIRECTORY\n";
+let pf = parseIndexFormat(idx);
+ok(pf.length === 2, "parseIndexFormat: only FILE entries (directory skipped)");
+ok(pf[0].name === "notes(A).html" && pf[0].size === 100, "parseIndexFormat: name + size of first file");
+ok(pf[1].name === "notes(2026).html" && pf[1].size === 250, "parseIndexFormat: URL-decoded name");
+ok(parseIndexFormat("").length === 0 && parseIndexFormat(null).length === 0, "parseIndexFormat: empty/null -> []");
+
+// ---- syncScannedFiles ----
+let scanStash = {
+	rotation: {
+		A: {filename: "sub/twBackups/notes.html/notes(A).html", size: 100},
+		B: {filename: "sub/twBackups/notes.html/notes(B).html", size: 90}
+	},
+	milestones: [{filename: "sub/twBackups/notes.html/notes(2026).html", size: 250, label: "v1"}]
+};
+let scanFiles = [
+	{name: "notes(A).html", size: 100},     // matches rotation A
+	{name: "notes(2026).html", size: 250},  // matches the milestone
+	{name: "extra-old(C).html", size: 500}  // not tracked -> discovered ; B's file absent -> missing
+];
+let sres = syncScannedFiles(scanStash, scanFiles);
+ok(sres.tracked === 2 && sres.missing === 1 && sres.discovered === 1,
+	"syncScannedFiles: counts {tracked:2, missing:1, discovered:1}");
+ok(scanStash.rotation.A.missing === false && scanStash.rotation.B.missing === true,
+	"syncScannedFiles: present/missing flags set on rotation");
+ok(scanStash.milestones[0].missing === false, "syncScannedFiles: present flag set on milestone");
+ok(scanStash.discovered.length === 1 && scanStash.discovered[0].name === "extra-old(C).html" && scanStash.discovered[0].source === "scan",
+	"syncScannedFiles: unmatched folder file recorded as discovered, marked source:scan");
+ok(syncScannedFiles(null, []).discovered === 0, "syncScannedFiles: null stash -> zero counts (no throw)");
+
 console.log("done");

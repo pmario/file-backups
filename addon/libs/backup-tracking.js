@@ -194,6 +194,66 @@
 		return null;
 	}
 
+	// Parse a Firefox file:// directory listing — the application/http-index-format
+	// body returned by fetch()ing a directory URL. Returns [{name, size}] for the
+	// FILE entries (directories/symlinks skipped); names are URL-decoded. Tolerates
+	// blank/header lines. Assumes the default columns the 200: header declares
+	// (filename, content-length, last-modified, file-type).
+	function parseIndexFormat(text) {
+		var out = [];
+		String(text == null ? "" : text).split(/\r?\n/).forEach(function (line) {
+			if (line.slice(0, 4) !== "201:") return;
+			var parts = line.slice(4).trim().split(/\s+/);
+			if (parts.length < 2) return;
+			if (parts[parts.length - 1] !== "FILE") return; // skip DIRECTORY / SYMBOLIC-LINK
+			var name;
+			try { name = decodeURIComponent(parts[0]); } catch (e) { name = parts[0]; }
+			var size = parseInt(parts[1], 10);
+			out.push({name: name, size: isFinite(size) ? size : 0});
+		});
+		return out;
+	}
+
+	// Sync a wiki's stash against a real folder listing (files from
+	// parseIndexFormat). The folder is the source of truth: tracked entries (from
+	// our downloads) get missing=false if present, missing=true if gone; files in
+	// the folder that match no tracked entry are recorded under stash.discovered
+	// with source:"scan" so they are distinguishable from download-tracked backups.
+	// Matching is by the last path segment (the listing gives bare filenames, the
+	// tracked filename is a full relative path), case-insensitive. MUTATES stash
+	// and returns {tracked, missing, discovered} counts.
+	function syncScannedFiles(stash, files) {
+		if (!stash || typeof stash !== "object") return {tracked: 0, missing: 0, discovered: 0};
+		var present = {};
+		(Array.isArray(files) ? files : []).forEach(function (f) {
+			if (f && f.name) present[String(f.name).toLowerCase()] = f;
+		});
+		function lastSeg(fn) {
+			var parts = String(fn || "").split(/[\\\/]/);
+			return parts[parts.length - 1].toLowerCase();
+		}
+		var tracked = 0, missing = 0, matched = {};
+		function reconcile(entry) {
+			if (!entry || !entry.filename) return;
+			var seg = lastSeg(entry.filename);
+			if (present[seg]) { entry.missing = false; tracked++; matched[seg] = true; }
+			else { entry.missing = true; missing++; }
+		}
+		if (stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) {
+			for (var slot in stash.rotation) {
+				if (Object.prototype.hasOwnProperty.call(stash.rotation, slot)) reconcile(stash.rotation[slot]);
+			}
+		}
+		if (Array.isArray(stash.milestones)) stash.milestones.forEach(reconcile);
+		var discovered = [];
+		(Array.isArray(files) ? files : []).forEach(function (f) {
+			if (!f || !f.name || matched[String(f.name).toLowerCase()]) return;
+			discovered.push({name: f.name, size: (typeof f.size === "number" && isFinite(f.size)) ? f.size : 0, source: "scan"});
+		});
+		stash.discovered = discovered;
+		return {tracked: tracked, missing: missing, discovered: discovered.length};
+	}
+
 	root.recordRotationSlot = recordRotationSlot;
 	root.recordMilestone = recordMilestone;
 	root.getEffectiveLimit = getEffectiveLimit;
@@ -201,4 +261,6 @@
 	root.reminderTotalSize = reminderTotalSize;
 	root.evaluateReminders = evaluateReminders;
 	root.findBackupByFile = findBackupByFile;
+	root.parseIndexFormat = parseIndexFormat;
+	root.syncScannedFiles = syncScannedFiles;
 })(typeof globalThis !== "undefined" ? globalThis : this);

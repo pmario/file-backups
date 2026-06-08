@@ -237,6 +237,9 @@
 			write("$:/temp/plugins/file-backups/summary/rotation/preview", data.rotationPreview);
 			write("$:/temp/plugins/file-backups/summary/milestones", data.milestonesFull);
 			write("$:/temp/plugins/file-backups/summary/milestones/preview", data.milestonesPreview);
+			// This wiki's backup folder URL, for a CP link the user clicks to open
+			// (and thereby sync) the folder — the only file:// read Firefox allows.
+			write("$:/temp/plugins/file-backups/backup-folder-url", data.backupFolderUrl);
 		});
 		box.dispatchEvent(new CustomEvent("file-backups-request-summary"));
 	}

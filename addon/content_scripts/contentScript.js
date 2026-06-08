@@ -111,7 +111,54 @@ function createDomElements(parent, el) {
 
 
 // main function
+// Derive the owning wiki's URL from a backup folder URL. Backups live at
+// <wikiDir>/<backupdir>/<wikiBase>/ (a sibling of the wiki), so the wiki is
+// <wikiDir>/<wikiBase> — i.e. drop the backupdir segment.
+function fbWikiUrlFromBackupDir(dirUrl) {
+	var u = String(dirUrl || "").replace(/\/+$/, "");
+	var i1 = u.lastIndexOf("/");
+	if (i1 < 0) return null;
+	var wikiBase = u.slice(i1 + 1);
+	var before = u.slice(0, i1);
+	var i2 = before.lastIndexOf("/");
+	if (i2 < 0) return null;
+	var wikiDir = before.slice(0, i2 + 1);
+	if (!wikiBase || !wikiDir) return null;
+	return wikiDir + wikiBase;
+}
+
+// On a backup folder's directory-listing page (matched via file:///*/), read the
+// listing SAME-ORIGIN (a page fetching its own URL — the only file:// read
+// Firefox allows us) and sync it into the owning wiki's tracking. Stays silent
+// unless the folder belongs to a tracked wiki.
+function dirSync() {
+	var dirUrl = fbWikiUrl();
+	var wikiUrl = fbWikiUrlFromBackupDir(dirUrl);
+	if (!wikiUrl) return;
+	var wikiNorm;
+	try { wikiNorm = fbNorm(new URL(wikiUrl).pathname); } catch (e) { wikiNorm = fbNorm(wikiUrl); }
+	browser.storage.local.get(null).then(function (all) {
+		var key = null;
+		for (var k in all) { if (fbNorm(k) === wikiNorm) { key = k; break; } }
+		if (!key) return; // not a tracked wiki's backup folder
+		fetch(dirUrl).then(function (r) { return r.text(); }).then(function (text) {
+			var files = (typeof parseIndexFormat === "function") ? parseIndexFormat(text) : [];
+			var stash = all[key] || {};
+			var result = syncScannedFiles(stash, files);
+			browser.storage.local.set({[key]: stash}).then(function () {
+				renderScanNotice("File Backups synced this folder: " + files.length + " files — " + result.tracked + " tracked, " + result.discovered + " new, " + result.missing + " missing.");
+			}).catch(function (e) { renderScanNotice("File Backups: storage write failed: " + (e && e.message)); });
+		}).catch(function (err) { renderScanNotice("File Backups: folder read failed: " + (err && err.message)); });
+	}).catch(function (e) { renderScanNotice("File Backups: " + (e && e.message)); });
+}
+
 function main() {
+	// A backup folder's directory-listing page (URL ends with "/"): read + sync it
+	// here (same-origin), then stop — the TW machinery below doesn't apply.
+	if (/\/$/.test((document.URL || "").split("#")[0])) {
+		dirSync();
+		return;
+	}
 	// check, if we are allowed to run!!
 	if (isTiddlyWiki5File(document) || isTiddlyWikiClassicFile(document)) {
 		injectMessageBox(document);
@@ -260,14 +307,45 @@ function fbOpenBackupsButton() {
 	return "<$button class=\"fb-open-backups\"><$action-sendmessage $message=\"tm-file-backups-show-backups\"/>Open backups folder</$button>";
 }
 
+// Which list a folder-sync-discovered file belongs to, by filename shape:
+// rotation slots end with "(X)" (a single letter) or the first-slot date form
+// "(…T…Z)"; everything else is treated as a milestone.
+function fbDiscoveredKind(name) {
+	var m = String(name || "").match(/\(([^()]*)\)(?:-[^()]*)?\.html?$/i);
+	if (!m) return "milestone";
+	var inner = m[1];
+	return (/^[A-Za-z]$/.test(inner) || /T.*Z$/.test(inner)) ? "rotation" : "milestone";
+}
+
+// The timestamp embedded in a backup filename ("(…)") — the only "date" we have
+// for a folder-sync-discovered file (it carries no tracked ts).
+function fbNameTimestamp(name) {
+	var m = String(name || "").match(/\(([^()]*)\)(?:-[^()]*)?\.html?$/i);
+	return (m && m[1]) ? m[1] : "?";
+}
+
+// Folder-sync-discovered files (stash.discovered, source "scan") for one kind,
+// as display rows. They carry only name + size.
+function fbDiscoveredRows(stash, kind) {
+	var disc = (stash && Array.isArray(stash.discovered)) ? stash.discovered : [];
+	return disc.filter(function (d) { return d && d.name && fbDiscoveredKind(d.name) === kind; })
+		.map(function (d) { return {name: d.name, size: d.size, source: "scan"}; });
+}
+
+// Source label for a row: download-tracked vs found by the folder sync.
+function fbSource(e) { return (e && e.source === "scan") ? "Folder sync" : "downloads"; }
+
 // Rotation entries (newest first) and their table — shared by the full tiddler
-// and the latest-5 CP preview.
+// and the latest-5 CP preview. Download-tracked slots are tagged "downloads";
+// folder-sync-discovered rotation files are appended.
 function fbRotationRows(stash) {
 	var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? stash.rotation : {};
-	return Object.keys(rot).map(function (k) {
+	var rows = Object.keys(rot).map(function (k) {
 		var r = rot[k] || {};
-		return {slot: k, ts: r.ts, size: r.size, filename: r.filename, missing: r.missing};
-	}).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+		return {slot: k, ts: r.ts, size: r.size, filename: r.filename, missing: r.missing, source: "downloads"};
+	});
+	fbDiscoveredRows(stash, "rotation").forEach(function (d) { rows.push(d); });
+	return rows.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
 }
 
 // The "Saved" cell: a link to the backup .html if its URL can be built, else the
@@ -280,25 +358,30 @@ function fbSavedLink(ts, filename) {
 }
 
 function fbRotationTable(rows) {
-	var out = ["|!Slot|!Saved|!Size|"];
+	var out = ["|!Slot|!Saved|!Size|!Source|"];
 	rows.forEach(function (e) {
 		var size = fbFormatBytes(e.size) + (e.missing ? " //(missing)//" : "");
-		out.push("|" + fbCell(e.slot) + "|" + fbSavedLink(e.ts, e.filename) + "|" + size + "|");
+		var saved = e.filename ? fbSavedLink(e.ts, e.filename) : fbCell(fbNameTimestamp(e.name));
+		out.push("|" + fbCell(e.slot || "?") + "|" + saved + "|" + size + "|" + fbSource(e) + "|");
 	});
 	return out.join("\n");
 }
 
+// Download-tracked milestones tagged "downloads"; folder-sync-discovered
+// milestone files appended (newest first; discovered ones sort by name-ts = 0).
 function fbMilestoneRows(stash) {
-	var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.slice() : [];
+	var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.map(function (m) { return Object.assign({source: "downloads"}, m); }) : [];
+	fbDiscoveredRows(stash, "milestone").forEach(function (d) { ms.push(d); });
 	return ms.sort(function (a, b) { return ((b && b.ts) || 0) - ((a && a.ts) || 0); });
 }
 
 function fbMilestoneTable(rows) {
-	var out = ["|!Saved|!Label|!Description|!Size|"];
+	var out = ["|!Saved|!Label|!Description|!Size|!Source|"];
 	rows.forEach(function (m) {
 		m = m || {};
 		var size = fbFormatBytes(m.size) + (m.missing ? " //(missing)//" : "");
-		out.push("|" + fbSavedLink(m.ts, m.filename) + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + size + "|");
+		var saved = m.filename ? fbSavedLink(m.ts, m.filename) : fbCell(fbNameTimestamp(m.name));
+		out.push("|" + saved + "|" + fbCell(m.label || "") + "|" + fbCell(m.description || "") + "|" + size + "|" + fbSource(m) + "|");
 	});
 	return out.join("\n");
 }
@@ -442,10 +525,44 @@ function sendSummary() {
 			rotationFull: buildRotationFull(stash, now, bkCtx),
 			rotationPreview: buildRotationPreview(stash, bkCtx),
 			milestonesFull: buildMilestonesFull(stash, now, bkCtx),
-			milestonesPreview: buildMilestonesPreview(stash, bkCtx)
+			milestonesPreview: buildMilestonesPreview(stash, bkCtx),
+			backupFolderUrl: fbBackupDirUrl(all.backupdir || "twBackups") || ""
 		});
 		box.dispatchEvent(new CustomEvent("file-backups-summary", {detail: payload}));
 	}).catch(function () {});
+}
+
+// The backup folder for THIS wiki: its own directory + backupdir + wiki-file
+// name (backups live in a sibling <backupdir>/<wiki.html>/ folder). wikiBase is
+// taken straight from the URL (already encoded); backupdir comes from storage
+// (raw), so only it is encoded. Trailing slash = a directory URL.
+function fbBackupDirUrl(backupdir) {
+	var u = fbWikiUrl();
+	var lastSlash = u.lastIndexOf("/");
+	if (lastSlash < 0) return null;
+	var wikiDir = u.slice(0, lastSlash + 1);
+	var wikiBase = u.slice(lastSlash + 1);
+	if (!wikiBase) return null;
+	return wikiDir + encodeURIComponent(backupdir) + "/" + wikiBase + "/";
+}
+
+// Result banner for the folder scan (dismissible). Reused for errors too, since
+// fetching a file:// directory may be blocked — the message says what happened.
+function renderScanNotice(text) {
+	var existing = document.getElementById("fb-scan-notice");
+	if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+	var box = document.createElement("div");
+	box.id = "fb-scan-notice";
+	box.style = "position:fixed; left:0; right:0; top:1em; max-width:70%; margin-left:auto; margin-right:auto; padding:8px 12px; background:#dbeafe; border:1px solid #93c5fd; color:#0c0c0d; z-index:10000; font-size:initial; word-break:break-all;";
+	var span = document.createElement("span");
+	span.textContent = text;
+	box.appendChild(span);
+	var ok = document.createElement("button");
+	ok.textContent = "OK";
+	ok.style = "margin-left:10px;";
+	ok.addEventListener("click", function () { if (box.parentNode) box.parentNode.removeChild(box); });
+	box.appendChild(ok);
+	document.body.appendChild(box);
 }
 
 // At startup, recognise when the open file is itself a tracked backup — a

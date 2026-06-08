@@ -46,7 +46,8 @@
       ],
       "matches": [
         "file:///*.html",
-        "file:///*.htm"
+        "file:///*.htm",
+        "file:///*/"
       ],
       "run_at": "document_start"
     }
