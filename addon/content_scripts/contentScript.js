@@ -542,26 +542,45 @@ function buildMilestonesPreview(stash, ctx) {
 // STRING (a primitive crosses the Firefox content<->page boundary cleanly). At
 // startup we match this wiki's URL against the file-path keys in storage.local;
 // after a save we already hold the exact key (fbWikiPath) and use it directly.
+// This wiki's storage.local key: the exact key after a save (fbWikiPath), else
+// matched by normalised URL at startup, else, if this file is itself a tracked
+// backup, the main wiki's key. null if the wiki isn't tracked yet.
+function fbThisWikiKey(all) {
+	if (fbWikiPath && all[fbWikiPath]) return fbWikiPath;
+	var target = fbWikiPathNorm();
+	for (var key in all) {
+		if (fbNorm(key) === target) return key;
+	}
+	if (fbBackupContext && all[fbBackupContext.mainWikiPath]) return fbBackupContext.mainWikiPath;
+	return null;
+}
+
+// "Open backups folder" / reminder "Show backups": ask the background to reveal
+// THIS wiki's newest existing backup in the OS file manager. If it can't
+// (nothing tracked, download history cleared, file gone, OS reveal failed), open
+// the backup folder's file:// listing in a new tab instead — that also runs
+// Folder sync on it.
+function openThisWikisBackupFolder() {
+	browser.storage.local.get(null).then(function (all) {
+		var key = fbThisWikiKey(all);
+		var folderUrl = fbBackupDirUrl(all.backupdir || "twBackups");
+		return browser.runtime.sendMessage({msg: "openBackupFolder", key: key}).then(function (res) {
+			if (!(res && res.opened) && folderUrl) window.open(folderUrl, "_blank");
+		});
+	}).catch(function () {});
+}
+
 function sendSummary() {
 	browser.storage.local.get(null).then(function (all) {
 		var box = document.getElementById("tiddlyfox-message-box");
 		if (!box) return;
-		var stash = null;
-		if (fbWikiPath && all[fbWikiPath]) {
-			stash = all[fbWikiPath];
-		} else {
-			var target = fbWikiPathNorm();
-			for (var key in all) {
-				if (fbNorm(key) === target) { stash = all[key]; break; }
-			}
-		}
 		// If this file is itself a tracked backup (milestone or rotation slot) there's
-		// no stash under its own key; recover the main wiki's and pass the context so
-		// every summary section becomes a "this is a backup of X" notice + link.
+		// no stash under its own key; fbThisWikiKey recovers the main wiki's and we
+		// pass the context so every summary section becomes a "this is a backup of
+		// X" notice + link.
 		var bkCtx = fbBackupContext;
-		if (!stash && bkCtx && all[bkCtx.mainWikiPath]) {
-			stash = all[bkCtx.mainWikiPath];
-		}
+		var thisKey = fbThisWikiKey(all);
+		var stash = thisKey ? all[thisKey] : null;
 		var now = Date.now();
 		var payload = JSON.stringify({
 			rotationFull: buildRotationFull(stash, now, bkCtx),
@@ -689,7 +708,7 @@ function onReminderAction(kind) {
 		var box = document.getElementById("tiddlyfox-message-box");
 		if (box) box.dispatchEvent(new CustomEvent("file-backups-open-milestone"));
 	} else {
-		browser.runtime.sendMessage({msg: "openBackupFolder"}).catch(function () {});
+		openThisWikisBackupFolder();
 	}
 }
 
@@ -990,9 +1009,7 @@ function injectMessageBox(doc) {
 	// event on the messagebox; we forward it to the background openBackupFolder
 	// handler — only the extension context can open the OS file manager
 	// (downloads.show) — the same action the reminder banner's "Show backups" uses.
-	messageBox.addEventListener("file-backups-show-backups", function () {
-		browser.runtime.sendMessage({msg: "openBackupFolder"}).catch(function () {});
-	}, false);
+	messageBox.addEventListener("file-backups-show-backups", openThisWikisBackupFolder, false);
 
 	// Inject the TW5 page-context bridge now that the messagebox and our save
 	// listener are in place. The bridge attaches a capture-phase listener on

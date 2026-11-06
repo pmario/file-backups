@@ -536,36 +536,37 @@ function handleMessages(message, sender, sendResponse) {
 		})();
 	}
 
-	// "Show backups" reminder action: open the backup folder in the OS file
-	// manager via the newest tracked download (rotation slots + milestones from
-	// the phase-1 tracking schema). Falls back to the default Downloads folder if
-	// nothing is tracked yet. The extension only shows the folder; it never
-	// deletes anything. The full in-extension "Show backups" list is phase 4.
+	// "Open backups folder" / reminder "Show backups": reveal THIS wiki's backup
+	// folder in the OS file manager via its newest tracked download that still
+	// exists (rotation slots + milestones). message.key is the wiki's storage key,
+	// sent by the content script. Resolves {opened}; on false the content script
+	// opens the folder's file:// listing in a tab instead — never the default
+	// Downloads folder, which is the wrong place. The extension only shows the
+	// folder; it never deletes anything.
 	if (message.msg === "openBackupFolder") {
 		return (async () => {
 			const all = await browser.storage.local.get(null);
-			let latestId = null, latestTs = -1;
-			const consider = (rec) => {
-				if (rec && typeof rec.ts === "number" && rec.ts > latestTs && rec.downloadId != null) {
-					latestTs = rec.ts;
-					latestId = rec.downloadId;
+			const stash = message.key ? all[message.key] : null;
+			if (!stash || typeof stash !== "object") return {opened: false};
+			const recs = [];
+			const rot = stash.rotation || {};
+			for (const slot in rot) recs.push(rot[slot]);
+			if (Array.isArray(stash.milestones)) recs.push(...stash.milestones);
+			const ids = recs
+				.filter((r) => r && r.downloadId != null && !r.missing)
+				.sort((a, b) => (b.ts || 0) - (a.ts || 0))
+				.map((r) => r.downloadId);
+			for (const id of ids) {
+				try {
+					const found = await browser.downloads.search({id});
+					if (!found.length || found[0].exists === false) continue;
+					await browser.downloads.show(id);
+					return {opened: true};
+				} catch (err) {
+					// download history cleared or OS reveal failed — try the next one
 				}
-			};
-			for (const key in all) {
-				const stash = all[key];
-				if (!stash || typeof stash !== "object") continue;
-				const rot = stash.rotation || {};
-				for (const slot in rot) consider(rot[slot]);
-				const ms = Array.isArray(stash.milestones) ? stash.milestones : [];
-				for (const m of ms) consider(m);
 			}
-			try {
-				if (latestId != null) await browser.downloads.show(latestId);
-				else await browser.downloads.showDefaultFolder();
-			} catch (err) {
-				try { await browser.downloads.showDefaultFolder(); } catch (e) {}
-			}
-			return null;
+			return {opened: false};
 		})();
 	}
 }
