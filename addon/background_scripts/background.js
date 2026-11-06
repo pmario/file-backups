@@ -16,6 +16,10 @@ if (typeof compareVersions === "undefined") {
 	// eslint-disable-next-line no-undef
 	importScripts("/libs/compare-versions.js");
 }
+if (typeof fileAccessAllowed === "undefined") {
+	// eslint-disable-next-line no-undef
+	importScripts("/libs/file-access.js");
+}
 
 // `browser.*` is native in Firefox; Chromium only exposes `chrome.*`. The two
 // APIs are compatible at the call sites we use (promise-returning) since MV3.
@@ -165,9 +169,68 @@ browser.runtime.onStartup.addListener(activateOpenTwTabs);
 browser.runtime.onInstalled.addListener(reconcileBackups);
 browser.runtime.onStartup.addListener(reconcileBackups);
 
-// Two independent signals can raise the toolbar badge:
-//   - backupdir invalid  → "!"   (downloads.download would reject; saves fail)
-//   - update available   → "↻"   (AMO onUpdateAvailable, OR active check)
+// Local file access (Firefox 153+). Firefox 153 split file:// access out of
+// the host permissions into a separate "Access local files on your computer"
+// option in about:addons > extension > Permissions, OFF by default for all
+// extensions. Without it our file:///*.html content script is never injected,
+// TW finds no tiddlyfox-message-box and silently falls back to its download
+// saver (Downloads/Notes(1).html, Notes(2).html, ...).
+// The decision logic (which Firefox versions to trust, URL matching) lives in
+// libs/file-access.js so it can be unit-tested; this only gathers the inputs.
+async function hasFileAccess() {
+	if (!(browser.extension && browser.extension.isAllowedFileSchemeAccess)) return true;
+	let info = null;
+	if (browser.runtime.getBrowserInfo) {
+		try {
+			info = await browser.runtime.getBrowserInfo();
+		} catch (err) {}
+	}
+	const major = firefoxMajorVersion(globalThis.navigator && navigator.userAgent, info);
+	let apiResult = null;
+	try {
+		apiResult = await browser.extension.isAllowedFileSchemeAccess();
+	} catch (err) {}
+	return fileAccessAllowed(major, apiResult);
+}
+
+// Turning on the about:addons toggle should take effect without a tab reload,
+// if Firefox reports it as a permission change: re-evaluate the badge and
+// inject into already-open TW tabs. The popup also refreshes the badge on
+// open, in case Firefox doesn't fire these events for the toggle.
+async function onPermissionsChanged() {
+	await refreshBadge();
+	if (await hasFileAccess()) {
+		await activateOpenTwTabs();
+	}
+}
+if (browser.permissions && browser.permissions.onAdded) {
+	browser.permissions.onAdded.addListener(onPermissionsChanged);
+	browser.permissions.onRemoved.addListener(onPermissionsChanged);
+}
+
+// Re-check whenever a local .html/.htm page finishes loading, so the "!"
+// badge is up before the user's first save — not only after the popup was
+// opened. See isLocalHtmlUrl() in libs/file-access.js for what counts. The
+// "tabs" permission exposes the file:// URL. Firefox supports the filter
+// argument; Chromium doesn't (throws), so fall back to checking the URL here.
+function onLocalPageLoaded(tabId, changeInfo, tab) {
+	if (changeInfo.status !== "complete") return;
+	if (!isLocalHtmlUrl(tab && tab.url)) return;
+	refreshBadge();
+}
+try {
+	browser.tabs.onUpdated.addListener(onLocalPageLoaded, {
+		urls: ["file:///*.html", "file:///*.htm"],
+		properties: ["status"]
+	});
+} catch (err) {
+	browser.tabs.onUpdated.addListener(onLocalPageLoaded);
+}
+
+// Three independent signals can raise the toolbar badge:
+//   - no local file access → "!"   (content script never runs; saves fall back)
+//   - backupdir invalid    → "!"   (downloads.download would reject; saves fail)
+//   - update available     → "↻"   (AMO onUpdateAvailable, OR active check)
 // They share storage.local but distinct glyphs. "!" takes priority because
 // saving is broken — that's more urgent than an update notification. The
 // popup's save handler messages "refreshBadge" after persisting a valid
@@ -178,7 +241,9 @@ async function refreshBadge() {
 		state = await browser.storage.local.get({backupdir: "", updateAvailable: null});
 	} catch (err) { return; }
 	let text = "";
-	if (validateBackupDir(state.backupdir)) {
+	if (!(await hasFileAccess())) {
+		text = "!";
+	} else if (validateBackupDir(state.backupdir)) {
 		text = "!";
 	} else if (state.updateAvailable) {
 		text = "↻";
@@ -384,6 +449,11 @@ function handleMessages(message, sender, sendResponse) {
 	// is also pending).
 	if (message.msg === "refreshBadge") {
 		return refreshBadge();
+	}
+
+	// Popup asks whether local file access is granted (Firefox 153+).
+	if (message.msg === "getFileAccess") {
+		return hasFileAccess().then((allowed) => ({allowed}));
 	}
 
 	// Dev test affordance (beta builds only). The CP test buttons in

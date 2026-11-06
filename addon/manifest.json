@@ -30,6 +30,7 @@
       "libs/validate.js",
       "libs/compare-versions.js",
       "libs/backup-tracking.js",
+      "libs/file-access.js",
       "background_scripts/background.js"
     ],
     "service_worker": "background_scripts/background.js"
