@@ -188,6 +188,37 @@ input[type="checkbox"] {
 	background: #60a5fa;
 }
 
+.file-access-chip {
+	background: #fee2e2;
+	color: #0c0c0d;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 8px 16px;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.file-access-chip[hidden] {
+	display: none;
+}
+
+.file-access-text {
+	flex: 1;
+}
+
+.file-access-hint {
+	display: block;
+	margin-top: 4px;
+}
+
+.file-access-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 0 0 auto;
+}
+
 .validation-error {
 	padding: 0 16px 8px 16px;
 	color: #b91c1c;

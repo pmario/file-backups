@@ -11,6 +11,17 @@
 		<div class="text-section-header">File Backups - For TiddlyWiki - <span id="version" style="font-size: .7em">Version</span></div>
 	</div>
 
+	<div id="file-access-chip" class="panel-section file-access-chip" role="alert" hidden>
+		<div class="file-access-text">
+			<strong>Local file access is off</strong> &mdash; File Backups can't save your TiddlyWikis.
+			<span class="file-access-hint">Open <em>Extensions and Themes</em> &rarr; <em>Extensions</em> &rarr; <em>File Backups</em> &rarr; &ldquo;Permissions and data&rdquo; tab.</span>
+			<span class="file-access-hint">Turn on &ldquo;Access local files on your computer&rdquo;. Then reload the wiki tab.</span>
+		</div>
+		<div class="file-access-buttons">
+			<button type="button" id="file-access-settings" class="update-chip-button">Settings</button>
+		</div>
+	</div>
+
 	<div id="update-chip" class="panel-section update-chip" hidden>
 		<span class="update-chip-label" id="update-chip-label"></span>
 		<button type="button" id="update-chip-view" class="update-chip-button">View</button>

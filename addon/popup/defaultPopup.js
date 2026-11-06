@@ -108,6 +108,27 @@ async function renderUpdateUI() {
 	};
 }
 
+// Local file access warning (Firefox 153+, see hasFileAccess() in background.js).
+// An extension can't switch "Access local files on your computer" on itself
+// (permissions.request for file:///* was tested and doesn't toggle it), so the
+// popup only explains where the user turns it on. [Settings] opens the
+// add-on's about:addons page as a shortcut.
+async function renderFileAccessUI() {
+	const node = document.getElementById("file-access-chip");
+	let allowed = true;
+	try {
+		const res = await browser.runtime.sendMessage({msg: "getFileAccess"});
+		allowed = !res || res.allowed !== false;
+	} catch (err) {}
+	node.hidden = allowed;
+	if (allowed) return;
+
+	document.getElementById("file-access-settings").onclick = function () {
+		browser.runtime.openOptionsPage();
+		window.close();
+	};
+}
+
 function restore_options() {
 	backupdirNode = document.getElementById("backupdir");
 	backupdirErrorNode = document.getElementById("backupdir-error");
@@ -149,6 +170,11 @@ function restore_options() {
 
 	// Initial render of the update chip + footer button from cached storage.
 	renderUpdateUI();
+
+	// Warn if Firefox 153+ "Access local files" is off. Also refresh the badge,
+	// since the about:addons toggle may not fire permissions.onAdded.
+	renderFileAccessUI();
+	browser.runtime.sendMessage({msg: "refreshBadge"}).catch(() => {});
 
 	// Trigger an auto-check (silent, throttled). If it produces a new
 	// updateAvailable, the next popup open will pick it up — we don't redraw
