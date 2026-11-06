@@ -23,9 +23,10 @@ your wiki file**, so they disappear on reload.
 Two kinds of tiddlers do remain after the extension is gone — they're
 yours, not the extension's:
 
-- **$:/milestones** — the dictionary of milestone snapshots you took.
-  Each milestone you saved is a row in this tiddler. Delete it
-  manually if you don't want the history.
+- **$:/milestones** (TiddlyWiki 5) or **Milestones** (TiddlyWiki
+  Classic) — the list of milestone snapshots you took. Each milestone
+  you saved is a row in this tiddler. Delete it manually if you don't
+  want the history.
 - **Any settings you customised** — for example if you remapped
   **Alt+S** (Save As) or **Alt+M** (Save Milestone) to different keys
   in TiddlyWiki's Control Panel. These were shadow defaults shipped
@@ -47,7 +48,8 @@ or, for the latest beta, follow the
 What survives the uninstall and what doesn't:
 
 - **Saved into your wiki — preserved:** the `$:/milestones` tiddler
-  (your milestone snapshots) and any shortcut/visibility settings
+  (`Milestones` in TiddlyWiki Classic — your milestone snapshots) and
+  any shortcut/visibility settings
   you customised.
 - **Stored by the extension — reset:** the backup directory name,
   number of backups, beta-channel opt-in. Firefox wipes the
