@@ -304,6 +304,50 @@ ok(scanStash.discovered.length === 1 && scanStash.discovered[0].name === "extra(
 ok(scanStash.discovered[0].filename === "backups/notes.html/extra(2026-06-08).html",
 	"syncScannedFiles: discovered entry carries the caller-provided filename (for linking)");
 ok(syncScannedFiles(null, []).discovered === 0, "syncScannedFiles: null stash -> zero counts (no throw)");
+ok(sres.assigned === 0, "syncScannedFiles: non-AddOn filename (extra(2026-06-08)) is not adopted");
+
+// ---- syncScannedFiles: adopt exact AddOn filenames into the save record ----
+// Situation: storage was wiped (temporary AddOn removed + reloaded), the wiki was
+// saved once (empty record), the backup folder still holds the older files.
+let wiped = {counter: 2};
+let rel = "twBackups/test-file-backups.html/";
+let wipedFiles = [
+	"test-file-backups(A).html", "test-file-backups(B).html", "test-file-backups(c).html",
+	"test-file-backups(2026-11-06T19-36-00-193Z).html",
+	"test-file-backups(2026-11-06-21-02-05)-test-milestone.html",
+	"test-file-backups(2026-11-06-22-00-00).html",
+	"test-file-backups(A) - Copy.html",
+	"test-file-backups(2026-11-06-21-02-05)-test-milestone - Copy.html",
+	"notes.txt"
+].map((name, i) => ({name, size: 1000 + i, ts: 1762460000000 + i, filename: rel + name}));
+let wres = syncScannedFiles(wiped, wipedFiles);
+ok(wres.assigned === 6 && wres.discovered === 3 && wres.tracked === 0 && wres.missing === 0,
+	"adopt: 6 exact names adopted, copies + other file stay discovered (" + JSON.stringify(wres) + ")");
+ok(Object.keys(wiped.rotation).sort().join(",") === "2026-11-06T19-36-00-193Z,A,B,C",
+	"adopt: rotation slots A, B, C (lower-case c normalised) + first-save key");
+ok(wiped.rotation.A.size === 1000 && wiped.rotation.A.filename === rel + "test-file-backups(A).html" &&
+	wiped.rotation.A.ts === 1762460000000 && wiped.rotation.A.downloadId === undefined,
+	"adopt: slot entry carries size, folder filename, file mtime, no downloadId");
+ok(wiped.milestones.length === 2 && wiped.milestones[0].label === "test-milestone" && wiped.milestones[1].label === "",
+	"adopt: milestones adopted with the label from the filename");
+ok(wiped.milestones[0].ts === new Date(2026, 10, 6, 21, 2, 5).getTime(),
+	"adopt: milestone ts parsed from the filename (local time)");
+ok(wiped.lastMilestoneAt === new Date(2026, 10, 6, 22, 0, 0).getTime(),
+	"adopt: lastMilestoneAt = newest adopted milestone");
+ok(wiped.discovered.map(d => d.name).join("|") ===
+	"test-file-backups(A) - Copy.html|test-file-backups(2026-11-06-21-02-05)-test-milestone - Copy.html|notes.txt",
+	"adopt: copies and foreign files remain in discovered");
+
+// Slot already recorded by a real save: the folder's own (A) file matches it;
+// a second file claiming the same slot is not adopted over it.
+let busy = {rotation: {A: {filename: "/home/x/Downloads/twBackups/w.html/w(A).html", downloadId: 7, size: 5}}};
+let bres = syncScannedFiles(busy, [{name: "w(A).html", size: 5}, {name: "W(a).html", size: 6}]);
+ok(bres.tracked === 1 && busy.rotation.A.downloadId === 7, "adopt: tracked slot kept (matched by name)");
+
+// Re-running the sync is idempotent: adopted files now match their entries.
+let again = syncScannedFiles(wiped, wipedFiles);
+ok(again.assigned === 0 && again.tracked === 6 && again.discovered === 3 && wiped.milestones.length === 2,
+	"adopt: second sync adopts nothing new, 6 tracked (" + JSON.stringify(again) + ")");
 
 // ---- milestoneLabelFromName ----
 // createMilestoneFile names a milestone "<wiki>(<ts>)-<label><ext>" with <label>

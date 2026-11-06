@@ -268,9 +268,13 @@
 			}
 		}
 		if (Array.isArray(stash.milestones)) stash.milestones.forEach(reconcile);
-		var discovered = [];
+		var discovered = [], assigned = 0;
 		(Array.isArray(files) ? files : []).forEach(function (f) {
 			if (!f || !f.name || matched[String(f.name).toLowerCase()]) return;
+			// An exact rotation-slot or milestone filename becomes part of the save
+			// record (e.g. after a reinstall wiped storage); copies and anything
+			// else stay in the separate discovered list.
+			if (adoptScannedFile(stash, f)) { assigned++; return; }
 			discovered.push({
 				name: f.name,
 				size: (typeof f.size === "number" && isFinite(f.size)) ? f.size : 0,
@@ -280,7 +284,46 @@
 			});
 		});
 		stash.discovered = discovered;
-		return {tracked: tracked, missing: missing, discovered: discovered.length};
+		return {tracked: tracked, missing: missing, discovered: discovered.length, assigned: assigned};
+	}
+
+	// Filenames the AddOn itself writes, end-anchored so "- Copy" duplicates and
+	// other files never match:
+	//   rotation slot   <wiki>(A).html  or first save <wiki>(2026-11-06T19-36-00-193Z).html
+	//   milestone       <wiki>(2026-11-06-21-02-05)[-label].html  (local time)
+	var ROTATION_NAME_RE = /\(([A-Za-z]|\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)\)\.html?$/i;
+	var MILESTONE_NAME_RE = /\((\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})\)(?:-[a-z0-9-]+)?\.html?$/i;
+
+	// Put a folder-sync file into the save record if its name is an exact
+	// rotation-slot or milestone name and that place is free. Entries adopted
+	// this way have no downloadId (reconcileBackups skips them; the summary shows
+	// them as "Folder sync"). The next real save of a slot replaces its entry.
+	// Returns true if adopted.
+	function adoptScannedFile(stash, f) {
+		var size = (typeof f.size === "number" && isFinite(f.size)) ? f.size : 0;
+		var mtime = (typeof f.ts === "number" && isFinite(f.ts)) ? f.ts : 0;
+		var filename = f.filename || f.name;
+		var rm = String(f.name).match(ROTATION_NAME_RE);
+		if (rm) {
+			var slot = rm[1].length === 1 ? rm[1].toUpperCase() : rm[1];
+			if (!stash.rotation || typeof stash.rotation !== "object" || Array.isArray(stash.rotation)) stash.rotation = {};
+			if (stash.rotation[slot]) return false; // slot already recorded: keep as discovered
+			stash.rotation[slot] = {ts: mtime, size: size, filename: filename, missing: false};
+			return true;
+		}
+		var mm = String(f.name).match(MILESTONE_NAME_RE);
+		if (mm) {
+			var ts = new Date(+mm[1], +mm[2] - 1, +mm[3], +mm[4], +mm[5], +mm[6]).getTime();
+			if (!isFinite(ts)) ts = mtime;
+			if (!Array.isArray(stash.milestones)) stash.milestones = [];
+			stash.milestones.push({
+				ts: ts, size: size, filename: filename, missing: false,
+				label: milestoneLabelFromName(f.name), description: ""
+			});
+			if (typeof stash.lastMilestoneAt !== "number" || ts > stash.lastMilestoneAt) stash.lastMilestoneAt = ts;
+			return true;
+		}
+		return false;
 	}
 
 	// Recover the milestone label embedded in a backup filename. createMilestoneFile

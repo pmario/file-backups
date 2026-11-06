@@ -155,7 +155,16 @@ function dirSync() {
 	browser.storage.local.get(null).then(function (all) {
 		var key = null;
 		for (var k in all) { if (fbNorm(k) === wikiNorm) { key = k; break; } }
-		if (!key) return; // not a tracked wiki's backup folder
+		if (!key) {
+			// Only speak up for folders that look like ours (<backupdir>/<wiki>.html/);
+			// any other directory listing stays silent.
+			var backupdir = String(all.backupdir || "twBackups").toLowerCase();
+			if (fbNorm(dirUrl).indexOf("/" + backupdir + "/") !== -1) {
+				var wikiName = decodeURIComponent(wikiUrl.slice(wikiUrl.lastIndexOf("/") + 1));
+				renderScanNotice("File Backups: no save record for " + wikiName + " yet (for example after reinstalling the AddOn). Save the wiki once, then open this folder again to sync.");
+			}
+			return;
+		}
 		fetch(dirUrl).then(function (r) { return r.text(); }).then(function (text) {
 			var files = (typeof parseIndexFormat === "function") ? parseIndexFormat(text) : [];
 			// Tag each file with its path relative to the wiki dir so discovered
@@ -165,7 +174,7 @@ function dirSync() {
 			var stash = all[key] || {};
 			var result = syncScannedFiles(stash, files);
 			browser.storage.local.set({[key]: stash}).then(function () {
-				renderScanNotice("File Backups synced this folder: " + files.length + " files — " + result.tracked + " tracked, " + result.discovered + " new, " + result.missing + " missing.");
+				renderScanNotice("File Backups synced this folder: " + files.length + " files — " + result.tracked + " tracked, " + (result.assigned || 0) + " added to the save record, " + result.discovered + " other, " + result.missing + " missing.");
 			}).catch(function (e) { renderScanNotice("File Backups: storage write failed: " + (e && e.message)); });
 		}).catch(function (err) { renderScanNotice("File Backups: folder read failed: " + (err && err.message)); });
 	}).catch(function (e) { renderScanNotice("File Backups: " + (e && e.message)); });
@@ -358,6 +367,8 @@ function fbDiscoveredRows(stash, kind) {
 	return disc.filter(function (d) { return d && d.name && fbDiscoveredKind(d.name) === kind; })
 		.map(function (d) {
 			var row = {name: d.name, size: d.size, ts: d.ts, filename: d.filename, source: "scan"};
+			// e.g. a copy of slot A ("…(A) - Copy.html") shows slot "A"
+			if (kind === "rotation") row.slot = fbNameKey(d.name);
 			if (kind === "milestone" && typeof milestoneLabelFromName === "function") {
 				row.label = milestoneLabelFromName(d.name);
 			}
@@ -368,6 +379,10 @@ function fbDiscoveredRows(stash, kind) {
 // Source label for a row: download-tracked vs found by the folder sync.
 function fbSource(e) { return (e && e.source === "scan") ? "Folder sync" : "downloads"; }
 
+// A save-record entry written by a save has a downloadId; one adopted from the
+// backup folder by Folder sync (syncScannedFiles) has none.
+function fbRecordSource(r) { return (r && r.downloadId != null) ? "downloads" : "scan"; }
+
 // Rotation entries (newest first) and their table — shared by the full tiddler
 // and the latest-5 CP preview. Download-tracked slots are tagged "downloads";
 // folder-sync-discovered rotation files are appended.
@@ -375,7 +390,7 @@ function fbRotationRows(stash) {
 	var rot = (stash && stash.rotation && typeof stash.rotation === "object" && !Array.isArray(stash.rotation)) ? stash.rotation : {};
 	var rows = Object.keys(rot).map(function (k) {
 		var r = rot[k] || {};
-		return {slot: k, ts: r.ts, size: r.size, filename: r.filename, missing: r.missing, source: "downloads"};
+		return {slot: k, ts: r.ts, size: r.size, filename: r.filename, missing: r.missing, source: fbRecordSource(r)};
 	});
 	fbDiscoveredRows(stash, "rotation").forEach(function (d) { rows.push(d); });
 	return rows.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
@@ -404,7 +419,7 @@ function fbRotationTable(rows) {
 // Download-tracked milestones tagged "downloads"; folder-sync-discovered
 // milestone files appended (newest first; discovered ones sort by name-ts = 0).
 function fbMilestoneRows(stash) {
-	var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.map(function (m) { return Object.assign({source: "downloads"}, m); }) : [];
+	var ms = (stash && Array.isArray(stash.milestones)) ? stash.milestones.map(function (m) { return Object.assign({}, m, {source: fbRecordSource(m)}); }) : [];
 	fbDiscoveredRows(stash, "milestone").forEach(function (d) { ms.push(d); });
 	return ms.sort(function (a, b) { return ((b && b.ts) || 0) - ((a && a.ts) || 0); });
 }
