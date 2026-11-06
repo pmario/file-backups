@@ -7,9 +7,25 @@ title: File Backups for TiddlyWiki
 ## Introduction
 This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at "Getting Started With TiddlyWiki"[1].
 
-This add on should work with any browser that supports web-extensions. So far it's been tested with FireFox 56 ... up to FF 74 beta (2020.03.10).
-
 It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched off!
+
+## Requirements
+
+**Firefox 115 or newer**, including Firefox ESR 115 and later.
+
+### Allow access to local files (Firefox 153+)
+
+Since Firefox 153, extensions need your permission to work with local files, and it is **off by default**. Without it, File Backups can't save: your wiki ends up as `Notes(1).html`, `Notes(2).html`, ... in the Downloads folder, and the add-on's toolbar icon shows a **!**.
+
+To turn it on:
+
+1. Open **Extensions and Themes** → **Extensions** → **File Backups** → "Permissions and data" tab.
+2. Turn on "Access local files on your computer".
+3. Reload the wiki tab.
+
+The add-on's popup shows the same steps, and its **Settings** button opens the add-on page.
+
+If saving still ends up in Downloads (also on older Firefox versions), check the same "Permissions and data" tab and allow everything listed for local files.
 
 For an overview of this add on please see the introduction video: https://youtu.be/KVLtID8nElU
 
