@@ -442,6 +442,32 @@ function fbRowsTotalBytes(rows) {
 	return rows.reduce(function (s, e) { return (e && !e.missing && typeof e.size === "number" && isFinite(e.size)) ? s + e.size : s; }, 0);
 }
 
+// One summary row as display-ready plain data (TW Classic overview).
+function fbSummaryRowData(e) {
+	e = e || {};
+	return {
+		slot: e.slot || "",
+		saved: (typeof e.ts === "number" && e.ts > 0) ? fbFormatTs(e.ts) : fbNameTimestamp(e.name),
+		url: fbFileUrl(e.filename) || "",
+		size: fbFormatBytes(e.size),
+		missing: !!e.missing,
+		source: fbSource(e),
+		label: e.label || "",
+		description: e.description || ""
+	};
+}
+
+function fbSummaryData(stash) {
+	var rot = fbRotationRows(stash), ms = fbMilestoneRows(stash);
+	return {
+		tracked: !!stash,
+		rotation: rot.map(fbSummaryRowData),
+		rotationTotal: fbFormatBytes(fbRowsTotalBytes(rot)),
+		milestones: ms.map(fbSummaryRowData),
+		milestonesTotal: fbFormatBytes(fbRowsTotalBytes(ms))
+	};
+}
+
 function fbTotalSizeLine(rows) {
 	var missing = rows.filter(function (e) { return e && e.missing; }).length;
 	var line = "''Estimated total size:'' " + fbFormatBytes(fbRowsTotalBytes(rows));
@@ -602,7 +628,10 @@ function sendSummary() {
 			rotationPreview: buildRotationPreview(stash, bkCtx),
 			milestonesFull: buildMilestonesFull(stash, now, bkCtx),
 			milestonesPreview: buildMilestonesPreview(stash, bkCtx),
-			backupFolderUrl: fbBackupDirUrl(all.backupdir || "twBackups") || ""
+			backupFolderUrl: fbBackupDirUrl(all.backupdir || "twBackups") || "",
+			// Same rows as plain data, for TW Classic (classic/milestone.js renders
+			// them; Classic can't render the TW5 wikitext above).
+			data: fbSummaryData(stash)
 		});
 		box.dispatchEvent(new CustomEvent("file-backups-summary", {detail: payload}));
 	}).catch(function () {});

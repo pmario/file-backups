@@ -122,7 +122,7 @@
 		var p = pending;
 		pending = null;
 		if (!p || Date.now() - p.armedAt > PENDING_TTL_MS) return null;
-		return {label: p.label, ts: p.ts};
+		return {label: p.label, ts: p.ts, description: p.description || ""};
 	}
 
 	root.__fileBackupsClassicMilestone = {
@@ -314,6 +314,17 @@
 			}
 		});
 		h3.appendChild(allLink);
+		h3.appendChild(document.createTextNode(" \u00b7 "));
+		var overviewLink = document.createElement("a");
+		overviewLink.href = "#";
+		overviewLink.textContent = "Backups overview \u00bb";
+		overviewLink.title = "Open " + OVERVIEW_TITLE;
+		overviewLink.addEventListener("click", function (e) {
+			e.preventDefault();
+			closeModal();
+			root.story.displayTiddler(null, OVERVIEW_TITLE);
+		});
+		h3.appendChild(overviewLink);
 		var list = document.createElement("ul");
 		recent.appendChild(h3);
 		recent.appendChild(list);
@@ -330,7 +341,7 @@
 				root.alert("file-backups: could not record the milestone: " + err);
 				return;
 			}
-			pending = {label: label, ts: ts, armedAt: Date.now()};
+			pending = {label: label, ts: ts, description: String(descInput.value || "").trim(), armedAt: Date.now()};
 			root.saveChanges(false);
 			if (typeof root.displayMessage === "function") {
 				root.displayMessage("Milestone saved: " + ts + (label ? " (" + label + ")" : ""));
@@ -369,6 +380,176 @@
 		labelInput.focus();
 	}
 
+	// --- backup overview + reminder settings (FileBackups tiddler) ---------
+	//
+	// The content script sends the same backup summary it sends TW5 (as a
+	// JSON string; data = plain rows) and the global reminder defaults. We keep
+	// the latest copies and render them with <<fileBackupsSummary>> in the
+	// FileBackups shadow tiddler. The per-wiki overrides live in the
+	// FileBackupsConfig tiddler (slices), read by classic/inject.js on save.
+
+	var OVERVIEW_TITLE = "FileBackups";
+	var CONFIG_TITLE = "FileBackupsConfig";
+	var summary = null;      // {data, backupFolderUrl}
+	var globalPrefs = null;  // {defaultRemindMilestoneAfterDays, defaultFileCountLimit, defaultSizeLimitMB}
+
+	function messageBox() {
+		return document.getElementById("tiddlyfox-message-box");
+	}
+
+	function refreshOverview() {
+		try {
+			if (root.story && root.story.getTiddler(OVERVIEW_TITLE)) root.story.refreshTiddler(OVERVIEW_TITLE, null, true);
+		} catch (err) {}
+	}
+
+	function parseDetail(e) {
+		try { return JSON.parse((e && e.detail) || "null"); } catch (err) { return null; }
+	}
+
+	// The content script dispatches these on the message box without bubbling;
+	// listening in the capture phase on document catches them anyway, and works
+	// no matter whether the message box exists yet.
+	document.addEventListener("file-backups-summary", function (e) {
+		var d = parseDetail(e);
+		if (d) { summary = d; refreshOverview(); }
+	}, true);
+	document.addEventListener("file-backups-global-prefs", function (e) {
+		var d = parseDetail(e);
+		if (d) { globalPrefs = d; refreshOverview(); }
+	}, true);
+	// The reminder box's "Save milestone" button.
+	document.addEventListener("file-backups-open-milestone", function () {
+		openModal();
+	}, true);
+
+	// Ask for both once the content script's message box is there.
+	(function requestData(tries) {
+		var box = messageBox();
+		if (!box) {
+			if (tries < 50) setTimeout(function () { requestData(tries + 1); }, 100);
+			return;
+		}
+		box.dispatchEvent(new CustomEvent("file-backups-request-summary"));
+		box.dispatchEvent(new CustomEvent("file-backups-request-global-prefs"));
+	})(0);
+
+	function el(parent, tag, text, className) {
+		var e = document.createElement(tag);
+		if (className) e.className = className;
+		if (text != null) e.textContent = text;
+		if (parent) parent.appendChild(e);
+		return e;
+	}
+
+	function fileLink(parent, text, url) {
+		if (!url) return el(parent, "span", text);
+		var a = el(parent, "a", text, "externalLink");
+		a.href = url;
+		a.target = "_blank";
+		a.rel = "noopener noreferrer";
+		return a;
+	}
+
+	function table(parent, headers, rows, cells) {
+		var t = el(parent, "table", null, "twtable");
+		var tr = el(el(t, "thead"), "tr");
+		headers.forEach(function (h) { el(tr, "th", h); });
+		var tb = el(t, "tbody");
+		rows.forEach(function (r, i) {
+			var row = el(tb, "tr", null, i % 2 ? "evenRow" : "oddRow");
+			cells(r).forEach(function (c) {
+				var td = el(row, "td");
+				if (typeof c === "function") c(td); else td.textContent = c;
+			});
+		});
+		return t;
+	}
+
+	function sizeText(r) {
+		return r.size + (r.missing ? " (missing)" : "");
+	}
+
+	function renderOverview(place) {
+		var wrap = el(place, "div", null, "fbOverview");
+		var data = summary && summary.data;
+
+		el(wrap, "h2", "Rotating backups");
+		if (!data || !data.tracked) {
+			el(wrap, "p", "No save record for this wiki yet. Save the wiki once (or wait a moment after loading).");
+		} else if (!data.rotation.length) {
+			el(wrap, "p", "No rotating backups recorded yet.");
+		} else {
+			el(wrap, "p", "Estimated total size: " + data.rotationTotal);
+			table(wrap, ["Slot", "Saved", "Size", "Source"], data.rotation, function (r) {
+				return [r.slot || "?", function (td) { fileLink(td, r.saved, r.url); }, sizeText(r), r.source];
+			});
+		}
+
+		el(wrap, "h2", "Milestones");
+		if (data && data.tracked && data.milestones.length) {
+			el(wrap, "p", "Estimated total size: " + data.milestonesTotal);
+			table(wrap, ["Saved", "Label", "Description", "Size", "Source"], data.milestones, function (r) {
+				return [function (td) { fileLink(td, r.saved, r.url); }, r.label, r.description, sizeText(r), r.source];
+			});
+		} else if (data && data.tracked) {
+			el(wrap, "p", "No milestones recorded yet.");
+		}
+
+		el(wrap, "h2", "Backup folder");
+		var actions = el(wrap, "p");
+		root.createTiddlyButton(actions, "Open backups folder", "Show this wiki's backup folder in the file manager", function () {
+			var box = messageBox();
+			if (box) box.dispatchEvent(new CustomEvent("file-backups-show-backups"));
+			return false;
+		});
+		if (summary && summary.backupFolderUrl) {
+			el(actions, "span", " ");
+			fileLink(actions, "Open & sync this wiki's backup folder »", summary.backupFolderUrl);
+			el(wrap, "p", "Syncing compares the folder with the AddOn's records: files that are gone are marked missing, and backups the AddOn doesn't know yet are added.");
+		}
+
+		el(wrap, "h2", "Reminders");
+		el(wrap, "p", "Reminders are off by default. They are checked after each save. Set a value in " + CONFIG_TITLE + " to override the global default for this wiki; leave it empty to use the default, 0 turns it off for this wiki.");
+		var g = globalPrefs || {};
+		var reminders = [
+			["No milestone for this many days", "remindAfterDays", g.defaultRemindMilestoneAfterDays, "days"],
+			["Backup folder holds more than this many files", "fileCountLimit", g.defaultFileCountLimit, "files"],
+			["Backups use more than this much disk space", "sizeLimitMB", g.defaultSizeLimitMB, "MB"]
+		];
+		table(wrap, ["Reminder", "This wiki", "Global default"], reminders, function (r) {
+			var own = String(root.store.getTiddlerSlice(CONFIG_TITLE, r[1]) || "").trim();
+			var off = function (v) { return (!v || v === "0") ? "off" : v + " " + (v === "1" ? r[3].replace(/s$/, "") : r[3]); };
+			return [r[0], own === "" ? "(default)" : off(own), globalPrefs ? off(String(r[2] || 0)) : "?"];
+		});
+		var cfg = el(wrap, "p");
+		root.createTiddlyLink(cfg, CONFIG_TITLE, true);
+	}
+
+	root.config.macros.fileBackupsSummary = {
+		handler: function (place) {
+			renderOverview(place);
+		}
+	};
+
+	var shadowTexts = root.config.shadowTiddlers;
+	if (shadowTexts) {
+		shadowTexts[OVERVIEW_TITLE] = "<<fileBackupsSummary>>";
+		shadowTexts[CONFIG_TITLE] = [
+			"File Backups reminder settings for ''this wiki''. Leave a value empty to use the global default (AddOn options in about:addons). Enter a whole number to override it; 0 turns that reminder off for this wiki. Changes apply from the next save.",
+			"",
+			"|remindAfterDays| |",
+			"|fileCountLimit| |",
+			"|sizeLimitMB| |",
+			"",
+			"* ''remindAfterDays'': remind me if I haven't saved a milestone in this many days",
+			"* ''fileCountLimit'': remind me when the backup folder holds more than this many files",
+			"* ''sizeLimitMB'': remind me when backups use more than this much disk space (MB)",
+			"",
+			"See [[" + OVERVIEW_TITLE + "]] for the current backups."
+		].join("\n");
+	}
+
 	// --- entry points ------------------------------------------------------
 
 	var LABEL = "save milestone";
@@ -405,6 +586,17 @@
 		};
 		var at = root.config.backstageTasks.indexOf("save");
 		root.config.backstageTasks.splice(at === -1 ? 0 : at + 1, 0, "fileBackupsMilestone");
+	}
+	// Backstage "backups": opens the FileBackups overview tiddler (not a modal).
+	if (root.config.tasks && root.config.backstageTasks &&
+		root.config.backstageTasks.indexOf("fileBackupsOverview") === -1) {
+		root.config.tasks.fileBackupsOverview = {
+			text: "backups",
+			tooltip: "This wiki's backups and reminder settings",
+			action: function () { root.story.displayTiddler(null, OVERVIEW_TITLE); }
+		};
+		var at2 = root.config.backstageTasks.indexOf("fileBackupsMilestone");
+		root.config.backstageTasks.splice(at2 === -1 ? 0 : at2 + 1, 0, "fileBackupsOverview");
 	}
 
 	// Alt+M, like TW5's $:/config/shortcuts/save-milestone. Use e.code so it

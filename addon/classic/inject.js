@@ -42,13 +42,21 @@ var injectedSaveFile = function(path,content) {
 			messageBox.setAttribute("data-file-backups-milestone", "yes");
 			messageBox.setAttribute("data-file-backups-milestone-label", milestone.label || "");
 			messageBox.setAttribute("data-file-backups-milestone-ts", milestone.ts);
+			messageBox.setAttribute("data-file-backups-milestone-description", milestone.description || "");
 		}
+		// Per-wiki reminder overrides from the FileBackupsConfig tiddler (same
+		// attributes tw5-bridge.js sets from $:/config/file-backups/*). Empty =
+		// use the global default from the AddOn options.
+		messageBox.setAttribute("data-fb-remind", configSlice("remindAfterDays"));
+		messageBox.setAttribute("data-fb-count", configSlice("fileCountLimit"));
+		messageBox.setAttribute("data-fb-size", configSlice("sizeLimitMB"));
 		// Dispatch the custom event to the extension
 		message.dispatchEvent(new CustomEvent("tiddlyfox-save-file", {bubbles: true}));
 		if(milestone) {
 			messageBox.removeAttribute("data-file-backups-milestone");
 			messageBox.removeAttribute("data-file-backups-milestone-label");
 			messageBox.removeAttribute("data-file-backups-milestone-ts");
+			messageBox.removeAttribute("data-file-backups-milestone-description");
 		}
 	}
 	return true;
@@ -63,6 +71,17 @@ var isMainFile = function(path) {
 		}
 	} catch(ex) {}
 	return true;
+};
+
+// A whole number >= 0 from a FileBackupsConfig slice (|remindAfterDays|14|),
+// else "" (= inherit the global default).
+var configSlice = function(name) {
+	try {
+		var v = String(store.getTiddlerSlice("FileBackupsConfig", name) || "").trim();
+		return /^\d+$/.test(v) ? v : "";
+	} catch(ex) {
+		return "";
+	}
 };
 
 var takePendingMilestone = function() {
