@@ -33,10 +33,41 @@ var injectedSaveFile = function(path,content) {
 		message.setAttribute("data-tiddlyfox-path",path);
 		message.setAttribute("data-tiddlyfox-content",content);
 		messageBox.appendChild(message);
+		// Milestone armed by classic/milestone.js? The content script reads
+		// these attributes from the message box synchronously while the event
+		// is dispatched (same contract as tw5-bridge.js), so clear them again
+		// right after.
+		var milestone = isMainFile(path) ? takePendingMilestone() : null;
+		if(milestone) {
+			messageBox.setAttribute("data-file-backups-milestone", "yes");
+			messageBox.setAttribute("data-file-backups-milestone-label", milestone.label || "");
+			messageBox.setAttribute("data-file-backups-milestone-ts", milestone.ts);
+		}
 		// Dispatch the custom event to the extension
 		message.dispatchEvent(new CustomEvent("tiddlyfox-save-file", {bubbles: true}));
+		if(milestone) {
+			messageBox.removeAttribute("data-file-backups-milestone");
+			messageBox.removeAttribute("data-file-backups-milestone-label");
+			messageBox.removeAttribute("data-file-backups-milestone-ts");
+		}
 	}
 	return true;
+};
+
+// The milestone belongs to the wiki file itself, not to the extra files TW
+// Classic may write in the same save (empty template, RSS feed).
+var isMainFile = function(path) {
+	try {
+		if(typeof tw !== "undefined" && tw.io && tw.io.getOriginalLocalPath) {
+			return path === tw.io.getOriginalLocalPath();
+		}
+	} catch(ex) {}
+	return true;
+};
+
+var takePendingMilestone = function() {
+	var ms = window.__fileBackupsClassicMilestone;
+	return (ms && ms.takePendingMilestone) ? ms.takePendingMilestone() : null;
 };
 
 /*

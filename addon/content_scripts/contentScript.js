@@ -777,6 +777,10 @@ function injectMessageBox(doc) {
 	// check, if we are TWclassic!!
 	if (isTiddlyWikiClassicFile(doc)) {
 		injectPageScript(doc, 'classic/inject.js');
+		// Milestone modal, sidebar button, backstage task and Alt+M. Independent
+		// of inject.js load order: inject.js only looks the pending milestone
+		// up at save time.
+		injectPageScript(doc, 'classic/milestone.js');
 	}
 
 	// Inject the message box
