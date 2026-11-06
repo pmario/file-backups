@@ -20,13 +20,18 @@ your wiki file**, so they disappear on reload.
 
 ## What stays in your wiki
 
-Two kinds of tiddlers do remain after the extension is gone — they're
+Some tiddlers do remain after the extension is gone — they're
 yours, not the extension's:
 
 - **$:/milestones** (TiddlyWiki 5) or **Milestones** (TiddlyWiki
   Classic) — the list of milestone snapshots you took. Each milestone
   you saved is a row in this tiddler. Delete it manually if you don't
   want the history.
+- **Per-wiki reminder settings** — if you set any of the Backup
+  awareness values for this wiki in the Control Panel, they are stored
+  in `$:/config/file-backups/remindAfterDays`,
+  `$:/config/file-backups/fileCountLimit` and
+  `$:/config/file-backups/sizeLimitMB`.
 - **Any settings you customised** — for example if you remapped
   **Alt+S** (Save As) or **Alt+M** (Save Milestone) to different keys
   in TiddlyWiki's Control Panel. These were shadow defaults shipped

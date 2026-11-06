@@ -25,6 +25,8 @@ To turn it on:
 
 The add-on's popup shows the same steps, and its **Settings** button opens the add-on page.
 
+**Folder sync** (Control Panel → Settings → FileBackups) needs the same permission: without it, opening the backup folder shows the file list but nothing is synced.
+
 If saving still ends up in Downloads (also on older Firefox versions), check the same "Permissions and data" tab and allow everything listed for local files.
 
 For an overview of this add on please see the introduction video: https://youtu.be/KVLtID8nElU
