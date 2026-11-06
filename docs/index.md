@@ -7,7 +7,14 @@ title: File Backups for TiddlyWiki
 ## Introduction
 This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at "Getting Started With TiddlyWiki"[1].
 
-It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched off!
+It will save **TiddlyWiki5 and TiddlyWikiClassic** files.
+
+## Guides
+
+How to use File Backups in your wiki:
+
+- [File Backups for TiddlyWiki 5](tw5.html)
+- [File Backups for TiddlyWiki Classic](classic.html)
 
 ## Requirements
 
@@ -25,7 +32,7 @@ To turn it on:
 
 The add-on's popup shows the same steps, and its **Settings** button opens the add-on page.
 
-**Folder sync** (Control Panel → Settings → FileBackups) needs the same permission: without it, opening the backup folder shows the file list but nothing is synced.
+**Folder sync** (see the guides) needs the same permission: without it, opening the backup folder shows the file list but nothing is synced.
 
 If saving still ends up in Downloads (also on older Firefox versions), check the same "Permissions and data" tab and allow everything listed for local files.
 

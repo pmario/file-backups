@@ -11,37 +11,18 @@ Thanks for trying the extension!
 ## One small clean-up step
 
 If you have any **TiddlyWiki tabs open right now**, please reload them
-(`Ctrl+R` / `F5` / `Cmd+R`).
-
-While the extension was installed it added a few helper tiddlers under
-`$:/temp/plugins/file-backups/*` (the toolbar buttons, a readme and a
-license tiddler). They live in memory only and are **never saved into
-your wiki file**, so they disappear on reload.
+(`Ctrl+R` / `F5` / `Cmd+R`). The buttons and helper tiddlers the
+extension added live in memory only and are **never saved into your
+wiki file**, so they disappear on reload.
 
 ## What stays in your wiki
 
-Some tiddlers do remain after the extension is gone — they're
-yours, not the extension's:
+Your milestone list and any per-wiki settings you changed were saved
+into your wiki — they're yours, not the extension's, so they stay. The
+guides list them, in case you want to delete them:
 
-- **$:/milestones** (TiddlyWiki 5) or **Milestones** (TiddlyWiki
-  Classic) — the list of milestone snapshots you took. Each milestone
-  you saved is a row in this tiddler. Delete it manually if you don't
-  want the history.
-- **Per-wiki reminder settings** — if you set any of the Backup
-  awareness values for this wiki in the Control Panel, they are stored
-  in `$:/config/file-backups/remindAfterDays`,
-  `$:/config/file-backups/fileCountLimit` and
-  `$:/config/file-backups/sizeLimitMB`.
-- **Any settings you customised** — for example if you remapped
-  **Alt+S** (Save As) or **Alt+M** (Save Milestone) to different keys
-  in TiddlyWiki's Control Panel. These were shadow defaults shipped
-  by the extension; the moment you changed one, TiddlyWiki promoted
-  it to a real tiddler and saved it. Look under
-  
-  - `$:/config/shortcuts/save-wiki-as`,
-  - `$:/config/shortcuts/save-milestone`,
-  - `$:/config/PageControlButtons/Visibility/...` if you want to clean
-  them up.
+- [TiddlyWiki 5: after uninstalling](tw5.html#after-uninstalling)
+- [TiddlyWiki Classic: after uninstalling](classic.html#after-uninstalling)
 
 ## If you accidentally removed it
 
@@ -52,15 +33,15 @@ or, for the latest beta, follow the
 
 What survives the uninstall and what doesn't:
 
-- **Saved into your wiki — preserved:** the `$:/milestones` tiddler
-  (`Milestones` in TiddlyWiki Classic — your milestone snapshots) and
-  any shortcut/visibility settings
-  you customised.
+- **Saved into your wiki — preserved:** your milestone list and the
+  per-wiki settings you changed.
 - **Stored by the extension — reset:** the backup directory name,
-  number of backups, beta-channel opt-in. Firefox wipes the
-  extension's storage on uninstall, so these go back to defaults
-  after reinstall and you'll need to set them again.
-
+  number of backups, reminder defaults, beta-channel opt-in, and the
+  record of your backups. Firefox wipes the extension's storage on
+  uninstall, so these go back to defaults after reinstall. To get the
+  record of your existing backups back, save the wiki once and use
+  **Folder sync** ([TiddlyWiki 5](tw5.html#folder-sync) ·
+  [TiddlyWiki Classic](classic.html#folder-sync)).
 
 ## If you reinstall later
 

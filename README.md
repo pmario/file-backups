@@ -3,7 +3,14 @@
 ## Introduction
 This browser add on is designed to let you easily save and backup TiddlyWikis. It is a file-based system for a single user. If you'd like your TiddlyWiki available over the network or in the cloud, please check out other options at "Getting Started With TiddlyWiki"[1].
 
-It will save **TiddlyWiki5 and TiddlyWikiClassic** files. For TiddlyWikiClassic the TW internal backup mechanism is switched off!
+It will save **TiddlyWiki5 and TiddlyWikiClassic** files.
+
+## Guides
+
+How to use File Backups in your wiki:
+
+- [File Backups for TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html)
+- [File Backups for TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html)
 
 ## Requirements
 
