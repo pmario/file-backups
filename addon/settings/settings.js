@@ -23,12 +23,26 @@ function readNum(id) {
 	return (typeof n === "number" && isFinite(n) && n >= 0) ? n : 0;
 }
 
+// "Popup size": "auto" or a percentage (100–200), stored as such.
+function readPopupScale() {
+	var v = document.getElementById("popupScale").value;
+	return v === "auto" || !v ? "auto" : Number(v);
+}
+
+function writePopupScale(value) {
+	var select = document.getElementById("popupScale");
+	select.value = String(value);
+	if (!select.value) select.value = "auto"; // unknown stored value
+	if (select.fbRefresh) select.fbRefresh();
+}
+
 function readForm() {
 	return {
 		backupdir: document.getElementById('backupdir').value,
 		backupEnabled: document.getElementById("backup").checked,
 		numberOfBackups: document.getElementById('amount').valueAsNumber,
 		showBetaUpdates: document.getElementById("showBetaUpdates").checked,
+		popupScale: readPopupScale(),
 		defaultRemindMilestoneAfterDays: readNum('defaultRemindMilestoneAfterDays'),
 		defaultFileCountLimit: readNum('defaultFileCountLimit'),
 		defaultSizeLimitMB: readNum('defaultSizeLimitMB')
@@ -87,6 +101,7 @@ async function restore_options() {
 		backupEnabled: true,
 		numberOfBackups: 9,
 		showBetaUpdates: false,
+		popupScale: "auto",
 		defaultRemindMilestoneAfterDays: 0,
 		defaultFileCountLimit: 0,
 		defaultSizeLimitMB: 0
@@ -97,6 +112,7 @@ async function restore_options() {
 		document.getElementById('amount').value = items.numberOfBackups;
 		document.getElementById("backup").checked = items.backupEnabled;
 		document.getElementById("showBetaUpdates").checked = items.showBetaUpdates;
+		writePopupScale(items.popupScale);
 		document.getElementById('defaultRemindMilestoneAfterDays').value = items.defaultRemindMilestoneAfterDays;
 		document.getElementById('defaultFileCountLimit').value = items.defaultFileCountLimit;
 		document.getElementById('defaultSizeLimitMB').value = items.defaultSizeLimitMB;
@@ -106,10 +122,12 @@ async function restore_options() {
 }
 
 document.addEventListener('DOMContentLoaded', restore_options);
+enhanceSelect(document.getElementById('popupScale'));
 document.getElementById('backupdir').addEventListener('input', refreshBackupdirValidity);
 document.getElementById('backup').addEventListener('change', refreshSaveDirty);
 document.getElementById('amount').addEventListener('input', refreshSaveDirty);
 document.getElementById('showBetaUpdates').addEventListener('change', refreshSaveDirty);
+document.getElementById('popupScale').addEventListener('change', refreshSaveDirty);
 document.getElementById('defaultRemindMilestoneAfterDays').addEventListener('input', refreshSaveDirty);
 document.getElementById('defaultFileCountLimit').addEventListener('input', refreshSaveDirty);
 document.getElementById('defaultSizeLimitMB').addEventListener('input', refreshSaveDirty);

@@ -24,6 +24,43 @@ var baseline = null;
 
 const manifest = browser.runtime.getManifest();
 
+// "Popup size" preference (settings page): "auto" (default) follows
+// Firefox's default zoom (Settings → Zoom), which zooms web pages but not
+// add-on popups; or a fixed 100–200 %. The applied factor is cached in
+// localStorage so the popup opens at the right size without a visible
+// jump; storage.local stays the source of truth.
+const POPUP_SCALES = [100, 125, 150, 175, 200];
+const POPUP_AUTO_MAX = 3;
+
+function setPopupFactor(factor) {
+	const f = isFinite(factor) && factor > 0 ? factor : 1;
+	document.documentElement.style.setProperty("--fb-scale", String(f));
+	try {
+		localStorage.setItem("popupScaleFactor", String(f));
+	} catch (err) {}
+}
+
+async function popupFactor(setting) {
+	if (POPUP_SCALES.indexOf(Number(setting)) !== -1) return Number(setting) / 100;
+	// "auto" (or anything unknown): Firefox's default zoom, never below 100 %.
+	try {
+		const zs = await browser.tabs.getZoomSettings();
+		const z = Number(zs && zs.defaultZoomFactor);
+		if (isFinite(z) && z > 0) return Math.min(Math.max(z, 1), POPUP_AUTO_MAX);
+	} catch (err) {}
+	return 1;
+}
+
+try {
+	const cached = parseFloat(localStorage.getItem("popupScaleFactor"));
+	if (isFinite(cached) && cached > 0) {
+		document.documentElement.style.setProperty("--fb-scale", String(cached));
+	}
+} catch (err) {}
+browser.storage.local.get({popupScale: "auto"})
+	.then((items) => popupFactor(items.popupScale))
+	.then(setPopupFactor, () => {});
+
 const WHATSNEW_BASE = "https://pmario.github.io/file-backups/news";
 
 // Build the per-minor What's New URL for the installed version. Same shape as

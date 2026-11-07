@@ -92,6 +92,68 @@
 			outline: none;
 		}
 
+		.fb-select {
+			position: relative;
+			display: inline-block;
+		}
+
+		.fb-select-button {
+			font: inherit;
+			min-width: 7em;
+			padding: 2px 1.8em 2px 8px;
+			text-align: left;
+			border: 1px solid #8f8f9d;
+			border-radius: 4px;
+			background: #e9e9ed url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23333' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 8px center;
+			color: #15141a;
+			cursor: pointer;
+		}
+
+		.fb-select-button:hover {
+			background-color: #d0d0d7;
+		}
+
+		.fb-select-button:focus-visible {
+			outline: 2px solid #0061e0;
+			outline-offset: 1px;
+		}
+
+		.fb-select-list {
+			position: absolute;
+			top: calc(100% + 2px);
+			left: 0;
+			z-index: 10;
+			min-width: 100%;
+			margin: 0;
+			padding: 4px 0;
+			list-style: none;
+			background: #fff;
+			border: 1px solid #8f8f9d;
+			border-radius: 4px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		}
+
+		.fb-select-list[hidden] {
+			display: none;
+		}
+
+		.fb-select-list li {
+			padding: 3px 12px;
+			white-space: nowrap;
+			cursor: pointer;
+		}
+
+		.fb-select-list li[aria-selected="true"] {
+			font-weight: 600;
+		}
+
+		.fb-select-list li:hover,
+		.fb-select-list li:focus {
+			background: #0061e0;
+			color: #fff;
+			outline: none;
+		}
+
 		button[disabled] {
 			opacity: 0.5;
 			cursor: not-allowed;
@@ -123,6 +185,24 @@
 				<td align="left"><input type="checkbox" id="showBetaUpdates"></td>
 			</tr>
 			<tr>
+				<td align="right"><label for="popupScale">Popup size:</label></td>
+				<td align="left">
+					<select id="popupScale">
+						<option value="auto">Auto</option>
+						<option value="100">100 %</option>
+						<option value="125">125 %</option>
+						<option value="150">150 %</option>
+						<option value="175">175 %</option>
+						<option value="200">200 %</option>
+					</select>
+					<div class="section-hint">Auto follows Firefox's default zoom<br>(Settings &rarr; Zoom).</div>
+				</td>
+			</tr>
+			<tr>
+				<td align="right"><button id="save">Save</button></td>
+				<td align="left"><span id="status"></span></td>
+			</tr>
+			<tr>
 				<th colspan="2" class="section-header">Backup awareness</th>
 			</tr>
 			<tr>
@@ -139,10 +219,6 @@
 			<tr>
 				<td align="right"><label for="defaultSizeLimitMB">Remind me when backups use more than this much disk space (MB):</label></td>
 				<td align="left"><input type="number" id="defaultSizeLimitMB" min="0" step="1"></td>
-			</tr>
-			<tr>
-				<td align="right"><button id="save">Save</button></td>
-				<td align="left"><span id="status"></span></td>
 			</tr>
 		</tbody>
 	</table>
@@ -298,6 +374,7 @@
 	<p>Licensed under the BSD 3-Clause License. See <a href="https://github.com/pmario/file-backups/blob/master/LICENSE" rel="nofollow">LICENSE</a>.</p>
 
 	<script src="../libs/validate.js"></script>
+	<script src="select-menu.js"></script>
 	<script src="settings.js"></script>
 </body>
 

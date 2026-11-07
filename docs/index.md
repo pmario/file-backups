@@ -44,6 +44,14 @@ To install, **go to: [Mozilla AddOn Store](https://addons.mozilla.org/de/firefox
 
 If you want to help with the AddOn development. Have a look at the [Beta-versions](https://github.com/pmario/file-backups/releases).
 
+### Popup too small?
+
+Firefox's default zoom (Settings → **Zoom**) enlarges web pages but
+not add-on popups. By default (**Auto**) the File Backups popup uses
+the same zoom. To choose a fixed size instead, use about:addons →
+**File Backups** → **Preferences** → **Popup size** (100 % to 200 %).
+
+
 ## File Storage Locations
 
 ### Main File Limitations
