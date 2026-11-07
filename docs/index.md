@@ -15,6 +15,8 @@ How to use File Backups in your wiki:
 
 - [File Backups for TiddlyWiki 5](tw5.html)
 - [File Backups for TiddlyWiki Classic](classic.html)
+- [Advanced setup](advanced-setup.html): wikis outside the Downloads folder
+- [After uninstalling](uninstalled.html): what stays in your wiki
 
 ## Requirements
 
@@ -42,7 +44,7 @@ For an overview of this add on please see the introduction video: https://youtu.
 
 To install, **go to: [Mozilla AddOn Store](https://addons.mozilla.org/de/firefox/addon/file-backups/)**
 
-If you want to help with the AddOn development. Have a look at the [Beta-versions](https://github.com/pmario/file-backups/releases).
+If you want to help with the AddOn development. Have a look at the [Beta-versions](https://github.com/pmario/file-backups/releases) and how to [install a beta](beta-install.html).
 
 ### Popup too small?
 
@@ -50,7 +52,6 @@ Firefox's default zoom (Settings → **Zoom**) enlarges web pages but
 not add-on popups. By default (**Auto**) the File Backups popup uses
 the same zoom. To choose a fixed size instead, use about:addons →
 **File Backups** → **Preferences** → **Popup size** (100 % to 200 %).
-
 
 ## File Storage Locations
 
@@ -66,6 +67,8 @@ It's a good idea to keep your TiddlyWiki in it's own subfolder. So, you'll end u
 
  - `C:\Users\<name>\Downloads\myWikis\todo.html` or
  - `C:\Users\<name>\Downloads\myWikis\notes.html`
+
+Want your wikis somewhere else, for example on another drive or in a cloud-synced folder? See [Advanced setup](advanced-setup.html).
  
 ### The Backup Folder (Optional)
 
@@ -114,7 +117,7 @@ With the very first save, the plugin detects a new wiki, an "out of order" backu
 ## News and History
 
  - Information about the latest version can be found at: [News/History](https://pmario.github.io/file-backups/news/latest)
- - Older versions: TODO
+ - Older versions: [0.9.x](news/0-9.html) · [0.4.x](news/archive/0-4.html)
 
 ## Links
  
