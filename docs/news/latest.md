@@ -1,56 +1,108 @@
 [← Home](https://pmario.github.io/file-backups)
 
-TLDR; This info is important for you, IF your PC is always on, your browser is never restarted, your TW tabs are always open _and_ you use file-backups plugin V0.3.5 or earlier.
+# File Backups 0.9.x
 
-If _all_ of this is true for you, I highly recommend to go on reading if you don't want to loose some data!
+A Firefox extension that saves your TiddlyWiki to disk and keeps a
+rotating set of backups next to it. Works with both **TiddlyWiki 5**
+and **TiddlyWiki Classic**. Single-user, file-based, no cloud. Open
+your `*.html` wiki from `file://` and the extension takes care of the
+rest.
 
-**Restart your browser, so the new version can be activated!**
+## How it works
 
-## V0.4.0 What's New
+Each save writes the wiki to its current location, then drops a rotated
+backup into a `twBackups/` folder beside it. The rotation is a slightly
+modified Tower of Hanoi — by default 9 backup slots, so the most recent
+saves stay close at hand and the oldest still go back hundreds of edits.
 
- - The plugin, if downloaded in the background, will only be installed and activated at browser restart
- - Memory leak fixed for frequently saved huge TWs
- - File-Backups AddOn only uses 1 icon - The browser "diamond" icon
- - The "diamond" icon gets a "blue" !-indicator
-   - The drop-down will show eg: new version ;)
- - An "out of order" backup is created if a TiddlyWiki is saved for the first time
-   - Only different names are detected.
-   - If the AddOn is uninstalled and installed again the first save will create an "out of order" backup per new name.
- - Backups are activated by default if the AddOn is installed
- - Default number of backups was increased from 6 to 7
- - The plugin Options setting site was updated
- - AddOn should work for "FireFox for Android"
-   - At least it does for me ;)
+## What's in 0.9.x
 
+How to use each feature is described in the guides:
+[TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html) · [TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html).
 
-## More details
+### Save milestone
 
-FireFox has switched to a 4 week release cycle starting with FF 71. That means I have to test file-backups compatibility even more frequently than it was needed with the 6 week release cycle.
+An extra, labelled snapshot next to the rotating backups, which the
+rotation never overwrites. Every milestone is also listed inside the
+wiki. ([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#save-milestone) ·
+[TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html#save-milestone))
 
-I do test file-backups V0.3.5 and (V0.3.10 beta) with FF-stable, FF-developer edition, FF-nightly and Cliqz browser as soon as a new "stable" release will be activated.
-AND
-Most of the time, some days prior to a new stable release. ... Just to be sure it still works.
+### Backup overview
 
-We need to update file-backups V0.3.5 plugin to V0.4.0 because it will contain a much better update behaviour.
+Lists this wiki's rotating backups and milestones with date, size and
+an estimated total, each linked to its file, plus a button to open the
+backup folder. ([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#backup-overview) ·
+[TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html#backup-overview))
 
-At the moment, it's possible to loose data, if the AddOn is updated in the background, because of some oversights in early days V0.3.5.
+### Reminders
 
-Users, that use file-backups V0.3.10 beta [1] shouldn't run into the edge-case described below. See point 1) at What's New below.
+Three optional reminders, **off by default**: no milestone for too
+long, too many backup files, too much disk space. Global defaults in
+the AddOn options, per-wiki overrides in the wiki. The AddOn only
+informs — it never deletes your files.
+([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#reminders) ·
+[TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html#reminders))
 
-File-Backups plugin is only active for tabs with a file:/// URL
+### Folder sync
 
-Data-loss is possible if:
+Compares the backup folder with the AddOn's records: marks deleted
+files as missing and adds backups it didn't know yet, for example after
+reinstalling the AddOn. ([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#folder-sync) ·
+[TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html#folder-sync))
 
- - Your PC is always on _and_
- - Your browser is never closed / restarted _and_
- - Your TiddlyWiki tabs are open all the time _and_
- - Browser AddOns are updated automatically
+### Opening a backup
 
- - Browser update in the background _may_ cause problems, but I don't have evidence about this atm.
+When you open a backup or milestone file, the wiki shows which backup
+it is, with a link back to the main wiki.
+([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#opening-a-backup) ·
+[TiddlyWiki Classic](https://pmario.github.io/file-backups/classic.html#opening-a-backup))
 
-It's edge-cases, but I know that there are some users, that use TWs that way. ...
+### Save As and optional toolbar buttons
 
- - The easiest way to be safe for those users is to restart the browser, once the AddOn is updated
+TiddlyWiki 5 only: save a copy anywhere in your Downloads folder, and
+choose which toolbar buttons are shown.
+([TiddlyWiki 5](https://pmario.github.io/file-backups/tw5.html#save-as))
 
-The problem at the moment is, that there is no visible indication, that a new AddOn version has been installed and activated. (Sorry about that!)
+### Local file access warning
 
+Since Firefox 153, extensions need permission to access local files.
+If it's off, the toolbar icon shows **!** and the popup explains how to
+turn it on. ([Home](https://pmario.github.io/file-backups/index.html#allow-access-to-local-files-firefox-153))
+
+### Backup-directory validation
+
+If you change the backup folder name in the popup or preferences, the
+field is checked live and shows an inline error if you enter something
+the browser would refuse to write to.
+
+## Installation
+
+Install from the Firefox Add-ons listing:
+[addons.mozilla.org/en-US/firefox/addon/file-backups](https://addons.mozilla.org/en-US/firefox/addon/file-backups/).
+
+If you want the latest beta builds, grab the signed `.xpi` from the
+[FileBackups GitHub Repository](https://github.com/pmario/file-backups/releases)
+and drop it into Firefox's about:addons.
+
+## Update notifications
+
+The toolbar icon shows a small `↻` badge when a new release is
+available. Click the icon and the popup explains which version, with
+[View] linking to the release notes and [Got it] to dismiss.
+
+By default, only stable releases trigger a notification (via Firefox's
+built-in extension auto-update). Tick **Check for Beta Updates** in the
+extension's preferences to also be notified when a beta is published —
+the extension then checks for new betas once every 12 hours, plus each
+time you open the popup.
+
+The extension makes no telemetry calls and shares no data with third
+parties. Your wiki content never leaves your machine — the optional
+beta update check is the only network request, and only fires when
+you've opted in.
+
+## Feedback and bugs
+
+[FileBackups GitHub Repository](https://github.com/pmario/file-backups/issues)
+
+[← Home](https://pmario.github.io/file-backups)

@@ -35,20 +35,10 @@ const BACKUP_DIR = "twBackups";
 // is the parallel signal for AMO-installed users; both feed the same
 // storage.local.updateAvailable shape so the popup chip handles both uniformly.
 const VERSION_URL = "https://pmario.github.io/file-backups/version.json";
-const WHATSNEW_BASE_URL = "https://pmario.github.io/file-backups/news";
+// Release notes of the current release. version.json's `url` field can
+// point elsewhere; this is the default for the popup [View] button.
+const WHATSNEW_URL = "https://pmario.github.io/file-backups/news/latest.html";
 const UPDATE_CHECK_THROTTLE_MS = 12 * 60 * 60 * 1000; // 12h between automatic checks
-
-// Build the What's New URL for an installed version: "0.10.0-beta.1" → "<base>/0-10.html".
-// Used as the [What's New] footer link target when no update is currently
-// flagged (i.e. the user is on the latest version, or auto-check has not run
-// yet). When an update IS flagged, version.json's `url` field takes precedence.
-function whatsNewUrlForVersion(version) {
-	const cleaned = String(version || "").trim().replace(/^v/i, "").split("+")[0].split("-")[0];
-	const parts = cleaned.split(".");
-	const major = parts[0] || "0";
-	const minor = parts[1] || "0";
-	return WHATSNEW_BASE_URL + "/" + major + "-" + minor + ".html";
-}
 
 var path,
 	osInfo;
@@ -124,7 +114,7 @@ async function handleUpdateAvailable(details) {
 			updateAvailable: {
 				latest: details.version,
 				beta: false,
-				url: whatsNewUrlForVersion(details.version),
+				url: WHATSNEW_URL,
 				fetchedAt: Date.now(),
 				source: "amo"
 			}
@@ -367,7 +357,7 @@ async function checkForUpdate({force = false} = {}) {
 	const updateAvailable = {
 		latest: remote,
 		beta: data.beta === true,
-		url: data.url || whatsNewUrlForVersion(remote),
+		url: data.url || WHATSNEW_URL,
 		fetchedAt: Date.now(),
 		source: "fetch"
 	};
@@ -469,7 +459,7 @@ function handleMessages(message, sender, sendResponse) {
 				updateAvailable: {
 					latest: isBeta ? "0.10.0-beta.1" : "0.10.0",
 					beta: isBeta,
-					url: WHATSNEW_BASE_URL + "/0-10.html",
+					url: WHATSNEW_URL,
 					fetchedAt: Date.now(),
 					source: "test"
 				},

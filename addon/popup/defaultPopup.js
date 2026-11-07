@@ -61,18 +61,8 @@ browser.storage.local.get({popupScale: "auto"})
 	.then((items) => popupFactor(items.popupScale))
 	.then(setPopupFactor, () => {});
 
-const WHATSNEW_BASE = "https://pmario.github.io/file-backups/news";
-
-// Build the per-minor What's New URL for the installed version. Same shape as
-// background.js's whatsNewUrlForVersion. Used by the [What's New] footer link
-// when no live updateAvailable is set.
-function whatsNewUrlForInstalledVersion() {
-	const cleaned = String(manifest.version || "").trim().replace(/^v/i, "").split("+")[0].split("-")[0];
-	const parts = cleaned.split(".");
-	const major = parts[0] || "0";
-	const minor = parts[1] || "0";
-	return WHATSNEW_BASE + "/" + major + "-" + minor + ".html";
-}
+// [What's New] / [View] target: the release notes of the current release.
+const WHATSNEW_URL = "https://pmario.github.io/file-backups/news/latest.html";
 
 function readForm() {
 	return {
@@ -122,7 +112,7 @@ async function renderUpdateUI() {
 		chipLabelNode.textContent = (upd.beta ? "What's New → " : "Update available → ") + upd.latest;
 		chipNode.hidden = false;
 		chipViewBtnNode.onclick = function () {
-			browser.tabs.create({url: upd.url || whatsNewUrlForInstalledVersion()});
+			browser.tabs.create({url: upd.url || WHATSNEW_URL});
 			window.close();
 		};
 		chipDismissBtnNode.onclick = async function () {
@@ -137,7 +127,7 @@ async function renderUpdateUI() {
 	}
 
 	const label = upd && upd.latest ? "What's New → " + upd.latest : "What's New";
-	const url = (upd && upd.url) || whatsNewUrlForInstalledVersion();
+	const url = (upd && upd.url) || WHATSNEW_URL;
 	footerInfoBtnNode.textContent = label;
 	footerInfoBtnNode.onclick = function () {
 		browser.tabs.create({url});
