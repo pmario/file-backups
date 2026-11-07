@@ -5,9 +5,10 @@
  * script. Runs in the page's JavaScript context so it can reach config, store,
  * story, saveChanges, ... It mirrors the TW5 milestone modal:
  *
- *   - entry points: <<fileBackupsMilestone>> button after <<saveChanges>> in
- *     the SideBarOptions shadow, a "milestone" backstage task (works even when
- *     the user has customised SideBarOptions) and the Alt+M shortcut.
+ *   - entry points: a "save milestone" button rendered after every
+ *     <<saveChanges>> (also in customised SideBarOptions; hidden with the
+ *     chkFileBackupsMilestoneButton option), a "milestone" backstage task and
+ *     the Alt+M shortcut.
  *   - modal: label (optional, max 40 chars, used in the filename), one-line
  *     description, [Save milestone], last 5 milestones.
  *   - entries are stored in the "Milestones" tiddler, one "ts: value" line
@@ -555,24 +556,79 @@
 	var LABEL = "save milestone";
 	var PROMPT = "Save a milestone snapshot of this wiki (Alt+M)";
 
+	var BUTTON_CLASS = "button fileBackupsMilestoneButton";
+
+	function hasMilestoneButton(place) {
+		for (var n = place && place.firstChild; n; n = n.nextSibling) {
+			if (n.nodeType === 1 && /\bfileBackupsMilestoneButton\b/.test(n.className)) return true;
+		}
+		return false;
+	}
+
 	root.config.macros.fileBackupsMilestone = {
 		label: LABEL,
 		prompt: PROMPT,
 		handler: function (place, macroName, params) {
 			if (root.readOnly) return;
-			root.createTiddlyButton(place, params[0] || this.label, params[1] || this.prompt, function () {
+			// Already rendered next to <<saveChanges>> (see below), e.g. when a
+			// wiki added <<fileBackupsMilestone>> to its own SideBarOptions.
+			if (hasMilestoneButton(place)) return;
+			root.createTiddlyButton(place, (params && params[0]) || this.label, (params && params[1]) || this.prompt, function () {
 				openModal();
 				return false;
-			});
+			}, BUTTON_CLASS);
 		}
 	};
 
-	// Sidebar: after <<saveChanges>> in the shadow. A customised (real)
-	// SideBarOptions tiddler is left alone — backstage + Alt+M still work.
-	var shadows = root.config.shadowTiddlers;
-	if (shadows && typeof shadows.SideBarOptions === "string" &&
-		shadows.SideBarOptions.indexOf("<<fileBackupsMilestone>>") === -1) {
-		shadows.SideBarOptions = shadows.SideBarOptions.replace("<<saveChanges>>", "<<saveChanges>><<fileBackupsMilestone>>");
+	// Option: show the button after <<saveChanges>> (default on). A normal
+	// Classic option — listed in AdvancedOptions, stored in a cookie or in
+	// SystemSettings like chkAutoSave. Defined before main() runs
+	// loadOptions(), so a stored "false" overrides the default.
+	var OPTION = "chkFileBackupsMilestoneButton";
+	var OPTION_DESC = "Show the File Backups 'save milestone' button after 'save changes'";
+	if (root.tw && root.tw.options && typeof root.tw.options.define === "function") {
+		root.tw.options.define(OPTION, true, OPTION_DESC);
+	} else if (root.config.options) {
+		if (root.config.options[OPTION] === undefined) root.config.options[OPTION] = true;
+		if (root.config.optionsDesc) root.config.optionsDesc[OPTION] = OPTION_DESC;
+	}
+
+	// Sidebar: render the button right after every <<saveChanges>>, by
+	// wrapping its handler. This works for the SideBarOptions shadow and for
+	// wikis with their own SideBarOptions (classic.tiddlywiki.com), and
+	// changes no tiddler — after uninstall + reload the button is gone.
+	// An explicit <<fileBackupsMilestone>> still renders when the option is off.
+	var saveMacro = root.config.macros.saveChanges;
+	if (saveMacro && typeof saveMacro.handler === "function" && !saveMacro.handler.fileBackupsWrapped) {
+		var originalSaveHandler = saveMacro.handler;
+		var wrappedSaveHandler = function (place) {
+			var result = originalSaveHandler.apply(this, arguments);
+			try {
+				if (root.config.options[OPTION] !== false) {
+					root.config.macros.fileBackupsMilestone.handler(place, "fileBackupsMilestone", []);
+				}
+			} catch (err) {}
+			return result;
+		};
+		wrappedSaveHandler.fileBackupsWrapped = true;
+		saveMacro.handler = wrappedSaveHandler;
+	}
+
+	// Ticking the option redraws the sidebar right away.
+	var optionMacro = root.config.macros.option;
+	if (optionMacro && typeof optionMacro.propagateOption === "function" && !optionMacro.propagateOption.fileBackupsWrapped) {
+		var originalPropagate = optionMacro.propagateOption;
+		var wrappedPropagate = function (opt) {
+			var result = originalPropagate.apply(this, arguments);
+			if (opt === OPTION && typeof root.refreshDisplay === "function") {
+				try {
+					root.refreshDisplay(["SideBarOptions"]);
+				} catch (err) {}
+			}
+			return result;
+		};
+		wrappedPropagate.fileBackupsWrapped = true;
+		optionMacro.propagateOption = wrappedPropagate;
 	}
 
 	// Backstage task. backstage.init() reads config.backstageTasks in main(),

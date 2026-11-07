@@ -24,10 +24,15 @@ AddOn is active; the AddOn's rotating backups replace it.
 
 A milestone is an extra snapshot that the rotation never overwrites.
 
-- Click **save milestone** in the sidebar (below *save changes*), use
-  the **milestone** entry in the backstage menu, or press **Alt+M**.
-  If you customised `SideBarOptions`, the sidebar button isn't added;
-  use the backstage menu or Alt+M.
+- Click **save milestone** (shown below every *save changes* button,
+  also in a customised `SideBarOptions`), use the **milestone** entry in
+  the backstage menu, or press **Alt+M**.
+- To hide the button, untick `chkFileBackupsMilestoneButton` in
+  backstage → **tweak** (the `AdvancedOptions` tiddler). Like every
+  Classic option this is stored in a browser cookie, so it applies to
+  all your local Classic wikis. For one wiki only, add
+  `|chkFileBackupsMilestoneButton|false|` to its `SystemSettings`
+  tiddler. The backstage entry and Alt+M keep working.
 - Enter an optional **Label** (up to 40 characters, used in the file
   name) and a one-line **Description**, then **Save milestone**.
   Enter saves, Escape closes the dialog.
